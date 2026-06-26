@@ -1,0 +1,454 @@
+export default function SICAppLandingPage() {
+  const audiences = [
+    "Bares",
+    "Restaurantes",
+    "Adegas",
+    "Eventos",
+    "Mercados",
+    "Conveniências",
+  ];
+
+  const steps = [
+    {
+      number: "01",
+      title: "Monte sua cotação",
+      text: "Selecione os produtos e quantidades que sua operação precisa em poucos toques.",
+    },
+    {
+      number: "02",
+      title: "Envie para vários distribuidores",
+      text: "Dispare sua cotação para vários distribuidores ao mesmo tempo, sem repetir pedido um por um no WhatsApp.",
+    },
+    {
+      number: "03",
+      title: "Receba e negocie",
+      text: "Os distribuidores respondem no WhatsApp e dali vocês negociam preço, prazo e condições diretamente.",
+    },
+  ];
+
+  const benefits = [
+    {
+      title: "Mais rapidez para o comprador",
+      text: "O comprador envia uma vez e recebe cotações de várias distribuidoras com muito mais agilidade.",
+    },
+    {
+      title: "Melhor para o time interno",
+      text: "A distribuidora organiza melhor a rotina de quem passa o dia respondendo cotação e reduz a chance de perder venda por demora no atendimento.",
+    },
+    {
+      title: "Avaliação que gera confiança",
+      text: "O cliente pode avaliar a experiência, com pontos positivos e negativos, ajudando a destacar quem atende melhor.",
+    },
+  ];
+
+  const buyerItems = [
+    "Montar e enviar cotações no app",
+    "Receber contato de vários distribuidores com mais agilidade",
+    "Economizar mais abrindo novas frentes de cotação",
+  ];
+
+  const distributorFeatures = [
+    {
+      label: "Recebe solicitações de cotação pelo app",
+      vitrine: true,
+      operacional: true,
+      enterprise: true,
+    },
+    {
+      label: "Perfil e portfólio cadastrados",
+      vitrine: true,
+      operacional: true,
+      enterprise: true,
+    },
+    {
+      label: "Recebimento via painel e WhatsApp",
+      vitrine: true,
+      operacional: true,
+      enterprise: true,
+    },
+    {
+      label: "Métricas básicas no painel",
+      vitrine: true,
+      operacional: true,
+      enterprise: true,
+    },
+    {
+      label: "Contatos comerciais cadastrados",
+      vitrine: "1 contato",
+      operacional: "Até 5",
+      enterprise: "Ilimitados",
+    },
+    {
+      label: "Destaque e prioridade nas cotações",
+      vitrine: false,
+      operacional: true,
+      enterprise: true,
+    },
+    {
+      label: "Histórico de cotações recebidas",
+      vitrine: false,
+      operacional: true,
+      enterprise: true,
+    },
+    {
+      label: "Múltiplos usuários por distribuidora",
+      vitrine: false,
+      operacional: true,
+      enterprise: true,
+    },
+    {
+      label: "Mais velocidade de resposta comercial",
+      vitrine: false,
+      operacional: true,
+      enterprise: true,
+    },
+    {
+      label: "Redução de perda por atraso no WhatsApp",
+      vitrine: false,
+      operacional: true,
+      enterprise: true,
+    },
+    {
+      label: "Hierarquia de acesso",
+      vitrine: false,
+      operacional: false,
+      enterprise: true,
+    },
+    {
+      label: "Relatórios avançados e desempenho",
+      vitrine: false,
+      operacional: false,
+      enterprise: true,
+    },
+    {
+      label: "Suporte prioritário e customização",
+      vitrine: false,
+      operacional: false,
+      enterprise: true,
+    },
+  ];
+
+  const distributorPlans = [
+    {
+      key: "vitrine",
+      name: "Entrada",
+      price: "R$ 299/mês",
+      subtitle: "Para começar a receber cotações pela plataforma",
+      highlight: false,
+    },
+    {
+      key: "operacional",
+      name: "Profissional",
+      price: "R$ 799/mês",
+      subtitle: "Para dar mais agilidade ao time que responde cotação no dia a dia",
+      highlight: false,
+    },
+    {
+      key: "enterprise",
+      name: "Avançado",
+      price: "R$ 1.499/mês",
+      subtitle: "Para a distribuidora que quer o time mais organizado, mais rápido e com menos perda de venda",
+      highlight: true,
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#F5F7FB] text-[#0F172A]">
+      <section className="relative overflow-hidden bg-[#0F172A] text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.22),transparent_30%),radial-gradient(circle_at_left,rgba(148,163,184,0.16),transparent_25%)]" />
+        <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:40px_40px]" />
+
+        <div className="relative mx-auto max-w-7xl px-6 pt-6 lg:px-8">
+          <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
+            <div className="text-sm font-bold uppercase tracking-[0.16em] text-white/85">
+              SIC
+            </div>
+            <a
+              href="/login"
+              className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/15"
+            >
+              Entrar
+            </a>
+          </div>
+        </div>
+
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-6 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-24">
+          <div>
+            <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-sm font-medium text-white/85">
+              SIC • App B2B de Cotação de Bebidas
+            </span>
+            <h1 className="mt-6 max-w-4xl text-4xl font-black uppercase leading-[0.95] tracking-tight md:text-6xl">
+              Receba mais cotações, responda mais rápido e perca menos vendas.
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg text-white/75">
+              A SIC organiza as cotações da distribuidora para responder mais rápido e perder menos venda. Para quem compra, fica mais fácil pedir cotação para vários lugares ao mesmo tempo.
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-4">
+              <a
+                href="#formulario"
+                className="rounded-2xl bg-[#2563EB] px-6 py-3 font-bold text-white shadow-lg shadow-blue-500/20 transition hover:translate-y-[-1px]"
+              >
+                Fazer parte
+              </a>
+              <a
+                href="#como-funciona"
+                className="rounded-2xl border border-white/20 px-6 py-3 font-medium text-white/90 transition hover:bg-white/10"
+              >
+                Ver como funciona
+              </a>
+              <a
+                href="/login"
+                className="rounded-2xl border border-white/20 px-6 py-3 font-medium text-white/90 transition hover:bg-white/10"
+              >
+                Entrar no sistema
+              </a>
+            </div>
+
+            <div className="mt-8 flex flex-wrap gap-3 text-sm font-bold uppercase tracking-[0.16em] text-slate-300">
+              <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">iOS</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">Android</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">B2B</span>
+            </div>
+          </div>
+
+          <div className="flex justify-center lg:justify-end">
+            <div className="relative w-full max-w-[460px]">
+              <div className="absolute -left-6 top-10 hidden h-24 w-24 rounded-full bg-[#93C5FD]/20 blur-2xl md:block" />
+              <div className="absolute -right-4 bottom-10 hidden h-28 w-28 rounded-full bg-[#2563EB]/20 blur-2xl md:block" />
+
+              <div className="mx-auto grid max-w-[420px] grid-cols-2 gap-4">
+                <div className="translate-y-8 rounded-[2rem] border border-white/10 bg-[#111827] p-3 shadow-2xl shadow-black/30">
+                  <div className="rounded-[1.5rem] bg-[#F5F7FB] p-4 text-[#0F172A]">
+                    <div className="h-2 w-16 rounded-full bg-[#0B1220]/10" />
+                    <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+                      <div className="text-xs font-bold uppercase text-[#2563EB]">Cotação</div>
+                      <div className="mt-2 text-sm font-bold">Whisky • Gin • Vodka</div>
+                      <div className="mt-3 space-y-2">
+                        <div className="h-2 rounded-full bg-[#0B1220]/10" />
+                        <div className="h-2 w-4/5 rounded-full bg-[#0B1220]/10" />
+                        <div className="h-2 w-3/5 rounded-full bg-[#0B1220]/10" />
+                      </div>
+                    </div>
+                    <div className="mt-3 rounded-2xl bg-[#0B1220] px-4 py-3 text-center text-sm font-bold text-white">
+                      Enviar para distribuidores
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[2rem] border border-white/10 bg-[#111827] p-3 shadow-2xl shadow-black/30">
+                  <div className="rounded-[1.5rem] bg-[#F5F7FB] p-4 text-[#0F172A]">
+                    <div className="text-xs font-bold uppercase text-[#60A5FA]">Respostas</div>
+                    <div className="mt-3 space-y-3">
+                      <div className="rounded-2xl bg-white p-3 shadow-sm">
+                        <div className="text-sm font-bold">Distribuidora A</div>
+                        <div className="mt-1 text-xs text-slate-500">Resposta enviada no WhatsApp</div>
+                        <div className="mt-2 text-lg font-black">Cotação recebida</div>
+                      </div>
+                      <div className="rounded-2xl border border-[#BFDBFE]/80 bg-white p-3 shadow-sm opacity-80">
+                        <div className="text-sm font-bold">Distribuidora B</div>
+                        <div className="mt-1 text-xs text-slate-500">Negociação em andamento</div>
+                        <div className="mt-2 text-lg font-black">Prazo e preço em aberto</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-[#DBEAFE] bg-[#ECFDF5]">
+        <div className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
+          <p className="text-center text-sm font-bold uppercase tracking-[0.18em] text-slate-500">
+            Conecta quem compra com quem distribui
+          </p>
+          <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+            {audiences.map((item) => (
+              <div key={item} className="rounded-2xl border border-[#DBEAFE] bg-white px-4 py-5 text-center text-sm font-bold uppercase text-slate-700 shadow-sm">
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="como-funciona" className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+        <div className="max-w-3xl">
+          <span className="text-sm font-bold uppercase tracking-[0.18em] text-[#2563EB]">Como funciona</span>
+          <h2 className="mt-4 text-3xl font-black uppercase md:text-5xl">Mais pedidos para o distribuidor. Mais agilidade para o comprador.</h2>
+          <p className="mt-5 text-lg text-slate-600">
+            A SIC foi feita para ajudar a distribuidora a lidar melhor com a rotina de responder cotação, principalmente no time interno. Enquanto isso, o comprador consegue pedir cotação para vários lugares sem perder tempo.
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          {steps.map((step) => (
+            <div key={step.number} className="rounded-3xl border border-[#DBEAFE] bg-white p-6 shadow-sm">
+              <div className="text-sm font-black uppercase tracking-[0.18em] text-[#2563EB]">{step.number}</div>
+              <h3 className="mt-4 text-xl font-bold uppercase">{step.title}</h3>
+              <p className="mt-3 leading-relaxed text-slate-600">{step.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-[#ECFDF5] py-20">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="max-w-2xl">
+            <span className="text-sm font-bold uppercase tracking-[0.18em] text-[#2563EB]">Por que usar</span>
+            <h2 className="mt-4 text-3xl font-black uppercase md:text-5xl">Mais agilidade para quem responde cotação. Mais opção para quem compra.</h2>
+          </div>
+
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            {benefits.map((feature) => (
+              <div key={feature.title} className="rounded-3xl border border-[#DBEAFE] bg-white p-6 shadow-sm">
+                <h3 className="text-xl font-bold uppercase">{feature.title}</h3>
+                <p className="mt-3 leading-relaxed text-slate-600">{feature.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+        <div className="max-w-3xl">
+          <span className="text-sm font-bold uppercase tracking-[0.18em] text-[#2563EB]">Planos</span>
+          <h2 className="mt-4 text-3xl font-black uppercase md:text-5xl">Comprador entra grátis. A distribuidora é quem cresce dentro da plataforma.</h2>
+          <p className="mt-5 text-lg text-slate-600">
+            O comprador entra grátis para gerar volume de cotações. A distribuidora escolhe o plano conforme o quanto quer ajudar seu time a responder melhor, ganhar agilidade e perder menos venda.
+          </p>
+        </div>
+
+        <div className="mt-10 rounded-3xl border border-[#DBEAFE] bg-white p-6 shadow-sm">
+          <div className="grid gap-6 md:grid-cols-4 md:items-start">
+            <div className="rounded-3xl border border-[#DBEAFE] bg-[#ECFDF5] p-6">
+              <div className="text-sm font-bold uppercase tracking-[0.18em] text-[#2563EB]">Comprador grátis</div>
+              <div className="mt-4 text-2xl font-black uppercase">Grátis</div>
+              <p className="mt-3 text-slate-600">
+                Para bares, restaurantes, adegas, eventos e mercados que querem pedir cotação com mais facilidade e falar com vários distribuidores ao mesmo tempo.
+              </p>
+              <ul className="mt-5 space-y-3 text-slate-700">
+                {buyerItems.map((item) => (
+                  <li key={item} className="flex gap-3">
+                    <span className="mt-1 h-2.5 w-2.5 rounded-full bg-[#2563EB]" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="md:col-span-3 overflow-hidden rounded-3xl border border-[#DBEAFE]">
+              <div className="grid grid-cols-[1.25fr_1fr_1fr_1fr] border-b border-[#DBEAFE] bg-[#0B1220] text-white">
+                <div className="p-4 text-sm font-bold uppercase tracking-[0.16em] text-slate-300">Recursos</div>
+                {distributorPlans.map((plan) => (
+                  <div key={plan.key} className={`p-4 ${plan.highlight ? "bg-[#111827]" : ""}`}>
+                    <div className={`text-xs font-bold uppercase tracking-[0.16em] ${plan.highlight ? "text-[#60A5FA]" : "text-slate-300"}`}>
+                      {plan.name}
+                    </div>
+                    <div className="mt-2 text-xl font-black uppercase">{plan.price}</div>
+                    <div className="mt-2 text-sm text-slate-300">{plan.subtitle}</div>
+                    {plan.highlight && (
+                      <div className="mt-3 inline-flex rounded-full bg-[#2563EB] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white">
+                        Plano mais completo
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="divide-y divide-[#DBEAFE] bg-white">
+                {distributorFeatures.map((feature) => (
+                  <div key={feature.label} className="grid grid-cols-[1.25fr_1fr_1fr_1fr] items-center">
+                    <div className="p-4 font-medium text-slate-700">{feature.label}</div>
+                    <div className="p-4 text-center text-slate-700">{feature.vitrine === true ? "✓" : feature.vitrine === false ? "—" : feature.vitrine}</div>
+                    <div className="p-4 text-center text-slate-700">{feature.operacional === true ? "✓" : feature.operacional === false ? "—" : feature.operacional}</div>
+                    <div className="p-4 text-center text-slate-700">{feature.enterprise === true ? "✓" : feature.enterprise === false ? "—" : feature.enterprise}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-6 py-20 lg:px-8">
+        <div className="rounded-[2rem] border border-[#DBEAFE] bg-white p-8 shadow-sm md:p-12">
+          <div className="grid gap-8 md:grid-cols-[1.1fr_0.9fr] md:items-center">
+            <div>
+              <span className="text-sm font-bold uppercase tracking-[0.18em] text-[#2563EB]">Aplicativo SIC</span>
+              <h2 className="mt-4 text-3xl font-black uppercase md:text-4xl">Faça cotação de onde você quiser.</h2>
+              <p className="mt-4 text-lg text-slate-600">
+                O app já existe para o comprador montar e enviar cotação de qualquer lugar, com mais praticidade no dia a dia e mais velocidade para falar com vários distribuidores.
+              </p>
+            </div>
+            <div className="rounded-3xl bg-[#0B1220] p-6 text-white">
+              <div className="text-sm font-bold uppercase tracking-[0.18em] text-[#60A5FA]">No aplicativo</div>
+              <ul className="mt-4 space-y-3 text-slate-200">
+                <li>• Faça cotações de onde estiver</li>
+                <li>• Envie para vários distribuidores</li>
+                <li>• Ganhe mais rapidez no retorno</li>
+                <li>• Tenha tudo mais prático no dia a dia</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="formulario" className="bg-[#0B1220] py-20 text-white">
+        <div className="mx-auto max-w-5xl px-6 lg:px-8">
+          <div className="text-center">
+            <span className="text-sm font-bold uppercase tracking-[0.18em] text-[#60A5FA]">Próximo passo</span>
+            <h2 className="mt-4 text-3xl font-black uppercase md:text-5xl">
+              Fazer parte da SIC.
+            </h2>
+            <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-300">
+              Se você quer comprar, pode criar sua conta. Se é distribuidora e quer entrar na plataforma, fale com a gente por e-mail.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
+            <div className="rounded-[2rem] border border-white/10 bg-white p-6 text-slate-900 shadow-2xl shadow-black/30 md:p-8">
+              <div className="text-sm font-bold uppercase tracking-[0.18em] text-[#2563EB]">Sou comprador</div>
+              <h3 className="mt-3 text-2xl font-black uppercase">Quero cotar</h3>
+              <p className="mt-3 text-slate-600">
+                Crie sua conta e comece a pedir cotação para vários distribuidores com mais facilidade.
+              </p>
+              <div className="mt-6 space-y-3 text-slate-700">
+                <div>• Cadastro simples</div>
+                <div>• Acesso pelo site e aplicativo</div>
+                <div>• Mais rapidez para pedir cotação</div>
+              </div>
+              <a
+                href="/register"
+                className="mt-8 inline-flex w-full items-center justify-center rounded-2xl bg-[#2563EB] px-6 py-3 font-bold text-white transition hover:opacity-90"
+              >
+                Criar conta
+              </a>
+            </div>
+
+            <div className="rounded-[2rem] border border-white/10 bg-white p-6 text-slate-900 shadow-2xl shadow-black/30 md:p-8">
+              <div className="text-sm font-bold uppercase tracking-[0.18em] text-[#2563EB]">Sou distribuidora</div>
+              <h3 className="mt-3 text-2xl font-black uppercase">Quero fazer parte</h3>
+              <p className="mt-3 text-slate-600">
+                Fale com o nosso time para entender como entrar na plataforma e começar a receber cotações.
+              </p>
+              <div className="mt-6 space-y-3 text-slate-700">
+                <div>• Entenda os planos</div>
+                <div>• Veja como funciona a entrada</div>
+                <div>• Tire dúvidas com o time</div>
+              </div>
+              <a
+                href="mailto:contato@sic.com.br?subject=Quero%20fazer%20parte%20da%20SIC"
+                className="mt-8 inline-flex w-full items-center justify-center rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] px-6 py-3 font-bold text-[#0F172A] transition hover:bg-[#EAF2FF]"
+              >
+                Enviar e-mail
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

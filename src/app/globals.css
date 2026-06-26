@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+html {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
+body {
+  overflow-y: auto;
+}
+
+/* ─── Variáveis de fonte ────────────────────────────────────────────────── */
+:root {
+  --background: #f9fafb;
+  --foreground: #111827;
+
+  --font-display:   var(--font-jakarta), system-ui, sans-serif;
+  --font-sans:      var(--font-jakarta), system-ui, sans-serif;
+  --font-plex-mono: var(--font-mono), ui-monospace, monospace;
+}
+
+/* ─── Antialiasing global ───────────────────────────────────────────────── */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+/* Mínimos semânticos — zero especificidade, utilities do Tailwind sobrescrevem */
+:where(h1)                  { font-weight: 800; }
+:where(h2, h3)              { font-weight: 700; }
+:where(h4, h5, h6)          { font-weight: 600; }
+:where(label)               { font-weight: 600; }
+:where(button)              { font-weight: 700; }
+:where(input, select, textarea) { font-weight: 500; }
+
+:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Remove 300ms tap delay e flash azul em todos os mobiles */
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ─── Peso mínimo para textos pequenos ──────────────────────────────────── */
+/* :where() = zero especificidade, utilities do Tailwind sobrescrevem        */
+:where(.text-xs) {
+  font-weight: 500;
+}
+
+/* ─── Dados numéricos — IBM Plex Mono ──────────────────────────────────── */
+.font-data {
+  font-family: var(--font-plex-mono);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.font-data-sm {
+  font-family: var(--font-plex-mono);
+  font-weight: 500;
+  font-size: 0.75rem;
+  letter-spacing: 0;
+}
+
+/* ─── Headings — Montserrat ─────────────────────────────────────────────── */
+/* H1: 700 Bold · H2: 600 SemiBold                                          */
+.font-heading {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.font-subheading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* ─── Logo HUBBY — Montserrat Bold 700 ─────────────────────────────────── */
+.logo-hubby {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

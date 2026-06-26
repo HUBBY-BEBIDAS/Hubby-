@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls C:/Users/Murilo/saas-bebidas/guadalupe-drink/*.ts)",
+      "Bash(npx prisma:*)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc *)",
+      "Bash(ls /c/Users/Murilo/saas-bebidas/guadalupe-drink/src/app/api/orders/[group_id]/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(PRISMA_FORCE_COLOR=0 npx prisma db push)",
+      "Bash(grep -r 'const.*= \\(await\\\\|= await\\\\|= $transaction' /c/Users/Murilo/saas-bebidas/guadalupe-drink/src/app/api '--include=*.ts')"
+    ]
+  }
+}

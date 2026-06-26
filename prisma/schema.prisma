@@ -1,0 +1,757 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  client
+  distributor_admin
+  distributor_collaborator
+  platform_admin
+}
+
+enum Plan {
+  starter
+  pro
+  business
+  enterprise
+}
+
+enum PlanPeriod {
+  monthly
+  quarterly
+  semiannual
+  annual
+}
+
+enum PlanStatus {
+  trial
+  active
+  suspended
+  cancelled
+  pending_payment
+}
+
+enum ClientPlan {
+  free
+  pro
+}
+
+enum OrderStatus {
+  sent
+  viewed
+  approved
+  rejected
+  delivered
+}
+
+enum QuotationStatus {
+  draft
+  open
+  closed
+  expired
+}
+
+enum CredentialStatus {
+  pending
+  approved
+  rejected_auto
+  rejected_manual
+}
+
+enum EstablishmentType {
+  bar
+  restaurant
+  adega
+  hotel
+  nightclub
+  supermarket
+  convenience
+  other
+}
+
+enum PackagingType {
+  garrafa
+  lata
+  barril
+  caixa
+  fardo
+  tetra_pak
+  other
+}
+
+enum PromotionType {
+  percentage
+  fixed_price
+}
+
+enum FreightType {
+  free
+  fixed
+  by_weight
+  by_value
+  custom
+}
+
+enum ReferralStatus {
+  pending
+  converted
+  expired
+}
+
+enum SponsoredSlotType {
+  top_ranking
+  category_highlight
+  search_boost
+}
+
+enum RoleScope {
+  all_clients
+  assigned_clients
+}
+
+enum ImageSource {
+  hubby_catalog
+  distributor_upload
+  none
+}
+
+enum ProductCategory {
+  beer
+  whisky
+  vodka
+  gin
+  rum
+  cachaca
+  wine
+  sparkling
+  energy
+  soft_drink
+  water
+  juice
+  other
+}
+
+model User {
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  password_hash      String?
+  provider           String    @default("credentials")
+  role               Role
+  two_factor_enabled Boolean   @default(false)
+  two_factor_secret  String?
+  created_at         DateTime  @default(now())
+  last_login_at      DateTime?
+
+  client           Client?
+  distributor      Distributor?
+  notifications    Notification[]
+  team_memberships DistributorTeamMember[]
+
+  @@map("users")
+}
+
+model Client {
+  id                        String            @id @default(uuid())
+  user_id                   String            @unique
+  company_name              String
+  cnpj                      String            @unique
+  establishment_type        EstablishmentType
+  delivery_city             String
+  delivery_state            String            @db.VarChar(2)
+  delivery_address_full     String
+  delivery_zip_code         String?           // CEP sem formatação (8 dígitos)
+  referral_code             String?    @unique // código único de indicação do comprador
+  is_ambassador             Boolean    @default(false)
+  pro_expires_at            DateTime?          // Pro ganho por indicações (separado do Stripe)
+  responsible_name          String
+  whatsapp                  String
+  max_delivery_days_default Int?
+  client_plan               ClientPlan   @default(free)
+  client_plan_status        PlanStatus   @default(active)
+  client_plan_period        PlanPeriod   @default(monthly)
+  stripe_customer_id        String?      @unique
+  stripe_subscription_id    String?      @unique
+  pref_email_monthly_report Boolean      @default(true)
+  pref_email_price_alerts   Boolean      @default(true)
+  hubby_score               Int          @default(500)
+  hubby_status              String       @default("approved_clean") // "approved_clean" | "approved_with_warning"
+  last_used_address_id      String?      // último endereço Pro selecionado em cotação
+
+  user               User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  quotations         Quotation[]
+  orders             Order[]
+  client_credentials ClientCredential[]
+  price_alerts       PriceAlert[]
+  members            ClientMember[]
+  reviews            Review[]
+  monthly_reports    MonthlyReport[]
+  payment_feedbacks  PaymentFeedback[]
+  favorite_distributors FavoriteDistributor[]
+  onboarding_survey     OnboardingSurvey?
+  cart_items            CartItem[]
+  delivery_addresses    ClientDeliveryAddress[]
+  referrals_made        Referral[]
+  wishlist_items        WishlistItem[]
+
+  @@map("clients")
+}
+
+model WishlistItem {
+  id                  String   @id @default(uuid())
+  client_id           String
+  product_key         String   // "brand|name|category|packaging_type|volume_ml"
+  product_name        String
+  brand               String
+  category            String
+  packaging_type      String
+  packaging_volume_ml Int
+  image_url           String?
+  created_at          DateTime @default(now())
+
+  client Client @relation(fields: [client_id], references: [id], onDelete: Cascade)
+
+  @@unique([client_id, product_key])
+  @@index([client_id])
+  @@map("wishlist_items")
+}
+
+model ClientDeliveryAddress {
+  id           String   @id @default(uuid())
+  client_id    String
+  label        String   @default("Estabelecimento")
+  zip_code     String   // 8 dígitos, sem traço
+  city         String
+  state        String   @db.VarChar(2)
+  address_full String
+  is_default   Boolean  @default(false)
+  created_at   DateTime @default(now())
+
+  client Client @relation(fields: [client_id], references: [id], onDelete: Cascade)
+
+  @@index([client_id])
+  @@map("client_delivery_addresses")
+}
+
+model MonthlyReport {
+  id                       String   @id @default(uuid())
+  client_id                String
+  month                    Int      // 1–12
+  year                     Int
+  total_quotations         Int      @default(0)
+  total_orders             Int      @default(0)
+  total_value_cents        Int      @default(0)
+  estimated_savings_cents  Int      @default(0)
+  avg_distributors_per_quotation Float @default(0)
+  top_distributors         Json     @default("[]")   // [{ name, order_count, value_cents }]
+  top_products             Json     @default("[]")   // [{ product_name, brand, quote_count }]
+  email_sent               Boolean  @default(false)
+  created_at               DateTime @default(now())
+
+  client Client @relation(fields: [client_id], references: [id], onDelete: Cascade)
+
+  @@unique([client_id, month, year])
+  @@map("monthly_reports")
+}
+
+model Distributor {
+  id                          String     @id @default(uuid())
+  user_id                     String     @unique
+  company_name                String
+  cnpj                        String     @unique
+  plan                        Plan       @default(starter)
+  plan_status                 PlanStatus @default(trial)
+  plan_period                 PlanPeriod @default(monthly)
+  responsible_name            String     @default("")
+  whatsapp_commercial         String
+  email_commercial            String
+  logo_key                    String?
+  address                     Json?
+  payment_methods             String[]   @default([])
+  payment_terms_days          Int[]      @default([])
+  cnpj_status                 String?
+  cnpj_verified_at            DateTime?
+  credit_score_minimum        Int        @default(500)
+  credit_accepts_restrictions Boolean    @default(false)
+  credit_min_cnpj_months      Int        @default(6)
+  approved_by_admin           Boolean    @default(false)
+  stripe_customer_id          String?    @unique
+  stripe_subscription_id      String?    @unique
+  webhook_url                   String?
+  webhook_secret                String?
+  webhook_enabled               Boolean    @default(false)
+  erp_api_key                   String?    @unique
+  referral_code_used            String?    // código de indicação usado no cadastro
+  onboarding_completed          Boolean    @default(false)
+  onboarding_step               Int        @default(1)
+  average_rating                Float?
+  review_count                  Int        @default(0)
+  business_hours                Json?      // {"monday":"08:00-18:00","tuesday":"08:00-18:00",...,"sunday":null}
+  accepts_orders_outside_hours  Boolean    @default(false)
+  lat                           Float?
+  lng                           Float?
+  created_at                    DateTime   @default(now())
+
+  user               User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  products           Product[]
+  delivery_regions   DeliveryRegion[]
+  orders             Order[]
+  client_credentials ClientCredential[]
+  webhook_logs       WebhookLog[]
+  reviews            Review[]
+  payment_feedbacks  PaymentFeedback[]
+  promotions          Promotion[]
+  favorited_by        FavoriteDistributor[]
+  near_expiry_offers  NearExpiryOffer[]
+  cart_items          CartItem[]
+  sponsored_slots     SponsoredSlot[]
+  team_members        DistributorTeamMember[]
+  referral            Referral?
+
+  @@map("distributors")
+}
+
+model WebhookLog {
+  id             String      @id @default(uuid())
+  distributor_id String
+  event          String      // "order_created" | "order_status_updated" | "test"
+  url            String
+  status_code    Int?
+  success        Boolean
+  response_body  String?
+  error_message  String?
+  created_at     DateTime    @default(now())
+
+  distributor Distributor @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+
+  @@index([distributor_id, created_at(sort: Desc)])
+  @@map("webhook_logs")
+}
+
+model Product {
+  id                  String          @id @default(uuid())
+  distributor_id      String
+  name                String
+  category            ProductCategory
+  brand               String
+  packaging_type      PackagingType
+  packaging_volume_ml Int
+  price_cents         Int
+  available           Boolean         @default(true)
+  image_url           String?
+  image_source        ImageSource     @default(none)
+  price_updated_at    DateTime        @default(now())
+  created_at          DateTime        @default(now())
+
+  // ── Gestão de vencimentos (Enterprise) ──────────────────────────────
+  expiry_date          DateTime? // data de vencimento do lote atual
+  expiry_alert_days    Int       @default(30) // dias antes de alertar
+  expiry_discount_pct  Float?    // desconto automático quando próximo ao vencimento
+  is_near_expiry       Boolean   @default(false) // calculado pelo cron
+  expiry_notified_at   DateTime? // quando a distribuidora foi notificada
+  urgency_notified_at  DateTime? // quando compradores foram notificados (≤7 dias)
+
+  distributor        Distributor      @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+  promotions         Promotion[]
+  near_expiry_offers NearExpiryOffer[]
+  cart_items         CartItem[]
+  sponsored_slots    SponsoredSlot[]
+
+  @@map("products")
+}
+
+model DeliveryRegion {
+  id                       String      @id @default(uuid())
+  distributor_id           String
+  city                     String
+  state                    String      @db.VarChar(2)
+  delivery_days_business   Int
+  route_days               String[]
+  cutoff_time              String      @db.VarChar(5)
+  minimum_order_cents      Int         @default(0)
+  freight_type             FreightType @default(free)
+  freight_value_cents      Int?
+  free_freight_above_cents Int?
+  freight_notes            String?
+
+  distributor Distributor @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+
+  @@unique([distributor_id, city, state])
+  @@map("delivery_regions")
+}
+
+model Quotation {
+  id                String          @id @default(uuid())
+  client_id         String
+  status            QuotationStatus @default(draft)
+  max_delivery_days Int?
+  delivery_city     String
+  delivery_state    String          @db.VarChar(2)
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @updatedAt
+
+  delivery_lat  Float?
+  delivery_lng  Float?
+
+  client Client          @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  items  QuotationItem[]
+  orders Order[]
+
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id           String          @id @default(uuid())
+  quotation_id String
+  product_name String
+  brand        String
+  category     ProductCategory
+  packaging    String
+  quantity     Int
+
+  quotation Quotation @relation(fields: [quotation_id], references: [id], onDelete: Cascade)
+
+  @@map("quotation_items")
+}
+
+model Order {
+  id                      String      @id @default(uuid())
+  quotation_id            String
+  client_id               String
+  distributor_id          String
+  group_id                String
+  status                  OrderStatus @default(sent)
+  total_cents             Int
+  items_snapshot          Json?       // snapshot dos itens no momento do envio
+  estimated_delivery_date DateTime?
+  send_channel            String?     // "whatsapp" | "email" | "both" — canal escolhido pelo comprador
+  sent_at                 DateTime    @default(now())
+  updated_at              DateTime    @updatedAt
+
+  quotation        Quotation        @relation(fields: [quotation_id], references: [id])
+  client           Client           @relation(fields: [client_id], references: [id])
+  distributor      Distributor      @relation(fields: [distributor_id], references: [id])
+  payment_feedback PaymentFeedback?
+
+  @@index([group_id])
+  @@map("orders")
+}
+
+model PaymentFeedback {
+  id             String    @id @default(uuid())
+  order_id       String    @unique
+  distributor_id String
+  client_id      String
+  status         String    @default("pending") // "pending" | "ok" | "problem" | "auto_ok"
+  problem_type   String?   // "late_payment" | "no_payment" | "returned_goods" | "other"
+  notes          String?
+  notified_at    DateTime?
+  responded_at   DateTime?
+  created_at     DateTime  @default(now())
+
+  order       Order       @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  distributor Distributor @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+  client      Client      @relation(fields: [client_id], references: [id], onDelete: Cascade)
+
+  @@index([distributor_id, status])
+  @@index([client_id])
+  @@map("payment_feedbacks")
+}
+
+model ClientCredential {
+  id              String           @id @default(uuid())
+  client_id       String
+  distributor_id  String
+  status          CredentialStatus @default(pending)
+  credit_score    Int?
+  bureau_response Json?            // salvo para auditoria — nunca exposto na API
+  rejection_reason String?         // razão interna da reprovação automática
+  review_note     String?          // nota do distribuidor na decisão manual
+  payment_note    String?          // anotação interna do distribuidor sobre prazo (ex: "28 dias — cliente antigo")
+  approved_at     DateTime?
+  expires_at      DateTime?
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @updatedAt
+
+  client      Client      @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  distributor Distributor @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+
+  @@unique([client_id, distributor_id])
+  @@map("client_credentials")
+}
+
+model Notification {
+  id         String   @id @default(uuid())
+  user_id    String
+  type       String   // "credential_approved" | "credential_rejected" | "credential_pending" | "new_lead"
+  title      String
+  body       String
+  read       Boolean  @default(false)
+  data       Json?
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, read])
+  @@map("notifications")
+}
+
+model PriceAlert {
+  id           String   @id @default(uuid())
+  client_id    String
+  brand        String
+  category     String
+  // Guarda o menor preço visto — ao atualizar produto, compara e notifica se caiu abaixo
+  last_seen_price_cents Int?
+  created_at   DateTime @default(now())
+
+  client Client @relation(fields: [client_id], references: [id], onDelete: Cascade)
+
+  @@unique([client_id, brand, category])
+  @@map("price_alerts")
+}
+
+model ClientMember {
+  id           String    @id @default(uuid())
+  client_id    String
+  user_id      String?   // null enquanto pendente (convite por e-mail)
+  email        String
+  role         String    @default("member") // "owner" | "member"
+  status       String    @default("pending") // "pending" | "active"
+  invited_at   DateTime  @default(now())
+  accepted_at  DateTime?
+
+  client Client @relation(fields: [client_id], references: [id], onDelete: Cascade)
+
+  @@unique([client_id, email])
+  @@map("client_members")
+}
+
+model Review {
+  id             String   @id @default(uuid())
+  client_id      String
+  distributor_id String
+  order_id       String?
+
+  rating                 Int   // 1–5 — nota geral
+  rating_response_time   Int?  // 1–5 — prazo de resposta
+  rating_service_quality Int?  // 1–5 — qualidade do atendimento
+  rating_price_fairness  Int?  // 1–5 — preço justo
+  comment                String? @db.VarChar(300)
+
+  created_at DateTime @default(now())
+
+  client      Client      @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  distributor Distributor @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+
+  @@unique([client_id, distributor_id, order_id])
+  @@index([distributor_id])
+  @@map("reviews")
+}
+
+model PriceHistory {
+  id             String   @id @default(uuid())
+  product_id     String
+  distributor_id String
+  client_id      String
+  price_cents    Int
+  recorded_at    DateTime @default(now())
+
+  @@index([product_id, distributor_id, recorded_at(sort: Desc)])
+  @@index([client_id, product_id])
+  @@map("price_history")
+}
+
+model Waitlist {
+  id         String   @id @default(uuid())
+  client_id  String?
+  email      String
+  city       String
+  state      String   @db.VarChar(2)
+  created_at DateTime @default(now())
+
+  @@unique([email, city, state])
+  @@index([city, state])
+  @@map("waitlist")
+}
+
+model FavoriteDistributor {
+  id             String   @id @default(uuid())
+  client_id      String
+  distributor_id String
+  created_at     DateTime @default(now())
+
+  client      Client      @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  distributor Distributor @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+
+  @@unique([client_id, distributor_id])
+  @@index([client_id])
+  @@map("favorite_distributors")
+}
+
+model Promotion {
+  id                      String        @id @default(uuid())
+  distributor_id          String
+  product_id              String
+  type                    PromotionType
+  discount_percentage     Float?
+  promotional_price_cents Int?
+  starts_at               DateTime
+  ends_at                 DateTime
+  description             String?
+  active                  Boolean       @default(true)
+  created_at              DateTime      @default(now())
+
+  distributor Distributor @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@index([distributor_id, active])
+  @@index([product_id, active])
+  @@map("promotions")
+}
+
+model NearExpiryOffer {
+  id             String   @id @default(cuid())
+  distributor_id String
+  product_id     String
+  expires_at     DateTime
+  discount_pct   Int      // 0–99
+  stock          Int
+  active         Boolean  @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  distributor Distributor @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@index([distributor_id, active])
+  @@index([expires_at, active])
+  @@map("near_expiry_offers")
+}
+
+model CoverageCity {
+  id         String   @id @default(uuid())
+  city       String
+  state      String   @db.VarChar(2)
+  active     Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([city, state])
+  @@map("coverage_cities")
+}
+
+model OnboardingSurvey {
+  id                  String    @id @default(uuid())
+  client_id           String    @unique
+  orders_per_month    String?
+  monthly_spend_range String?
+  distributors_count  String?
+  referral_source     String?
+  main_pain           String?
+  beverage_types      Json      @default("[]")
+  completed_at        DateTime?
+  skipped             Boolean   @default(false)
+  created_at          DateTime  @default(now())
+
+  client Client @relation(fields: [client_id], references: [id], onDelete: Cascade)
+
+  @@map("onboarding_surveys")
+}
+
+model CartItem {
+  id             String      @id @default(uuid())
+  client_id      String
+  product_id     String
+  distributor_id String
+  quantity       Int         @default(1)
+  added_at       DateTime    @default(now())
+
+  client      Client      @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  distributor Distributor @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+
+  @@unique([client_id, product_id, distributor_id])
+  @@index([client_id])
+  @@map("cart_items")
+}
+
+model ProductCatalog {
+  id                  String          @id @default(uuid())
+  name                String
+  brand               String
+  category            ProductCategory
+  packaging_type      PackagingType
+  packaging_volume_ml Int
+  image_url           String
+  created_at          DateTime        @default(now())
+
+  @@index([brand, name])
+  @@map("product_catalog")
+}
+
+model Referral {
+  id                      String         @id @default(uuid())
+  referrer_id             String
+  referred_distributor_id String         @unique
+  referral_code           String
+  status                  ReferralStatus @default(pending)
+  reward_days_granted     Int?
+  created_at              DateTime       @default(now())
+  converted_at            DateTime?
+
+  referrer    Client      @relation(fields: [referrer_id], references: [id], onDelete: Cascade)
+  distributor Distributor @relation(fields: [referred_distributor_id], references: [id], onDelete: Cascade)
+
+  @@index([referrer_id])
+  @@index([referral_code])
+  @@map("referrals")
+}
+
+model SponsoredSlot {
+  id             String            @id @default(uuid())
+  distributor_id String
+  product_id     String?
+  slot_type      SponsoredSlotType
+  region_city    String
+  region_state   String            @db.VarChar(2)
+  starts_at      DateTime
+  ends_at        DateTime
+  budget_cents   Int
+  impressions    Int               @default(0)
+  clicks         Int               @default(0)
+  active         Boolean           @default(false)
+  created_at     DateTime          @default(now())
+
+  distributor Distributor  @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+  product     Product?     @relation(fields: [product_id], references: [id], onDelete: SetNull)
+
+  @@index([distributor_id, active])
+  @@index([slot_type, region_city, region_state, active])
+  @@map("sponsored_slots")
+}
+
+model DistributorTeamMember {
+  id                         String    @id @default(uuid())
+  distributor_id             String
+  user_id                    String?
+  invited_email              String
+  role_label                 String    @default("vendedor") // "vendedor" | "supervisor" | "atendimento"
+  role_scope                 RoleScope @default(all_clients)
+  assigned_client_ids        String[]  @default([])
+  sales_target_monthly_cents Int?
+  status                     String    @default("pending") // "pending" | "active" | "inactive"
+  invited_at                 DateTime  @default(now())
+  joined_at                  DateTime?
+
+  distributor Distributor @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+  user        User?       @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@unique([distributor_id, invited_email])
+  @@index([distributor_id, status])
+  @@index([user_id])
+  @@map("distributor_team_members")
+}
