@@ -11,16 +11,16 @@ import { useCart } from "@/contexts/CartContext";
 type NavLink = { href: string; label: string; roles: string[] };
 
 const NAV_LINKS: NavLink[] = [
-  { href: "/cotacao",              label: "Nova Cotação",   roles: ["client"] },
-  { href: "/historico",            label: "Histórico",      roles: ["client"] },
-  { href: "/catalogo",             label: "Catálogo",       roles: ["client"] },
-  { href: "/lista-desejos",        label: "Lista de Desejos", roles: ["client"] },
-  { href: "/painel",               label: "Painel",       roles: ["distributor_admin", "distributor_collaborator"] },
-  { href: "/painel/promocoes",     label: "Promoções",    roles: ["distributor_admin"] },
-  { href: "/painel/vencimentos",   label: "Vencimentos",  roles: ["distributor_admin"] },
-  { href: "/painel/patrocinio",    label: "Patrocínio",   roles: ["distributor_admin"] },
-  { href: "/painel/equipe",        label: "Equipe",       roles: ["distributor_admin", "distributor_collaborator"] },
-  { href: "/admin",                label: "Admin",        roles: ["platform_admin"] },
+  { href: "/cotacao", label: "Nova Cotação", roles: ["client"] },
+  { href: "/historico", label: "Histórico", roles: ["client"] },
+  { href: "/catalogo", label: "Catálogo", roles: ["client"] },
+  { href: "/lista-desejos", label: "Lista de Desejos", roles: ["client"] },
+  { href: "/painel", label: "Painel", roles: ["client", "distributor_admin", "distributor_collaborator"] },
+  { href: "/painel/promocoes", label: "Promoções", roles: ["distributor_admin"] },
+  { href: "/painel/vencimentos", label: "Vencimentos", roles: ["distributor_admin"] },
+  { href: "/painel/patrocinio", label: "Patrocínio", roles: ["distributor_admin"] },
+  { href: "/painel/equipe", label: "Equipe", roles: ["distributor_admin", "distributor_collaborator"] },
+  { href: "/admin", label: "Admin", roles: ["platform_admin"] },
 ];
 
 type Notification = {
@@ -36,23 +36,23 @@ type Notification = {
 const DISTRIBUTOR_ROLES = ["distributor_admin", "distributor_collaborator"];
 
 const NOTIF_LABEL: Record<string, string> = {
-  new_order:                 "Nova cotação",
-  new_credential_request:    "Ficha cadastral",
-  credential_auto_approved:  "Cliente aprovado",
+  new_order: "Nova cotação",
+  new_credential_request: "Ficha cadastral",
+  credential_auto_approved: "Cliente aprovado",
   credential_pending_review: "Revisão manual",
-  credential_approved:       "Credencial aprovada",
-  credential_rejected:       "Credencial recusada",
-  order_status_updated:      "Status do pedido",
-  price_drop:                "Queda de preço",
-  near_expiry_alert:         "Vencimento próximo",
-  urgent_expiry_alert:       "Urgente — vencimento",
-  buyer_expiry_alert:        "Oferta por tempo limitado",
+  credential_approved: "Credencial aprovada",
+  credential_rejected: "Credencial recusada",
+  order_status_updated: "Status do pedido",
+  price_drop: "Queda de preço",
+  near_expiry_alert: "Vencimento próximo",
+  urgent_expiry_alert: "Urgente — vencimento",
+  buyer_expiry_alert: "Oferta por tempo limitado",
 };
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60_000);
-  if (m < 1)  return "agora mesmo";
+  if (m < 1) return "agora mesmo";
   if (m < 60) return `há ${m} min`;
   const h = Math.floor(m / 60);
   if (h < 24) return `há ${h}h`;
@@ -84,11 +84,11 @@ export function Navbar() {
   const router = useRouter();
   const token = useApiToken();
 
-  const [menuOpen, setMenuOpen]       = useState(false);
-  const [bellOpen, setBellOpen]       = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [markingAll, setMarkingAll]   = useState(false);
+  const [markingAll, setMarkingAll] = useState(false);
 
   const bellRef = useRef<HTMLDivElement>(null);
 
@@ -145,7 +145,7 @@ export function Navbar() {
   async function handleNotifClick(n: Notification) {
     setBellOpen(false);
     if (!n.read && token) {
-      apiFetch("/api/notifications", { method: "PATCH", token, body: JSON.stringify({ ids: [n.id] }) }).catch(() => {});
+      apiFetch("/api/notifications", { method: "PATCH", token, body: JSON.stringify({ ids: [n.id] }) }).catch(() => { });
       setNotifications((prev) => prev.map((x) => x.id === n.id ? { ...x, read: true } : x));
       setUnreadCount((c) => Math.max(0, c - 1));
     }
@@ -261,7 +261,7 @@ export function Navbar() {
                             !n.read ? "border-l-2 border-[#22C55E] bg-[#F0FDF4]/60" : "border-l-2 border-transparent",
                           ].join(" ")}
                         >
-                                        <div className="min-w-0 flex-1">
+                          <div className="min-w-0 flex-1">
                             <p className={`truncate text-xs font-bold ${n.read ? "text-slate-700" : "text-[#0F172A]"}`}>
                               {n.title}
                             </p>

@@ -209,6 +209,21 @@ async function main() {
     console.log(`  ♻️  Removidos ${existingUsers.length} usuário(s) anteriores do seed.`);
   }
 
+  // ── 1.5. Configura cidades de cobertura ativa ──────────────────────────────
+  await prisma.coverageCity.deleteMany({});
+  const citiesToCover = [
+    { city: "São Paulo", state: "SP", active: true },
+    { city: "Santo André", state: "SP", active: true },
+    { city: "São Bernardo do Campo", state: "SP", active: true },
+    { city: "São Caetano do Sul", state: "SP", active: true },
+    { city: "Guarulhos", state: "SP", active: true },
+    { city: "Osasco", state: "SP", active: true },
+    { city: "Campinas", state: "SP", active: true },
+    { city: "Santos", state: "SP", active: true },
+  ];
+  await prisma.coverageCity.createMany({ data: citiesToCover });
+  console.log(`  📍 ${citiesToCover.length} cidades de cobertura ativa criadas.`);
+
   // ── 2. Hash de senha (custo 10 — adequado para seed/dev) ──────────────────
   const passwordHash = await bcrypt.hash("senha123", 10);
 

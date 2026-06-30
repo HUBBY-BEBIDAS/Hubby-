@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Navbar } from "@/components/Navbar";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
+import { ClientDashboard } from "./client-dashboard";
 import {
   Building2, CheckCircle, AlertTriangle, XCircle, Check, X,
 } from "lucide-react";
@@ -64,18 +65,18 @@ type OrderItem = {
 
 
 const STATUS_LABEL: Record<string, string> = {
-  sent:      "Aguardando",
-  viewed:    "Visualizado",
-  approved:  "Aprovado",
-  rejected:  "Recusado",
+  sent: "Aguardando",
+  viewed: "Visualizado",
+  approved: "Aprovado",
+  rejected: "Recusado",
   delivered: "Entregue",
 };
 
 const STATUS_BADGE: Record<string, "yellow" | "blue" | "green" | "red" | "gray"> = {
-  sent:      "yellow",
-  viewed:    "blue",
-  approved:  "green",
-  rejected:  "red",
+  sent: "yellow",
+  viewed: "blue",
+  approved: "green",
+  rejected: "red",
   delivered: "gray",
 };
 
@@ -103,9 +104,11 @@ function MetricCard({ label, value, sub, accent }: {
 }
 
 export default function PainelPage() {
-  useSession({ required: true });
+  const { data: session } = useSession({ required: true });
   const router = useRouter();
   const token = useApiToken();
+
+  const role = (session?.user as any)?.role;
 
   const [dash, setDash] = useState<DashboardData | null>(null);
   const [orders, setOrders] = useState<OrderItem[]>([]);
@@ -227,6 +230,17 @@ export default function PainelPage() {
       setFeedbacks((prev) => prev.filter((f) => f.order.id !== orderId));
       setProblemModal(null);
     }
+  }
+
+  if (role === "client") {
+    return (
+      <div className="flex min-h-screen flex-col bg-[#F5F7FB]">
+        <Navbar />
+        <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
+          <ClientDashboard />
+        </main>
+      </div>
+    );
   }
 
   if (loading) {
@@ -461,10 +475,10 @@ export default function PainelPage() {
               <div className="space-y-3">
                 {(
                   [
-                    { value: "late_payment",    label: "Atraso no pagamento" },
-                    { value: "no_payment",       label: "Não pagou" },
-                    { value: "returned_goods",   label: "Devolveu mercadoria" },
-                    { value: "other",            label: "Outro" },
+                    { value: "late_payment", label: "Atraso no pagamento" },
+                    { value: "no_payment", label: "Não pagou" },
+                    { value: "returned_goods", label: "Devolveu mercadoria" },
+                    { value: "other", label: "Outro" },
                   ] as const
                 ).map(({ value, label }) => (
                   <label key={value} className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#DBEAFE] px-4 py-3 hover:bg-[#F5F7FB]">
@@ -601,8 +615,8 @@ export default function PainelPage() {
                       </p>
                       <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-[#22C55E]/10 px-2 py-0.5 text-[10px] font-bold text-[#16A34A]">
                         <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden>
-                          <path d="M8 1.5L2 4v4c0 3.31 2.55 5.91 6 6.5 3.45-.59 6-3.19 6-6.5V4L8 1.5Z" fill="#16A34A" opacity=".2" stroke="#16A34A" strokeWidth="1.2" strokeLinejoin="round"/>
-                          <path d="M5.5 8l2 2 3-3" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M8 1.5L2 4v4c0 3.31 2.55 5.91 6 6.5 3.45-.59 6-3.19 6-6.5V4L8 1.5Z" fill="#16A34A" opacity=".2" stroke="#16A34A" strokeWidth="1.2" strokeLinejoin="round" />
+                          <path d="M5.5 8l2 2 3-3" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                         CNPJ verificado pela Hubby
                       </span>

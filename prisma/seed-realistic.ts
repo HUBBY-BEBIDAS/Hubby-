@@ -88,7 +88,7 @@ const DISTRIBUTORS = [
     responsible_name: "Roberto Silva",
     whatsapp_commercial: "11940001001",
     email_commercial: "comercial@silvaecia.com.br",
-    plan: "pro" as const,
+    plan: "enterprise" as const,
     price_factor: 0,
     business_hours: { monday:"08:00-18:00", tuesday:"08:00-18:00", wednesday:"08:00-18:00", thursday:"08:00-18:00", friday:"08:00-18:00", saturday:"08:00-12:00", sunday: null },
     regions: [{ city:"São Paulo", state:"SP", delivery_days_business:1, route_days:["monday","wednesday","friday"], cutoff_time:"15:00", minimum_order_cents:30000 }],
@@ -193,6 +193,22 @@ const DISTRIBUTORS = [
       { city:"Santos", state:"SP", delivery_days_business:2, route_days:["wednesday","friday"], cutoff_time:"11:00", minimum_order_cents:50000 },
     ],
   },
+  {
+    email: `abc${DIST_DOMAIN}`,
+    company_name: "Distribuidora ABC Santo André",
+    cnpj: "50000009000109",
+    responsible_name: "Marcelo Santo André",
+    whatsapp_commercial: "11940009009",
+    email_commercial: "comercial@abcsantoandre.com.br",
+    plan: "pro" as const,
+    price_factor: 1,
+    business_hours: { monday:"08:00-18:00", tuesday:"08:00-18:00", wednesday:"08:00-18:00", thursday:"08:00-18:00", friday:"08:00-18:00", saturday:"08:00-13:00", sunday: null },
+    regions: [
+      { city:"Santo André", state:"SP", delivery_days_business:1, route_days:["monday","wednesday","friday"], cutoff_time:"16:00", minimum_order_cents:30000 },
+      { city:"São Bernardo do Campo", state:"SP", delivery_days_business:2, route_days:["tuesday","thursday"], cutoff_time:"14:00", minimum_order_cents:40000 },
+      { city:"São Caetano do Sul", state:"SP", delivery_days_business:2, route_days:["tuesday","friday"], cutoff_time:"14:00", minimum_order_cents:40000 },
+    ],
+  },
 ] as const;
 
 // ─── Clientes ─────────────────────────────────────────────────────────────────
@@ -273,6 +289,21 @@ async function main() {
     await prisma.user.deleteMany({ where: { email: { in: allEmails } } });
     console.log(`  ♻️  Removidos ${existingUsers.length} usuário(s) anteriores do seed realista.`);
   }
+
+  // ── 0.5. Configura cidades de cobertura ativa ──────────────────────────────
+  await prisma.coverageCity.deleteMany({});
+  const citiesToCover = [
+    { city: "São Paulo", state: "SP", active: true },
+    { city: "Santo André", state: "SP", active: true },
+    { city: "São Bernardo do Campo", state: "SP", active: true },
+    { city: "São Caetano do Sul", state: "SP", active: true },
+    { city: "Guarulhos", state: "SP", active: true },
+    { city: "Osasco", state: "SP", active: true },
+    { city: "Campinas", state: "SP", active: true },
+    { city: "Santos", state: "SP", active: true },
+  ];
+  await prisma.coverageCity.createMany({ data: citiesToCover });
+  console.log(`  📍 ${citiesToCover.length} cidades de cobertura ativa criadas.`);
 
   // ── 1. Atualiza catálogo de produtos (upsert) ────────────────────────────
   for (const p of PRODUCT_CATALOG) {
