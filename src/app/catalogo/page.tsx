@@ -477,12 +477,12 @@ export default function CatalogoPage() {
       if (data.city)  setCity(data.city);
       if (data.state) setState(data.state);
 
-      // Descobre preço máximo para o slider
-      if (pg === 1 && data.products.length > 0) {
+      // Descobre preço máximo para o slider apenas no primeiro carregamento do catálogo
+      if (pg === 1 && data.products.length > 0 && priceMax === 100000) {
         const max = Math.max(...data.products.map((p) => p.min_price_cents));
         const rounded = Math.ceil(max / 1000) * 1000;
         setPriceMax(rounded);
-        setPriceRange((r) => r[1] === 100000 ? [0, rounded] : r);
+        setPriceRange([0, rounded]);
       }
     } catch { /* silencia */ }
     finally {
