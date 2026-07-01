@@ -146,6 +146,8 @@ model User {
   created_at         DateTime  @default(now())
   last_login_at      DateTime?
 
+  onboarding_responses Json?   // Respostas do questionário de onboarding de personalização
+
   client           Client?
   distributor      Distributor?
   notifications    Notification[]

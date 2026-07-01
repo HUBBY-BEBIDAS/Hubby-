@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { Inbox } from "lucide-react";
@@ -66,10 +67,13 @@ function SavingsChart({ monthly }: { monthly: MonthlyPoint[] }) {
 }
 
 export function ClientDashboard() {
+  const { data: session } = useSession();
   const token = useApiToken();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const onboardingSurveyCompleted = (session?.user as any)?.onboardingSurveyCompleted;
 
   useEffect(() => {
     if (!token) return;
@@ -110,18 +114,39 @@ export function ClientDashboard() {
 
   if (!data || data.order_count === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
-        <div className="mx-auto mb-3 text-slate-300 flex justify-center">
-          <Inbox size={32} />
-        </div>
-        <p className="mb-1 text-base font-semibold text-[#0F172A]">Nenhum dado de economia disponível</p>
-        <p className="text-sm font-medium text-slate-500">
-          Faça cotações e envie pedidos para acompanhar sua economia na plataforma.
-        </p>
-        <div className="mt-5">
-          <Link href="/cotacao">
-            <Button size="sm">Fazer cotação</Button>
-          </Link>
+      <div className="space-y-6">
+        {!onboardingSurveyCompleted && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span className="text-xl shrink-0 mt-0.5">💡</span>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-amber-900">Personalize sua experiência</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Responda a um rápido questionário para nos ajudar a encontrar melhores preços e recomendar os produtos certos para você.
+                </p>
+              </div>
+            </div>
+            <Link href="/onboarding-survey" className="shrink-0">
+              <Button size="sm" className="bg-amber-500 hover:bg-amber-600 border-none text-white font-bold shadow-none">
+                Responder agora →
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
+          <div className="mx-auto mb-3 text-slate-300 flex justify-center">
+            <Inbox size={32} />
+          </div>
+          <p className="mb-1 text-base font-semibold text-[#0F172A]">Nenhum dado de economia disponível</p>
+          <p className="text-sm font-medium text-slate-500">
+            Faça cotações e envie pedidos para acompanhar sua economia na plataforma.
+          </p>
+          <div className="mt-5">
+            <Link href="/cotacao">
+              <Button size="sm">Fazer cotação</Button>
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -129,6 +154,25 @@ export function ClientDashboard() {
 
   return (
     <div className="space-y-6">
+      {!onboardingSurveyCompleted && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <span className="text-xl shrink-0 mt-0.5">💡</span>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-amber-900">Personalize sua experiência</p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Responda a um rápido questionário para nos ajudar a encontrar melhores preços e recomendar os produtos certos para você.
+              </p>
+            </div>
+          </div>
+          <Link href="/onboarding-survey" className="shrink-0">
+            <Button size="sm" className="bg-amber-500 hover:bg-amber-600 border-none text-white font-bold shadow-none">
+              Responder agora →
+            </Button>
+          </Link>
+        </div>
+      )}
+
       {/* Title */}
       <div>
         <h1 className="text-2xl font-extrabold tracking-tight text-[#0F172A]">Painel do Comprador</h1>

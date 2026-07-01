@@ -10,6 +10,7 @@ declare module "next-auth" {
       role: Role;
       twoFactorVerified: boolean;
       profileComplete: boolean;
+      onboardingSurveyCompleted: boolean;
     };
   }
 
@@ -27,6 +28,7 @@ declare module "next-auth/jwt" {
     role: Role;
     twoFactorVerified: boolean;
     profileComplete: boolean;
+    onboardingSurveyCompleted: boolean;
     jti: string;
   }
 }

@@ -225,6 +225,19 @@ export const authOptions: NextAuthOptions = {
         token.profileComplete = true;
       }
 
+      // Sincroniza o preenchimento do questionário de onboarding de personalização
+      if (token.userId && (trigger === "update" || token.onboardingSurveyCompleted === undefined)) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.userId as string },
+            select: { onboarding_responses: true },
+          });
+          token.onboardingSurveyCompleted = !!dbUser?.onboarding_responses;
+        } catch {
+          token.onboardingSurveyCompleted = false;
+        }
+      }
+
       return token;
     },
 
@@ -233,6 +246,7 @@ export const authOptions: NextAuthOptions = {
       session.user.role = token.role;
       session.user.twoFactorVerified = token.twoFactorVerified;
       session.user.profileComplete = token.profileComplete as boolean;
+      session.user.onboardingSurveyCompleted = token.onboardingSurveyCompleted as boolean;
       return session;
     },
   },

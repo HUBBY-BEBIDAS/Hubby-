@@ -109,6 +109,7 @@ export default function PainelPage() {
   const token = useApiToken();
 
   const role = (session?.user as any)?.role;
+  const onboardingSurveyCompleted = (session?.user as any)?.onboardingSurveyCompleted;
 
   const [dash, setDash] = useState<DashboardData | null>(null);
   const [orders, setOrders] = useState<OrderItem[]>([]);
@@ -264,6 +265,27 @@ export default function PainelPage() {
       <Navbar />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
+
+        {/* Warning Banner Onboarding */}
+        {!onboardingSurveyCompleted && (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span className="text-xl shrink-0 mt-0.5">💡</span>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-amber-900">Personalize sua experiência</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Responda a um rápido questionário para nos ajudar a destacar seus produtos e otimizar suas vendas.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push("/onboarding-survey")}
+              className="shrink-0 rounded-xl bg-amber-500 hover:bg-amber-600 border-none px-4 py-2 text-xs font-bold text-white shadow-none active:scale-[0.98] transition-all"
+            >
+              Responder agora →
+            </button>
+          </div>
+        )}
 
         {/* ── Boleto pendente: bloqueia o painel ─────────────────────────── */}
         {dash?.plan_status === "pending_payment" && (
