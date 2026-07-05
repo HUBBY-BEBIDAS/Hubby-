@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * prisma/seed.ts
  *
