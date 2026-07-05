@@ -10,10 +10,15 @@ export function createBullConnection(): IORedis {
       "Em desenvolvimento, configure REDIS_URL ou teste o import com Redis disponível."
     );
   }
-  return new IORedis(url, {
+  const client = new IORedis(url, {
     maxRetriesPerRequest: null, // obrigatório para BullMQ workers
     enableReadyCheck: false,
+    connectTimeout: 5000,
   });
+  client.on("error", (err: Error) => {
+    console.warn("[queue] erro na conexão BullMQ/Redis:", err.message);
+  });
+  return client;
 }
 
 // ─── Fila de importação de produtos ──────────────────────────────────────────

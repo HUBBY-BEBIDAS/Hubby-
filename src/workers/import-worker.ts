@@ -28,9 +28,13 @@ import { markDistributorProductsUpdated } from "../lib/ranking-cache";
 // ─── Clientes compartilhados no worker ───────────────────────────────────────
 
 const prisma = new PrismaClient();
-const redis = new IORedis(process.env.REDIS_URL!, {
+const redis = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
+  connectTimeout: 2000,
+});
+redis.on("error", (err: Error) => {
+  console.warn("[worker-redis] erro no cliente Redis do worker:", err.message);
 });
 
 const BATCH_SIZE = 100; // processa N produtos por vez

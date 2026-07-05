@@ -16,7 +16,14 @@ function createRateLimiter(): RateLimiterRedis | RateLimiterMemory {
     // Importação dinâmica para evitar ciclo de dependência
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const IORedis = require("ioredis");
-    const client = new IORedis(url, { maxRetriesPerRequest: null, enableReadyCheck: false });
+    const client = new IORedis(url, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+      connectTimeout: 2000,
+    });
+    client.on("error", (err: Error) => {
+      console.warn("[rate-limit] Conexão Redis falhou ou erro no cliente:", err.message);
+    });
     return new RateLimiterRedis({ storeClient: client, ...RATE_LIMIT_CONFIG });
   }
 
