@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, FormEvent } from "react";
+import React, { useState, useEffect, useRef, FormEvent, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -277,7 +277,7 @@ function DoneStep({ coverageWarning, city, onGo }: { coverageWarning: boolean; c
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const token        = useApiToken();
@@ -405,12 +405,7 @@ export default function RegisterPage() {
       return;
     }
 
-    if (role === "client") {
-      setCoverageWarning(data.coverage_warning === true);
-      setStep("survey");
-    } else {
-      router.push("/painel");
-    }
+    router.push("/onboarding-survey");
   }
 
   if (step === "survey") {
@@ -805,5 +800,17 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-[#0B1220]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#22C55E] border-t-transparent" />
+      </div>
+    }>
+      <RegisterPageContent />
+    </Suspense>
   );
 }

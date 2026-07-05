@@ -18,7 +18,7 @@ interface SurveyStep {
 const CLIENT_STEPS: SurveyStep[] = [
   {
     key: "goals",
-    title: "Qual é seu principal objetivo utilizando o Hubby?",
+    title: "Qual é seu principal objetivo utilizando o Hub?",
     subtitle: "Selecione até 3 opções que melhor descrevem suas necessidades.",
     type: "multiple",
     maxChoices: 3,
@@ -92,7 +92,7 @@ const CLIENT_STEPS: SurveyStep[] = [
 const DISTRIBUTOR_STEPS: SurveyStep[] = [
   {
     key: "goals",
-    title: "O que você espera alcançar utilizando o Hubby?",
+    title: "O que você espera alcançar utilizando o Hub?",
     subtitle: "Selecione todas as opções que se aplicam.",
     type: "multiple",
     options: [
@@ -159,6 +159,7 @@ export default function OnboardingSurveyPage() {
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showWelcome, setShowWelcome] = useState(true);
 
   const currentStep = steps[currentStepIndex];
   const progressPct = Math.round((currentStepIndex / steps.length) * 100);
@@ -235,6 +236,56 @@ export default function OnboardingSurveyPage() {
     }
   };
 
+  if (showWelcome) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-start bg-[#F5F7FB] px-4 py-6">
+        {/* Header com Logo */}
+        <div className="mb-4 flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#22C55E]">
+            <svg className="h-3.5 w-3.5 text-white" viewBox="0 0 14 14" fill="none">
+              <rect x="1" y="1" width="5" height="8" rx="1" fill="currentColor" opacity="0.9" />
+              <rect x="8" y="1" width="5" height="4" rx="1" fill="currentColor" />
+              <rect x="8" y="7" width="5" height="6" rx="1" fill="currentColor" opacity="0.7" />
+            </svg>
+          </span>
+          <span className="text-sm font-black uppercase tracking-[0.2em] text-[#0F172A]">HUBBY</span>
+        </div>
+
+        <div className="w-full max-w-xl">
+          {/* Card de Boas-vindas */}
+          <div className="rounded-3xl border border-[#DBEAFE] bg-white p-6 shadow-sm transition-all duration-300 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#22C55E]/10 text-[#22C55E] text-2xl font-bold">
+              💡
+            </div>
+            <h2 className="text-[20px] font-bold leading-tight text-[#0F172A] sm:text-[22px]">
+              Vamos personalizar sua experiência!
+            </h2>
+            <p className="mt-4 text-xs font-medium text-slate-500 leading-relaxed">
+              Para garantir uma experiência incrível e sob medida na nossa plataforma, preparamos um rápido questionário de 1 minuto. Usaremos suas respostas para exibir gráficos, recomendações e métricas 100% personalizadas de acordo com as necessidades do seu perfil.
+            </p>
+
+            <div className="mt-6 flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => setShowWelcome(false)}
+                className="w-full rounded-xl bg-[#22C55E] py-2.5 text-sm font-bold text-white shadow-lg shadow-green-500/10 hover:bg-green-600 active:scale-[0.98] transition-all"
+              >
+                Começar
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/painel")}
+                className="text-xs font-semibold text-slate-400 hover:text-slate-600 py-1"
+              >
+                Responder mais tarde (ir para o painel)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-start bg-[#F5F7FB] px-4 py-6">
       {/* Header com Logo */}
@@ -309,6 +360,13 @@ export default function OnboardingSurveyPage() {
           {error && (
             <div className="mt-4 rounded-xl bg-red-50 p-3 text-center text-xs font-semibold text-red-700">
               {error}
+            </div>
+          )}
+
+          {/* Mensagem especial no último card */}
+          {currentStepIndex === steps.length - 1 && (
+            <div className="mt-4 rounded-xl bg-[#22C55E]/5 border border-[#22C55E]/20 p-3 text-center text-xs font-semibold text-[#16A34A]">
+              Estas perguntas servem para construir uma experiência personalizada, focada 100% nas suas necessidades na plataforma.
             </div>
           )}
 
