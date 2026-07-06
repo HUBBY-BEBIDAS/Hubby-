@@ -102,6 +102,7 @@ function createRealClient(): RedisLike {
     maxRetriesPerRequest: 1,
     enableReadyCheck: false,
     connectTimeout: 2000,
+    enableOfflineQueue: false,
   });
 
   // Suprime o evento de erro não tratado do ioredis — erros são capturados por operação

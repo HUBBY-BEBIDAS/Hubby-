@@ -17,9 +17,10 @@ function createRateLimiter(): RateLimiterRedis | RateLimiterMemory {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const IORedis = require("ioredis");
     const client = new IORedis(url, {
-      maxRetriesPerRequest: null,
+      maxRetriesPerRequest: 1,
       enableReadyCheck: false,
       connectTimeout: 2000,
+      enableOfflineQueue: false,
     });
     client.on("error", (err: Error) => {
       console.warn("[rate-limit] Conexão Redis falhou ou erro no cliente:", err.message);
@@ -60,9 +61,8 @@ export async function checkLoginRateLimit(ip: string): Promise<RateLimitResult> 
         retryAfterSeconds: Math.ceil(err.msBeforeNext / 1000),
       };
     }
-    // Erro inesperado de conexão — fail open em dev, fail closed em prod
-    if (process.env.NODE_ENV === "production") throw err;
-    console.error("[rate-limit] Erro inesperado:", err);
+    // Erro inesperado de conexão (Redis fora do ar, ECONNREFUSED, etc.) — fail open
+    console.error("[rate-limit] Erro inesperado / falha na conexão com Redis:", err);
     return { allowed: true };
   }
 }
