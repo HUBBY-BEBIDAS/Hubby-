@@ -11,7 +11,8 @@
     "test:watch": "jest --watch",
     "worker": "tsx src/workers/import-worker.ts",
     "worker:dev": "tsx watch src/workers/import-worker.ts",
-    "seed:realistic": "tsx prisma/seed-realistic.ts"
+    "seed:realistic": "tsx prisma/seed-realistic.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
