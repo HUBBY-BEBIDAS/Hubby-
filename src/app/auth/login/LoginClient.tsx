@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, FormEvent } from "react";
-import { signIn } from "next-auth/react";
+import { useState, FormEvent, useEffect } from "react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
@@ -11,6 +11,7 @@ export default function LoginClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
+  const { data: session, status } = useSession();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,6 +19,21 @@ export default function LoginClient() {
   const [showTotp, setShowTotp] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Redireciona usuários já autenticados para seu respectivo painel
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const role = (session.user as any).role;
+      const profileComplete = (session.user as any).profileComplete;
+      if (role === "client") {
+        router.replace(profileComplete ? "/cotacao" : "/perfil/completar");
+      } else if (role === "platform_admin") {
+        router.replace("/admin");
+      } else {
+        router.replace("/painel");
+      }
+    }
+  }, [status, session, router]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -49,7 +65,22 @@ export default function LoginClient() {
     }
 
     if (res?.ok) {
-      router.push(callbackUrl);
+      if (callbackUrl === "/") {
+        // Redireciona com base no perfil que buscamos na API de sessão
+        const sessionRes = await fetch("/api/auth/session");
+        const sessionData = await sessionRes.json();
+        const role = sessionData?.user?.role;
+        const profileComplete = sessionData?.user?.profileComplete;
+        if (role === "client") {
+          router.push(profileComplete ? "/cotacao" : "/perfil/completar");
+        } else if (role === "platform_admin") {
+          router.push("/admin");
+        } else {
+          router.push("/painel");
+        }
+      } else {
+        router.push(callbackUrl);
+      }
     }
   }
 

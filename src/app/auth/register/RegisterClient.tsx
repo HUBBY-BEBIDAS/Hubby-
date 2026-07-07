@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, FormEvent, Suspense } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
@@ -275,6 +275,22 @@ export default function RegisterClient() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const token        = useApiToken();
+  const { data: session, status } = useSession();
+
+  // Redireciona usuários já autenticados para seu respectivo painel
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const role = (session.user as any).role;
+      const profileComplete = (session.user as any).profileComplete;
+      if (role === "client") {
+        router.replace(profileComplete ? "/cotacao" : "/perfil/completar");
+      } else if (role === "platform_admin") {
+        router.replace("/admin");
+      } else {
+        router.replace("/painel");
+      }
+    }
+  }, [status, session, router]);
 
   const [step, setStep] = useState<"role" | "form" | "survey" | "done">("role");
   const [role, setRole] = useState<Role>("client");
