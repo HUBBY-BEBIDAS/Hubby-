@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
-import { Check, Gift } from "lucide-react";
+import { Check, Gift, Eye, EyeOff } from "lucide-react";
 
 type Role = "client" | "distributor_admin";
 
@@ -297,6 +297,7 @@ export default function RegisterClient() {
   const [roleSelected, setRoleSelected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [coverageWarning, setCoverageWarning] = useState(false);
 
   const [responsibleName, setResponsibleName] = useState("");
@@ -616,12 +617,21 @@ export default function RegisterClient() {
 
             <Input
               label="Senha"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               hint="Mínimo 8 caracteres, 1 maiúscula e 1 número (ex: Senha123)"
               autoComplete="new-password"
               required
+              suffix={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="flex h-full items-center justify-center text-slate-400 hover:text-slate-600 focus:outline-none focus:text-slate-600"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              }
             />
 
             <Input

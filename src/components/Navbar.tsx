@@ -84,7 +84,8 @@ export function Navbar() {
   const router = useRouter();
   const token = useApiToken();
 
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -299,12 +300,12 @@ export function Navbar() {
           {session ? (
             <div className="relative">
               <button
-                onClick={() => { setMenuOpen((v) => !v); setBellOpen(false); }}
+                onClick={() => { setUserMenuOpen((v) => !v); setMobileMenuOpen(false); setBellOpen(false); }}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-[#22C55E] text-sm font-bold text-white"
               >
                 {session.user?.email?.[0].toUpperCase() ?? "U"}
               </button>
-              {menuOpen && (
+              {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-slate-100 bg-white py-1 shadow-xl">
 
                   {/* Email */}
@@ -316,19 +317,19 @@ export function Navbar() {
                   {/* Menu do comprador */}
                   {role === "client" && (
                     <>
-                      <Link href="/perfil/cliente" onClick={() => setMenuOpen(false)}
+                      <Link href="/perfil/cliente" onClick={() => setUserMenuOpen(false)}
                         className="block px-4 py-2 text-sm font-medium text-[#0F172A] hover:bg-slate-50">
                         Meu Perfil
                       </Link>
-                      <Link href="/meu-plano" onClick={() => setMenuOpen(false)}
+                      <Link href="/meu-plano" onClick={() => setUserMenuOpen(false)}
                         className="block px-4 py-2 text-sm font-medium text-[#0F172A] hover:bg-slate-50">
                         Meu Plano
                       </Link>
-                      <Link href="/relatorios" onClick={() => setMenuOpen(false)}
+                      <Link href="/relatorios" onClick={() => setUserMenuOpen(false)}
                         className="block px-4 py-2 text-sm font-medium text-[#0F172A] hover:bg-slate-50">
                         Relatórios
                       </Link>
-                      <Link href="/favoritas" onClick={() => setMenuOpen(false)}
+                      <Link href="/favoritas" onClick={() => setUserMenuOpen(false)}
                         className="block px-4 py-2 text-sm font-medium text-[#0F172A] hover:bg-slate-50">
                         Favoritas
                       </Link>
@@ -338,15 +339,15 @@ export function Navbar() {
                   {/* Menu da distribuidora */}
                   {(role === "distributor_admin" || role === "distributor_collaborator") && (
                     <>
-                      <Link href="/painel" onClick={() => setMenuOpen(false)}
+                      <Link href="/painel" onClick={() => setUserMenuOpen(false)}
                         className="block px-4 py-2 text-sm font-medium text-[#0F172A] hover:bg-slate-50">
                         Painel
                       </Link>
-                      <Link href="/perfil" onClick={() => setMenuOpen(false)}
+                      <Link href="/perfil" onClick={() => setUserMenuOpen(false)}
                         className="block px-4 py-2 text-sm font-medium text-[#0F172A] hover:bg-slate-50">
                         Perfil da empresa
                       </Link>
-                      <Link href="/meu-plano" onClick={() => setMenuOpen(false)}
+                      <Link href="/meu-plano" onClick={() => setUserMenuOpen(false)}
                         className="block px-4 py-2 text-sm font-medium text-[#0F172A] hover:bg-slate-50">
                         Meu Plano
                       </Link>
@@ -358,15 +359,15 @@ export function Navbar() {
                   <p className="px-4 pb-1 pt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                     Informações
                   </p>
-                  <Link href="/suporte" onClick={() => setMenuOpen(false)}
+                  <Link href="/suporte" onClick={() => setUserMenuOpen(false)}
                     className="block px-4 py-2 text-sm font-medium text-[#0F172A] hover:bg-slate-50">
                     Suporte
                   </Link>
-                  <Link href="/termos" onClick={() => setMenuOpen(false)}
+                  <Link href="/termos" onClick={() => setUserMenuOpen(false)}
                     className="block px-4 py-2 text-sm font-medium text-[#0F172A] hover:bg-slate-50">
                     Termos de Uso
                   </Link>
-                  <Link href="/privacidade" onClick={() => setMenuOpen(false)}
+                  <Link href="/privacidade" onClick={() => setUserMenuOpen(false)}
                     className="block px-4 py-2 text-sm font-medium text-[#0F172A] hover:bg-slate-50">
                     Política de Privacidade
                   </Link>
@@ -393,25 +394,25 @@ export function Navbar() {
           {/* Mobile hamburger */}
           <button
             className="rounded-lg p-1.5 text-white/70 hover:bg-white/10 md:hidden"
-            onClick={() => { setMenuOpen((v) => !v); setBellOpen(false); }}
+            onClick={() => { setMobileMenuOpen((v) => !v); setUserMenuOpen(false); setBellOpen(false); }}
             aria-label="Menu"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d={menuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
+                d={mobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
             </svg>
           </button>
         </div>
       </div>
 
       {/* Mobile links */}
-      {menuOpen && (
+      {mobileMenuOpen && (
         <div className="border-t border-white/10 bg-[#0F172A] px-4 pb-3 md:hidden">
           {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              onClick={() => setMenuOpen(false)}
+              onClick={() => setMobileMenuOpen(false)}
               className={[
                 "block rounded-lg px-3 py-2.5 text-sm font-medium",
                 pathname.startsWith(l.href) ? "text-white" : "text-white/70",

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginClient() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function LoginClient() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [totp, setTotp] = useState("");
   const [showTotp, setShowTotp] = useState(false);
   const [error, setError] = useState("");
@@ -122,14 +124,23 @@ export default function LoginClient() {
                   autoComplete="email"
                   required
                 />
-                <Input
+                 <Input
                   label="Senha"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   autoComplete="current-password"
                   required
+                  suffix={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="flex h-full items-center justify-center text-slate-400 hover:text-slate-600 focus:outline-none focus:text-slate-600"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  }
                 />
               </>
             ) : (
