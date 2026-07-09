@@ -152,6 +152,7 @@ model User {
   distributor      Distributor?
   notifications    Notification[]
   team_memberships DistributorTeamMember[]
+  chat_messages    ChatMessage[]
 
   @@map("users")
 }
@@ -198,6 +199,7 @@ model Client {
   delivery_addresses    ClientDeliveryAddress[]
   referrals_made        Referral[]
   wishlist_items        WishlistItem[]
+  chat_rooms            ChatRoom[]
 
   @@map("clients")
 }
@@ -312,6 +314,7 @@ model Distributor {
   sponsored_slots     SponsoredSlot[]
   team_members        DistributorTeamMember[]
   referral            Referral?
+  chat_rooms          ChatRoom[]
 
   @@map("distributors")
 }
@@ -756,4 +759,33 @@ model DistributorTeamMember {
   @@index([distributor_id, status])
   @@index([user_id])
   @@map("distributor_team_members")
+}
+
+model ChatRoom {
+  id             String        @id @default(uuid())
+  client_id      String
+  distributor_id String
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+
+  client         Client        @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  distributor    Distributor   @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+  messages       ChatMessage[]
+
+  @@unique([client_id, distributor_id])
+  @@map("chat_rooms")
+}
+
+model ChatMessage {
+  id             String        @id @default(uuid())
+  room_id        String
+  sender_id      String
+  text           String
+  created_at     DateTime      @default(now())
+
+  room           ChatRoom      @relation(fields: [room_id], references: [id], onDelete: Cascade)
+  sender         User          @relation(fields: [sender_id], references: [id], onDelete: Cascade)
+
+  @@index([room_id])
+  @@map("chat_messages")
 }

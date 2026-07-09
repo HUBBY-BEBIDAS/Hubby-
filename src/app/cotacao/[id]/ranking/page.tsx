@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Navbar } from "@/components/Navbar";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { Heart, Star, MapPin, Check, X, Sparkles, ShoppingCart } from "lucide-react";
+import { Heart, Star, MapPin, Check, X, Sparkles, ShoppingCart, MessageSquare } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 
 // ─── Tipos da API ─────────────────────────────────────────────────────────────
@@ -650,6 +650,30 @@ export default function RankingPage() {
     });
   }
 
+  const [chattingDistId, setChattingDistId] = useState<string | null>(null);
+
+  async function handleStartChat(distId: string) {
+    if (!token || chattingDistId) return;
+    setChattingDistId(distId);
+    try {
+      const res = await apiFetch("/api/chat/rooms", {
+        method: "POST",
+        token,
+        body: JSON.stringify({ distributor_id: distId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        router.push(`/chat?roomId=${data.room.id}`);
+      } else {
+        alert("Erro ao iniciar conversa no chat.");
+      }
+    } catch {
+      alert("Erro ao conectar com o servidor.");
+    } finally {
+      setChattingDistId(null);
+    }
+  }
+
   // Seleção: chave "distributorId:itemIndex"
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
 
@@ -947,8 +971,8 @@ export default function RankingPage() {
 
   async function registerOrder(
     distId: string,
-    send_channel: "whatsapp" | "email" | "both"
-  ): Promise<{ credential_status: string } | null> {
+    send_channel: "whatsapp" | "email" | "both" | "chat"
+  ): Promise<{ credential_status: string; room_id?: string | null } | null> {
     if (!token || !ranking) return null;
     const group = selectedByDistributor.get(distId);
     if (!group) return null;
@@ -1011,18 +1035,42 @@ export default function RankingPage() {
   // ── Envia por canal escolhido ─────────────────────────────────────────────
   // Na primeira chamada registra o pedido; nas seguintes só reabre o link.
 
-  async function handleSend(distId: string, channel: "whatsapp" | "email" | "both") {
-    if (!ranking) return;
+  async function handleSend(distId: string, channel: "whatsapp" | "email" | "both" | "chat") {
+    if (!token || !ranking) return;
     const group = selectedByDistributor.get(distId);
     if (!group) return;
 
     const state = getDistState(distId);
     if (state === "sending") return;
 
+    let orderResult = null;
     // Registra o pedido apenas uma vez
     if (state === "idle") {
-      const result = await registerOrder(distId, channel);
-      if (!result) return;
+      orderResult = await registerOrder(distId, channel);
+      if (!orderResult) return;
+    }
+
+    if (channel === "chat") {
+      if (orderResult?.room_id) {
+        router.push(`/chat?roomId=${orderResult.room_id}`);
+      } else {
+        try {
+          const res = await apiFetch("/api/chat/rooms", {
+            method: "POST",
+            token,
+            body: JSON.stringify({ distributor_id: distId }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            router.push(`/chat?roomId=${data.room.id}`);
+          } else {
+            router.push("/chat");
+          }
+        } catch {
+          router.push("/chat");
+        }
+      }
+      return;
     }
 
     // WhatsApp: abre wa.me no navegador do comprador
@@ -1110,9 +1158,26 @@ export default function RankingPage() {
                 ].join(" ")}
               >
                 {/* Header */}
-                <div className={["border-b px-5 py-3", isSent ? "border-green-200" : "border-[#DBEAFE]"].join(" ")}>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Distribuidora</p>
-                  <p className="font-semibold text-[#0F172A]">{group.entry.company_name}</p>
+                <div className={["border-b px-5 py-3 flex items-center justify-between", isSent ? "border-green-200" : "border-[#DBEAFE]"].join(" ")}>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Distribuidora</p>
+                    <p className="font-semibold text-[#0F172A]">{group.entry.company_name}</p>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleStartChat(distId); }}
+                    disabled={chattingDistId === distId}
+                    className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-[#22C55E] disabled:opacity-50 transition border border-[#DBEAFE] rounded-xl px-2.5 py-1.5 shadow-sm bg-white"
+                    title="Conversar no Chat interno"
+                  >
+                    {chattingDistId === distId ? (
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border border-[#22C55E] border-t-transparent" />
+                    ) : (
+                      <>
+                        <MessageSquare size={13} className="text-[#22C55E]" />
+                        <span>Chat</span>
+                      </>
+                    )}
+                  </button>
                 </div>
 
                 {/* Itens */}
@@ -1283,31 +1348,53 @@ export default function RankingPage() {
                   </div>
                 )}
 
-                {/* Botão de envio por E-mail */}
-                <button
-                  onClick={() => handleSend(distId, "email")}
-                  disabled={isSending}
-                  className={`flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold text-white transition disabled:opacity-50 ${
-                    isSent 
-                      ? "bg-[#0B1220] hover:opacity-90" 
-                      : "bg-[#22C55E] hover:bg-[#16A34A]"
-                  }`}
-                >
-                  {isSending ? (
-                    <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"/>
-                      Enviando…
-                    </>
-                  ) : (
-                    <>
-                      <svg className="h-4 w-4 text-white" viewBox="0 0 24 18" fill="none">
-                        <rect x="1" y="1" width="22" height="16" rx="2.5" stroke="currentColor" strokeWidth="1.6"/>
-                        <path d="M1.5 2L12 10.5 22.5 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-                      </svg>
-                      {isSent ? "Reenviar pedido por E-mail" : "Enviar pedido por E-mail"}
-                    </>
-                  )}
-                </button>
+                {/* Botões de Envio (Chat e E-mail) */}
+                <div className="flex flex-col gap-2.5">
+                  {/* Enviar por Chat */}
+                  <button
+                    onClick={() => handleSend(distId, "chat")}
+                    disabled={isSending}
+                    className={`flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold text-white transition disabled:opacity-50 ${
+                      isSent 
+                        ? "bg-[#0B1220] hover:opacity-90" 
+                        : "bg-[#22C55E] hover:bg-[#16A34A]"
+                    }`}
+                  >
+                    {isSending ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"/>
+                        Enviando…
+                      </>
+                    ) : (
+                      <>
+                        <MessageSquare size={16} />
+                        {isSent ? "Reenviar pedido por Chat" : "Enviar pedido por Chat"}
+                      </>
+                    )}
+                  </button>
+
+                  {/* Enviar por E-mail */}
+                  <button
+                    onClick={() => handleSend(distId, "email")}
+                    disabled={isSending}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-3.5 text-sm font-bold text-slate-700 transition hover:bg-[#F5F7FB] disabled:opacity-50"
+                  >
+                    {isSending ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-700 border-t-transparent"/>
+                        Enviando…
+                      </>
+                    ) : (
+                      <>
+                        <svg className="h-4 w-4 text-slate-500" viewBox="0 0 24 18" fill="none">
+                          <rect x="1" y="1" width="22" height="16" rx="2.5" stroke="currentColor" strokeWidth="1.6"/>
+                          <path d="M1.5 2L12 10.5 22.5 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                        </svg>
+                        {isSent ? "Reenviar pedido por E-mail" : "Enviar pedido por E-mail"}
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -1715,6 +1802,19 @@ export default function RankingPage() {
                               Patrocinado
                             </span>
                           )}
+                          {/* Botão de Chat */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleStartChat(offer.distributor_id); }}
+                            disabled={chattingDistId === offer.distributor_id}
+                            className="text-slate-400 hover:text-[#22C55E] hover:scale-110 transition-all p-0.5 shrink-0"
+                            title="Conversar no Chat interno"
+                          >
+                            {chattingDistId === offer.distributor_id ? (
+                              <div className="h-3 w-3 animate-spin rounded-full border border-[#22C55E] border-t-transparent" />
+                            ) : (
+                              <MessageSquare size={13} />
+                            )}
+                          </button>
                           {/* Coração de favorito */}
                           <button
                             onClick={(e) => { e.stopPropagation(); toggleFavorite(offer.distributor_id); }}

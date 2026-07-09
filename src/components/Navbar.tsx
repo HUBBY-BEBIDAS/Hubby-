@@ -15,6 +15,7 @@ const NAV_LINKS: NavLink[] = [
   { href: "/historico", label: "Histórico", roles: ["client"] },
   { href: "/catalogo", label: "Catálogo", roles: ["client"] },
   { href: "/lista-desejos", label: "Lista de Desejos", roles: ["client"] },
+  { href: "/chat", label: "Chat", roles: ["client", "distributor_admin", "distributor_collaborator"] },
   { href: "/painel", label: "Painel", roles: ["client", "distributor_admin", "distributor_collaborator"] },
   { href: "/painel/promocoes", label: "Promoções", roles: ["distributor_admin"] },
   { href: "/painel/vencimentos", label: "Vencimentos", roles: ["distributor_admin"] },

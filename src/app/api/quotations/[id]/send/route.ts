@@ -15,6 +15,21 @@ import { sendOrderEmail } from "@/lib/email";
 import { fireWebhook } from "@/lib/webhook";
 import type { Prisma } from "@prisma/client";
 
+function parsePortugueseDeliveryDate(dateStr: string | null | undefined): Date | null {
+  if (!dateStr) return null;
+  const match = dateStr.match(/(\d{2})\/(\d{2})(?:\/(\d{4}))?/);
+  if (!match) {
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const day = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10) - 1;
+  const currentYear = new Date().getFullYear();
+  const year = match[3] ? parseInt(match[3], 10) : currentYear;
+  const date = new Date(year, month, day, 12, 0, 0);
+  return isNaN(date.getTime()) ? null : date;
+}
+
 // ─── Validação do body ────────────────────────────────────────────────────────
 
 const orderItemSchema = z.object({
@@ -31,7 +46,7 @@ const orderEntrySchema = z.object({
   items: z.array(orderItemSchema).min(1, "Ao menos 1 item por distribuidora").max(200),
   total_cents: z.number().int().min(1, "Total deve ser maior que zero"),
   estimated_delivery_date: z.string().optional().nullable(),
-  send_channel: z.enum(["whatsapp", "email", "both"]).default("both"),
+  send_channel: z.enum(["whatsapp", "email", "both", "chat"]).default("both"),
 });
 
 const sendSchema = z.object({
@@ -40,6 +55,30 @@ const sendSchema = z.object({
     .min(1, "Ao menos uma distribuidora deve ser selecionada")
     .max(20, "Máximo de 20 distribuidoras por envio"),
 });
+
+function formatOrderSummaryMessage(
+  clientName: string,
+  distributorName: string,
+  items: any[],
+  totalCents: number,
+  deliveryDate: string | null | undefined
+): string {
+  const formatBRL = (cents: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
+
+  const itemsText = items
+    .map((i) => `• ${i.product_name} x ${i.quantity} — ${formatBRL(i.unit_price_cents)}/un`)
+    .join("\n");
+
+  return `📦 *Novo Pedido Confirmado!*
+Cliente: ${clientName}
+Distribuidora: ${distributorName}
+${deliveryDate ? `Previsão de Entrega: ${deliveryDate}\n` : ""}
+Produtos:
+${itemsText}
+
+*Total: ${formatBRL(totalCents)}*`.trim();
+}
 
 // ─── Tipos internos ───────────────────────────────────────────────────────────
 
@@ -51,6 +90,7 @@ type OrderResult = {
   status: "sent" | "rejected"; // "rejected" = credencial reprovada, pedido não criado
   credential_status: "approved" | "pending" | "rejected_auto" | "existing";
   estimated_delivery_date: string | null;
+  room_id?: string | null;
 };
 
 /**
@@ -223,9 +263,7 @@ export const POST = withAuth(
           group_id: groupId,
           total_cents: entry.total_cents,
           items_snapshot: entry.items as unknown as Prisma.InputJsonValue,
-          estimated_delivery_date: entry.estimated_delivery_date
-            ? new Date(entry.estimated_delivery_date)
-            : null,
+          estimated_delivery_date: parsePortugueseDeliveryDate(entry.estimated_delivery_date),
           send_channel: sendChannel,
         },
       });
@@ -302,6 +340,46 @@ export const POST = withAuth(
         },
       }).catch(() => {});
 
+      let roomId: string | null = null;
+      if (sendChannel === "chat") {
+        const room = await prisma.chatRoom.upsert({
+          where: {
+            client_id_distributor_id: {
+              client_id: quotation.client.id,
+              distributor_id: entry.distributor_id,
+            },
+          },
+          update: {},
+          create: {
+            client_id: quotation.client.id,
+            distributor_id: entry.distributor_id,
+          },
+        });
+
+        roomId = room.id;
+
+        const messageText = formatOrderSummaryMessage(
+          quotation.client.company_name,
+          distributor.company_name,
+          entry.items,
+          entry.total_cents,
+          entry.estimated_delivery_date
+        );
+
+        await prisma.chatMessage.create({
+          data: {
+            room_id: room.id,
+            sender_id: user.userId,
+            text: messageText,
+          },
+        });
+
+        await prisma.chatRoom.update({
+          where: { id: room.id },
+          data: { updated_at: new Date() },
+        });
+      }
+
       orderResults.push({
         order_id: order.id,
         distributor_id: entry.distributor_id,
@@ -310,6 +388,7 @@ export const POST = withAuth(
         status: "sent",
         credential_status: credentialStatus,
         estimated_delivery_date: entry.estimated_delivery_date ?? null,
+        room_id: roomId,
       });
     }
 

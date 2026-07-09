@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Navbar } from "@/components/Navbar";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
-import { Star, X, Check } from "lucide-react";
+import { Star, X, Check, MessageSquare } from "lucide-react";
 
 // ─── Modal de avaliação ───────────────────────────────────────────────────────
 
@@ -214,6 +214,29 @@ export default function HistoricoPage() {
   const [reviewTarget, setReviewTarget] = useState<ReviewTarget | null>(null);
   const [reviewedOrders, setReviewedOrders] = useState<Set<string>>(new Set());
   const [totalPages, setTotalPages] = useState(1);
+  const [chattingDistId, setChattingDistId] = useState<string | null>(null);
+
+  async function handleStartChat(distId: string) {
+    if (!token || chattingDistId) return;
+    setChattingDistId(distId);
+    try {
+      const res = await apiFetch("/api/chat/rooms", {
+        method: "POST",
+        token,
+        body: JSON.stringify({ distributor_id: distId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        router.push(`/chat?roomId=${data.room.id}`);
+      } else {
+        alert("Erro ao iniciar conversa no chat.");
+      }
+    } catch {
+      alert("Erro ao conectar com o servidor.");
+    } finally {
+      setChattingDistId(null);
+    }
+  }
 
   useEffect(() => {
     if (!token) return;
@@ -361,7 +384,21 @@ export default function HistoricoPage() {
               {group.orders.map((order) => (
                 <li key={order.id} className="flex items-center justify-between gap-3 px-6 py-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#0F172A]">{order.distributor_name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium text-[#0F172A]">{order.distributor_name}</p>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleStartChat(order.distributor_id); }}
+                        disabled={chattingDistId === order.distributor_id}
+                        className="text-slate-400 hover:text-[#22C55E] hover:scale-110 transition-all p-0.5 shrink-0"
+                        title="Conversar no Chat interno"
+                      >
+                        {chattingDistId === order.distributor_id ? (
+                          <div className="h-3 w-3 animate-spin rounded-full border border-[#22C55E] border-t-transparent" />
+                        ) : (
+                          <MessageSquare size={13} />
+                        )}
+                      </button>
+                    </div>
                     {order.estimated_delivery_date && (
                       <p className="text-xs text-slate-500">
                         Entrega: {formatDate(order.estimated_delivery_date)}
