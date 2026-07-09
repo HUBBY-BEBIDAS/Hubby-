@@ -264,7 +264,14 @@ function ImportModal({ token, onClose, onImported }: {
   const [uploading, setUploading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [msg, setMsg] = useState("");
-  const [preview, setPreview] = useState<{ imported: number; ignored: number; errors: number; jobToken: string } | null>(null);
+  const [preview, setPreview] = useState<{ 
+    imported: number; 
+    ignored: number; 
+    errors: number; 
+    jobToken: string;
+    validRows: any[];
+    errorsList: any[];
+  } | null>(null);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -285,6 +292,8 @@ function ImportModal({ token, onClose, onImported }: {
         ignored: data.summary?.error_count ?? 0,
         errors: (data.errors ?? []).length,
         jobToken: data.token,
+        validRows: data.valid_rows ?? [],
+        errorsList: data.errors ?? [],
       });
     } catch { setMsg("Erro de conexão"); }
     finally { setUploading(false); }
@@ -294,7 +303,12 @@ function ImportModal({ token, onClose, onImported }: {
     if (!preview || !token) return;
     setConfirming(true);
     const res = await apiFetch("/api/distributor/products/import/confirm", {
-      method: "POST", token, body: JSON.stringify({ token: preview.jobToken }),
+      method: "POST", 
+      token, 
+      body: JSON.stringify({ 
+        token: preview.jobToken,
+        products: preview.validRows,
+      }),
     });
     setConfirming(false);
     if (res.ok) { onImported(); onClose(); }
@@ -303,7 +317,7 @@ function ImportModal({ token, onClose, onImported }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
+      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-display font-semibold text-[#0F172A]">Importar planilha</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl">×</button>
@@ -321,14 +335,58 @@ function ImportModal({ token, onClose, onImported }: {
               : <><FolderOpen size={20} className="inline mr-1" />Clique para selecionar o arquivo .xlsx</>}
           </button>
         ) : (
-          <div className="rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] p-4">
-            <p className="font-semibold text-[#0F172A]">Pré-visualização</p>
-            <p className="mt-1 text-sm text-slate-600">
-              <span className="text-green-700 font-medium">{preview.imported} novos produtos</span>
-              {preview.ignored > 0 && <span className="text-slate-400"> · {preview.ignored} com erro</span>}
-            </p>
-            <div className="mt-4 flex gap-3">
-              <button onClick={confirm} disabled={confirming}
+          <div className="flex flex-col gap-4">
+            <div className="rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] p-4">
+              <p className="font-semibold text-[#0F172A]">Resumo da planilha</p>
+              <p className="mt-1 text-sm text-slate-600">
+                <span className="text-green-700 font-medium">{preview.imported} novos produtos</span>
+                {preview.ignored > 0 && <span className="text-slate-400"> · {preview.ignored} com erro</span>}
+              </p>
+            </div>
+
+            {/* Lista visual dos produtos */}
+            {preview.validRows.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Produtos para importação:</p>
+                <div className="max-h-48 overflow-y-auto rounded-2xl border border-[#DBEAFE] bg-white divide-y divide-slate-100">
+                  {preview.validRows.map((row: any, i: number) => (
+                    <div key={i} className="px-3.5 py-2 flex items-center justify-between text-xs hover:bg-[#F8FAFC]">
+                      <div className="min-w-0 pr-2">
+                        <p className="font-semibold text-slate-800 truncate">{row.name}</p>
+                        <p className="text-[10px] text-slate-400 truncate">
+                          {row.brand} · {packagingLabel(row.packaging_type)} {row.packaging_volume_ml}ml · {categoryLabel(row.category)}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-mono font-bold text-slate-700">R$ {(row.price_cents / 100).toFixed(2)}</p>
+                        <Badge variant={row.is_update ? "blue" : "green"} className="text-[9px] px-1 py-0 shadow-none font-bold uppercase">
+                          {row.is_update ? "Atualizar" : "Novo"}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Lista de erros (se houver) */}
+            {preview.errorsList.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-red-500 flex items-center gap-1">
+                  <AlertTriangle size={12} /> Erros encontrados na planilha (não serão importados):
+                </p>
+                <div className="max-h-32 overflow-y-auto rounded-2xl border border-red-100 bg-red-50/50 p-3 text-xs text-red-700 divide-y divide-red-100/50">
+                  {preview.errorsList.map((err: any, i: number) => (
+                    <div key={i} className="py-1 first:pt-0 last:pb-0">
+                      <strong>Linha {err.row} (campo {err.field}):</strong> {err.message}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-2 flex gap-3">
+              <button onClick={confirm} disabled={confirming || preview.validRows.length === 0}
                 className="flex-1 rounded-xl bg-[#2563EB] py-2.5 text-sm font-semibold text-white hover:bg-[#1D4ED8] disabled:opacity-50">
                 {confirming ? "Importando…" : "Confirmar importação"}
               </button>

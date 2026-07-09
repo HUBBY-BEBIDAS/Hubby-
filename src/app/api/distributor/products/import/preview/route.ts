@@ -114,11 +114,15 @@ export const POST = withAuth(
     const token = crypto.randomUUID();
     const key = previewKey(distributor.id, token);
 
-    await redis.setex(
-      key,
-      PREVIEW_TTL,
-      JSON.stringify({ valid_rows: classifiedRows })
-    );
+    try {
+      await redis.setex(
+        key,
+        PREVIEW_TTL,
+        JSON.stringify({ valid_rows: classifiedRows })
+      );
+    } catch (err) {
+      console.warn("[preview] Falha ao salvar preview no Redis:", err);
+    }
 
     return Response.json({
       token,
@@ -129,6 +133,7 @@ export const POST = withAuth(
         total_valid: valid_rows.length,
         max_rows: MAX_ROWS,
       },
+      valid_rows: classifiedRows,
       // Retorna os primeiros 50 erros para não sobrecarregar a resposta
       errors: errors.slice(0, 50),
       errors_truncated: errors.length > 50,

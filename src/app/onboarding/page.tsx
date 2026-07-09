@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
+import { Badge } from "@/components/ui/Badge";
 import {
   Hand, Package, Map, CheckCircle, BarChart2, Pencil, Lightbulb,
   Download, FolderOpen, Sparkles, Check, AlertTriangle,
@@ -150,10 +151,15 @@ function Step2Products({ token, state, onNext, onSkip }: {
   const [mode, setMode] = useState<"choose" | "manual" | "upload">("choose");
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState("");
-  const [preview, setPreview] = useState<{ imported: number; ignored: number } | null>(null);
+  const [preview, setPreview] = useState<{ 
+    imported: number; 
+    ignored: number; 
+    token: string;
+    validRows: any[];
+    errorsList: any[];
+  } | null>(null);
   const [confirming, setConfirming] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [jobId, setJobId] = useState<string | null>(null);
 
   // Manual form state
   const [form, setForm] = useState({
@@ -179,20 +185,34 @@ function Step2Products({ token, state, onNext, onSkip }: {
       });
       const data = await res.json();
       if (!res.ok) { setUploadMsg(data.error ?? "Erro no upload"); return; }
-      setJobId(data.job_id);
-      setPreview({ imported: data.summary?.new_count ?? 0, ignored: data.summary?.error_count ?? 0 });
+      setPreview({ 
+        imported: data.summary?.new_count ?? 0, 
+        ignored: data.summary?.error_count ?? 0,
+        token: data.token,
+        validRows: data.valid_rows ?? [],
+        errorsList: data.errors ?? [],
+      });
     } catch { setUploadMsg("Erro de conexão"); }
     finally { setUploading(false); }
   }
 
   async function confirmImport() {
-    if (!token || !jobId) return;
+    if (!token || !preview) return;
     setConfirming(true);
     const res = await apiFetch("/api/distributor/products/import/confirm", {
-      method: "POST", token, body: JSON.stringify({ job_id: jobId }),
+      method: "POST", 
+      token, 
+      body: JSON.stringify({ 
+        token: preview.token,
+        products: preview.validRows,
+      }),
     });
     setConfirming(false);
     if (res.ok) onNext();
+    else {
+      const d = await res.json();
+      setUploadMsg(d.error ?? "Erro ao confirmar importação");
+    }
   }
 
   async function handleManualSave(e: FormEvent) {
@@ -274,12 +294,66 @@ function Step2Products({ token, state, onNext, onSkip }: {
             {uploading ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-[#22C55E] border-t-transparent" /> Processando…</> : <><FolderOpen size={20} className="inline mr-1" />Clique para selecionar o arquivo</>}
           </button>
         ) : (
-          <div className="rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] p-5">
-            <p className="font-bold text-[#0F172A]">Pré-visualização</p>
-            <p className="mt-1 text-sm text-slate-500">{preview.imported} produtos encontrados · {preview.ignored} ignorados</p>
-            <div className="mt-4 flex gap-3">
-              <PrimaryBtn loading={confirming} onClick={confirmImport}>Confirmar importação</PrimaryBtn>
-              <button onClick={() => { setPreview(null); setJobId(null); }} className="flex-1 rounded-xl border border-[#DBEAFE] py-3 text-sm font-medium text-slate-500 hover:bg-[#F5F7FB]">Cancelar</button>
+          <div className="flex flex-col gap-4">
+            <div className="rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] p-5">
+              <p className="font-bold text-[#0F172A]">Pré-visualização</p>
+              <p className="mt-1 text-sm text-slate-500">
+                <span className="text-green-700 font-medium">{preview.imported} novos produtos</span>
+                {preview.ignored > 0 && <span className="text-slate-400"> · {preview.ignored} com erro</span>}
+              </p>
+            </div>
+
+            {/* Lista visual dos produtos */}
+            {preview.validRows.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Produtos para importação:</p>
+                <div className="max-h-48 overflow-y-auto rounded-2xl border border-[#DBEAFE] bg-white divide-y divide-slate-100">
+                  {preview.validRows.map((row: any, i: number) => (
+                    <div key={i} className="px-3.5 py-2 flex items-center justify-between text-xs hover:bg-[#F8FAFC]">
+                      <div className="min-w-0 pr-2">
+                        <p className="font-semibold text-slate-800 truncate">{row.name}</p>
+                        <p className="text-[10px] text-slate-400 truncate">
+                          {row.brand} · {PACKAGING_LABELS[row.packaging_type] ?? row.packaging_type} {row.packaging_volume_ml}ml · {CATEGORY_LABELS[row.category] ?? row.category}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-mono font-bold text-slate-700">R$ {(row.price_cents / 100).toFixed(2)}</p>
+                        <Badge variant={row.is_update ? "blue" : "green"} className="text-[9px] px-1 py-0 shadow-none font-bold uppercase">
+                          {row.is_update ? "Atualizar" : "Novo"}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Lista de erros (se houver) */}
+            {preview.errorsList.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-red-500 flex items-center gap-1">
+                  <AlertTriangle size={12} /> Erros encontrados na planilha (não serão importados):
+                </p>
+                <div className="max-h-32 overflow-y-auto rounded-2xl border border-red-100 bg-red-50/50 p-3 text-xs text-red-700 divide-y divide-red-100/50">
+                  {preview.errorsList.map((err: any, i: number) => (
+                    <div key={i} className="py-1 first:pt-0 last:pb-0">
+                      <strong>Linha {err.row} (campo {err.field}):</strong> {err.message}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-2 flex gap-3">
+              <PrimaryBtn loading={confirming} onClick={confirmImport} disabled={preview.validRows.length === 0}>
+                Confirmar importação
+              </PrimaryBtn>
+              <button
+                onClick={() => setPreview(null)}
+                className="flex-1 rounded-xl border border-[#DBEAFE] py-3 text-sm font-medium text-slate-500 hover:bg-[#F5F7FB]"
+              >
+                Cancelar
+              </button>
             </div>
           </div>
         )}
