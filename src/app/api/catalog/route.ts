@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
+import { normalizeCityName } from "@/lib/coverage";
 
 // ─── Helper de patrocínio ─────────────────────────────────────────────────────
 
@@ -148,7 +149,7 @@ export const GET = withAuth(
     });
     if (!client) return Response.json({ error: "Perfil não encontrado" }, { status: 404 });
 
-    const city  = client.delivery_city.replace(/\s*\([^)]*\)\s*/g, "").trim();
+    const city  = normalizeCityName(client.delivery_city);
     const state = client.delivery_state;
     const now   = new Date();
 

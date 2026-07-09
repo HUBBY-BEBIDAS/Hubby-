@@ -11,6 +11,7 @@ const PUBLIC_PATHS = [
   "/auth/error",
   "/api/auth/login",    // login mobile — retorna JWT no body
   "/api/auth",          // NextAuth (signin, callback, csrf, session…)
+  "/api/coverage/check", // consulta de cobertura pública durante cadastro
   "/sobre",
 ];
 

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
 import { deliveryRegionSchema, deliveryRegionsBulkSchema } from "@/types/distributor";
+import { normalizeCityName } from "@/lib/coverage";
 
 // ─── GET /api/distributor/delivery-regions ────────────────────────────────────
 
@@ -69,7 +70,7 @@ export const POST = withAuth(
             where: {
               distributor_id_city_state: {
                 distributor_id: distributor.id,
-                city: region.city,
+                city: normalizeCityName(region.city),
                 state: region.state.toUpperCase(),
               },
             },
@@ -85,7 +86,7 @@ export const POST = withAuth(
             },
             create: {
               distributor_id: distributor.id,
-              city: region.city,
+              city: normalizeCityName(region.city),
               state: region.state.toUpperCase(),
               delivery_days_business: region.delivery_days_business,
               route_days: region.route_days,
@@ -121,7 +122,7 @@ export const POST = withAuth(
       where: {
         distributor_id_city_state: {
           distributor_id: distributor.id,
-          city: region.city,
+          city: normalizeCityName(region.city),
           state: region.state.toUpperCase(),
         },
       },
@@ -137,7 +138,7 @@ export const POST = withAuth(
       },
       create: {
         distributor_id: distributor.id,
-        city: region.city,
+        city: normalizeCityName(region.city),
         state: region.state.toUpperCase(),
         delivery_days_business: region.delivery_days_business,
         route_days: region.route_days,

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { EstablishmentType } from "@prisma/client";
 import { queryBureau, evaluateHubbyEntry, HUBBY_REJECTION_MESSAGE } from "@/lib/bureau";
-import { isCovered } from "@/lib/coverage";
+import { isCovered, normalizeCityName } from "@/lib/coverage";
 import { ensureUniqueCode } from "@/lib/referral";
 import { checkLoginRateLimit } from "@/lib/rate-limit";
 
@@ -175,9 +175,9 @@ export async function POST(req: NextRequest) {
             establishment_type: d.establishment_type as EstablishmentType,
             responsible_name: d.responsible_name,
             whatsapp: d.whatsapp,
-            delivery_city: d.delivery_city,
+            delivery_city: normalizeCityName(d.delivery_city),
             delivery_state: d.delivery_state,
-            delivery_address_full: `${d.delivery_city} - ${d.delivery_state}`,
+            delivery_address_full: `${normalizeCityName(d.delivery_city)} - ${d.delivery_state}`,
             hubby_status: hubbyStatus,
             hubby_score: 500,
             referral_code: referralCode,

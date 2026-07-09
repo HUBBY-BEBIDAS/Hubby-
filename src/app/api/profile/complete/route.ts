@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
+import { normalizeCityName } from "@/lib/coverage";
 
 const schema = z.object({
   company_name: z.string().min(2, "Razão social obrigatória").trim(),
@@ -82,7 +83,7 @@ export const POST = withAuth(
         establishment_type: d.establishment_type,
         responsible_name: d.responsible_name,
         whatsapp: d.whatsapp,
-        delivery_city: d.delivery_city,
+        delivery_city: normalizeCityName(d.delivery_city),
         delivery_state: d.delivery_state,
         delivery_address_full: d.delivery_address_full,
       },
