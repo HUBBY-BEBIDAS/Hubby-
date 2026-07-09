@@ -124,28 +124,95 @@ function formatBRL(cents: number): string {
   }).format(Math.trunc(cents) / 100);
 }
 
+const PACKAGING_LABELS_REV: Record<string, string> = {
+  "garrafa": "garrafa",
+  "lata": "lata",
+  "barril": "barril",
+  "caixa": "caixa",
+  "fardo": "fardo",
+  "tetra pak": "tetra_pak",
+  "tetra_pak": "tetra_pak",
+  "outro": "other",
+  "other": "other"
+};
+
+function parsePackaging(text: string): { type: string | null; volumeMl: number | null } {
+  const lower = text.toLowerCase().trim();
+  
+  // Extrai volume (ex: "330ml" ou "330 ml")
+  const volMatch = lower.match(/(\d+)\s*ml/);
+  const volumeMl = volMatch ? parseInt(volMatch[1], 10) : null;
+  
+  // Extrai tipo de embalagem
+  let type: string | null = null;
+  for (const [label, val] of Object.entries(PACKAGING_LABELS_REV)) {
+    if (lower.includes(label)) {
+      type = val;
+      break;
+    }
+  }
+  
+  return { type, volumeMl };
+}
+
 /**
- * Encontra o produto mais barato de uma distribuidora que corresponde
- * ao item da cotação por category + brand (case-insensitive).
- *
- * Se houver vários produtos do mesmo brand/category (embalagens diferentes),
- * retorna o de menor price_cents.
+ * Encontra o produto correspondente ao item da cotação.
+ * Usa um algoritmo de match em cascata para ser altamente preciso:
+ * 1. Filtra por Categoria e Marca (obrigatórios)
+ * 2. Tenta correspondência exata de Embalagem (tipo e volume) e Nome do produto
+ * 3. Fallback 1: Correspondência por Embalagem (tipo e volume)
+ * 4. Fallback 2: Nome do produto (se contém a descrição simplificada)
+ * 5. Fallback final: Escolhe o item mais barato daquela marca/categoria
  */
 function matchProduct(
   item: QuotationItem,
   products: Product[]
 ): Product | null {
   const itemBrand = item.brand.toLowerCase().trim();
+  const targetName = item.product_name.toLowerCase().trim();
+  const { type: targetType, volumeMl: targetVolume } = parsePackaging(item.packaging);
 
-  const candidates = products.filter(
+  // Filtra candidatos iniciais obrigatoriamente por marca e categoria
+  const baseCandidates = products.filter(
     (p) =>
       p.available &&
       p.category === item.category &&
       p.brand.toLowerCase().trim() === itemBrand
   );
 
-  if (candidates.length === 0) return null;
+  if (baseCandidates.length === 0) return null;
 
+  // Nível 1: Match total (Embalagem exata + Nome exato)
+  let candidates = baseCandidates.filter(
+    (p) =>
+      p.name.toLowerCase().trim() === targetName &&
+      (targetType === null || p.packaging_type === targetType) &&
+      (targetVolume === null || p.packaging_volume_ml === targetVolume)
+  );
+
+  // Nível 2: Match por Embalagem (tipo + volume) - mais comum e confiável para SKUs comerciais
+  if (candidates.length === 0) {
+    candidates = baseCandidates.filter(
+      (p) =>
+        (targetType === null || p.packaging_type === targetType) &&
+        (targetVolume === null || p.packaging_volume_ml === targetVolume)
+    );
+  }
+
+  // Nível 3: Match por Nome (contém parte do nome)
+  if (candidates.length === 0) {
+    const cleanTargetName = targetName.replace(/\d+\s*(ml|l)/gi, "").trim();
+    candidates = baseCandidates.filter(
+      (p) => p.name.toLowerCase().trim().includes(cleanTargetName)
+    );
+  }
+
+  // Nível 4: Sem correspondência específica — cai para o comportamento antigo
+  if (candidates.length === 0) {
+    candidates = baseCandidates;
+  }
+
+  // Se houver mais de um candidato (ex: preços concorrentes da mesma SKU), escolhe o de menor preço
   return candidates.reduce((cheapest, p) =>
     p.price_cents < cheapest.price_cents ? p : cheapest
   );
