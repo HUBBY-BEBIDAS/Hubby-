@@ -25,6 +25,8 @@ type MatchedItem = {
   quotation_item_name: string;
   quotation_item_brand: string;
   product_name: string;
+  category: string;
+  packaging: string;
   quantity: number;
   unit_price_cents: number;         // preço efetivo (com desconto)
   original_price_cents: number;     // preço original sem promoção
@@ -965,8 +967,8 @@ export default function RankingPage() {
               items: group.items.map((i) => ({
                 product_name: i.product_name,
                 brand: i.quotation_item_brand,
-                category: "other",
-                packaging: "",
+                category: i.category,
+                packaging: i.packaging,
                 quantity: i.quantity,
                 unit_price_cents: i.unit_price_cents,
               })),

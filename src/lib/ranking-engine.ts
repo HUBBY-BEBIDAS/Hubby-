@@ -33,6 +33,7 @@ export type RankedItem = {
   quotation_item_id: string;
   product_name: string;     // o que o cliente pediu
   brand: string;
+  category: string;
   quantity: number;
   available: boolean;       // false = distribuidora não tem este produto
   matched_product: {
@@ -335,6 +336,7 @@ export async function computeRanking(
           quotation_item_id: item.id,
           product_name: item.product_name,
           brand: item.brand,
+          category: item.category,
           quantity: item.quantity,
           available: true,
           matched_product: {
@@ -366,6 +368,7 @@ export async function computeRanking(
         quotation_item_id: item.id,
         product_name: item.product_name,
         brand: item.brand,
+        category: item.category,
         quantity: item.quantity,
         available: false,
         matched_product: null,

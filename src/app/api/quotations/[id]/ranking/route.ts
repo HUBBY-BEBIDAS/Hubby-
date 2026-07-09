@@ -5,6 +5,12 @@ import { computeRanking, extractDistributorIds } from "@/lib/ranking-engine";
 import { getRankingCache, setRankingCache } from "@/lib/ranking-cache";
 import type { RankingResult, RankedDistributor } from "@/lib/ranking-engine";
 
+function formatPackaging(type: string, ml: number): string {
+  const vol = ml >= 1000 ? `${ml / 1000}L` : `${ml}ml`;
+  const t = type.charAt(0).toUpperCase() + type.slice(1);
+  return `${t} ${vol}`;
+}
+
 // ─── Shape esperado pelo frontend ─────────────────────────────────────────────
 
 type MatchedItem = {
@@ -12,6 +18,8 @@ type MatchedItem = {
   quotation_item_name: string;
   quotation_item_brand: string;
   product_name: string;
+  category: string;
+  packaging: string;
   quantity: number;
   unit_price_cents: number;        // preço com desconto aplicado
   original_price_cents: number;    // preço original sem desconto
@@ -137,6 +145,8 @@ function toEntry(d: RankedDistributor, historyMap: PriceHistoryMap): RankingEntr
         quotation_item_name:  i.product_name,
         quotation_item_brand: i.brand,
         product_name:         i.matched_product!.name,
+        category:             i.category,
+        packaging:            formatPackaging(i.matched_product!.packaging_type, i.matched_product!.packaging_volume_ml),
         quantity:             i.quantity,
         unit_price_cents:     currentCents,
         original_price_cents: i.matched_product!.price_cents,
