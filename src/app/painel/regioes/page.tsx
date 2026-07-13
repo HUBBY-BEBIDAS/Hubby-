@@ -432,7 +432,7 @@ function ImportModal({ token, onClose, onImported }: {
                 <tbody className="divide-y divide-[#DBEAFE]">
                   {preview.regions.map((r, i) => {
                     let badgeColor = "bg-slate-100 text-slate-600 border-slate-200";
-                    let statusLabel = routeDaysLabel(r.route_days);
+                    let statusLabel = "Em rota";
                     
                     if (r.route_days.length === 0) {
                       badgeColor = "bg-red-50 text-red-700 border-red-200";
@@ -461,10 +461,10 @@ function ImportModal({ token, onClose, onImported }: {
                               <span className="text-[10px] text-slate-400 line-through">De: {routeDaysLabel(r.old_route_days)}</span>
                               <span className="text-[#0F172A] font-medium">Para: {routeDaysLabel(r.route_days)}</span>
                             </div>
-                          ) : r.change_type === "new" ? (
-                            routeDaysLabel(r.route_days)
-                          ) : (
+                          ) : r.route_days.length === 0 ? (
                             "—"
+                          ) : (
+                            routeDaysLabel(r.route_days)
                           )}
                         </td>
                       </tr>
