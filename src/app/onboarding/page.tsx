@@ -422,7 +422,24 @@ function Step3Regions({ token, state, onNext, onSkip }: {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState("");
-  const [preview, setPreview] = useState<{ regions: unknown[]; summary: { imported: number; ignored: number } } | null>(null);
+  const [preview, setPreview] = useState<{
+    regions: Array<{
+      city: string;
+      state: string;
+      route_days: string[];
+      is_update: boolean;
+      change_type: "new" | "update" | "no_change";
+      old_route_days: string[];
+    }>;
+    jobToken: string;
+    summary: {
+      total_cities: number;
+      new_cities: number;
+      updated_cities: number;
+      no_change_cities: number;
+      out_of_route_cities: number;
+    };
+  } | null>(null);
   const [confirming, setConfirming] = useState(false);
 
   const [form, setForm] = useState({
@@ -434,6 +451,15 @@ function Step3Regions({ token, state, onNext, onSkip }: {
   const [savedCount, setSavedCount] = useState(state.regions_count);
   const [saveMsg, setSaveMsg] = useState("");
 
+  function routeDaysLabel(days: string[]) {
+    const map: Record<string, string> = {
+      monday: "Seg", tuesday: "Ter", wednesday: "Qua",
+      thursday: "Qui", friday: "Sex", saturday: "Sáb", sunday: "Dom",
+    };
+    if (!days || days.length === 0) return "Fora de rota";
+    return days.map((d) => map[d] ?? d).join(", ");
+  }
+
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !token) return;
@@ -442,14 +468,30 @@ function Step3Regions({ token, state, onNext, onSkip }: {
     const fd = new FormData();
     fd.append("file", file);
     try {
-      const res = await fetch("/api/distributor/delivery-regions/import", {
+      const res = await fetch("/api/distributor/delivery/import/preview", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
       });
-      const data = await res.json();
+      const data = await res.json() as {
+        token: string;
+        summary: {
+          total_cities: number;
+          new_cities: number;
+          updated_cities: number;
+          no_change_cities: number;
+          out_of_route_cities: number;
+          error_count: number;
+        };
+        valid_rows: any[];
+        error?: string;
+      };
       if (!res.ok) { setUploadMsg(data.error ?? "Erro no upload"); return; }
-      setPreview({ regions: data.regions, summary: data.summary });
+      setPreview({
+        regions: data.valid_rows,
+        jobToken: data.token,
+        summary: data.summary
+      });
     } catch { setUploadMsg("Erro de conexão"); }
     finally { setUploading(false); }
   }
@@ -457,27 +499,21 @@ function Step3Regions({ token, state, onNext, onSkip }: {
   async function confirmImport() {
     if (!token || !preview) return;
     setConfirming(true);
-    const res = await apiFetch("/api/distributor/delivery-regions", {
-      method: "POST", token,
-      body: JSON.stringify({
-        regions: (preview.regions as Array<{
-          city: string; state: string; route_days: string[];
-          delivery_days_business?: number; cutoff_time?: string; minimum_order_cents?: number;
-        }>).map(r => ({
-          city: r.city,
-          state: r.state,
-          delivery_days_business: r.delivery_days_business ?? 2,
-          cutoff_time: r.cutoff_time ?? "14:00",
-          minimum_order_cents: r.minimum_order_cents ?? 0,
-          route_days: r.route_days,
-        })),
-      }),
-    });
-    setConfirming(false);
-    if (res.ok) onNext();
-    else {
-      const d = await res.json();
-      setUploadMsg(d.error ?? "Erro ao confirmar");
+    try {
+      const res = await apiFetch("/api/distributor/delivery/import/confirm", {
+        method: "POST",
+        token,
+        body: JSON.stringify({ token: preview.jobToken }),
+      });
+      setConfirming(false);
+      if (res.ok) onNext();
+      else {
+        const d = await res.json() as { error?: string };
+        setUploadMsg(d.error ?? "Erro ao confirmar");
+      }
+    } catch {
+      setConfirming(false);
+      setUploadMsg("Erro de conexão");
     }
   }
 
@@ -567,13 +603,67 @@ function Step3Regions({ token, state, onNext, onSkip }: {
             {uploading ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-[#22C55E] border-t-transparent" />Processando…</> : <><FolderOpen size={20} className="inline mr-1" />Clique para selecionar</>}
           </button>
         ) : (
-          <div className="rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] p-5">
-            <p className="font-bold text-[#0F172A]">Pré-visualização</p>
-            <p className="mt-1 text-sm text-slate-500">{preview.summary.imported} cidades encontradas · {preview.summary.ignored} ignoradas</p>
-            <p className="mt-1 text-xs text-slate-400">Prazo padrão: 2 dias úteis · Corte: 14h — ajuste no perfil depois</p>
-            <div className="mt-4 flex gap-3">
+          <div className="flex flex-col gap-3">
+            <div className="rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] p-4 text-xs">
+              <p className="font-bold text-[#0F172A] mb-1.5">Pré-visualização</p>
+              <div className="grid grid-cols-2 gap-y-1 text-slate-500">
+                <div>Total: <span className="font-bold text-[#0F172A]">{preview.summary.total_cities} cidades</span></div>
+                <div>Novas: <span className="font-bold text-green-700">+{preview.summary.new_cities}</span></div>
+                <div>Alteradas: <span className="font-bold text-amber-700">{preview.summary.updated_cities}</span></div>
+                <div>Sem alterações: <span className="font-bold text-slate-450">{preview.summary.no_change_cities}</span></div>
+                <div className="col-span-2">Fora de rota (serão removidas): <span className="font-bold text-red-700">{preview.summary.out_of_route_cities}</span></div>
+              </div>
+            </div>
+
+            <div className="max-h-48 overflow-y-auto rounded-xl border border-[#DBEAFE] bg-white divide-y divide-[#DBEAFE]">
+              {preview.regions.slice(0, 100).map((r, i) => {
+                let badgeColor = "bg-slate-100 text-slate-500 border-slate-200";
+                let statusLabel = routeDaysLabel(r.route_days);
+                if (r.route_days.length === 0) {
+                  badgeColor = "bg-red-50 text-red-700 border-red-200";
+                  statusLabel = "Fora de rota";
+                } else if (r.change_type === "new") {
+                  badgeColor = "bg-green-50 text-green-700 border-green-200";
+                  statusLabel = "Novo";
+                } else if (r.change_type === "update") {
+                  badgeColor = "bg-amber-50 text-amber-700 border-amber-200";
+                  statusLabel = "Alterado";
+                }
+
+                return (
+                  <div key={i} className="flex items-center justify-between p-3 hover:bg-slate-50/50">
+                    <div className="flex flex-col gap-0.5 text-left">
+                      <p className="text-xs font-semibold text-[#0F172A]">{r.city} — {r.state}</p>
+                      {r.change_type !== "no_change" && (
+                        <p className="text-[10px] text-slate-500">
+                          {r.change_type === "update" ? (
+                            <>
+                              <span className="line-through">De: {routeDaysLabel(r.old_route_days)}</span>
+                              {" → "}
+                              <span className="font-semibold text-slate-700">Para: {routeDaysLabel(r.route_days)}</span>
+                            </>
+                          ) : (
+                            routeDaysLabel(r.route_days)
+                          )}
+                        </p>
+                      )}
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold ${badgeColor}`}>
+                      {statusLabel}
+                    </span>
+                  </div>
+                );
+              })}
+              {preview.regions.length > 100 && (
+                <div className="p-2 text-center text-[10px] text-slate-400">
+                  + {preview.regions.length - 100} cidades não exibidas no preview
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
               <PrimaryBtn loading={confirming} onClick={confirmImport}>Confirmar importação</PrimaryBtn>
-              <button onClick={() => setPreview(null)} className="flex-1 rounded-xl border border-[#DBEAFE] py-3 text-sm font-medium text-slate-500">Cancelar</button>
+              <button onClick={() => setPreview(null)} className="flex-1 rounded-xl border border-[#DBEAFE] py-3 text-sm font-medium text-slate-500 hover:bg-[#F5F7FB]">Cancelar</button>
             </div>
           </div>
         )}

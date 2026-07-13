@@ -701,3 +701,99 @@ export async function parseUnstructuredXlsxWithLayout(
 
   return { valid_rows: validRows, errors };
 }
+
+export interface ParsedDeliveryRow {
+  row_number: number;
+  city: string;
+  state: string;
+  route_days: string[];
+}
+
+/**
+ * Analisa uma planilha não-estruturada de rotas de entrega utilizando o layout detectado pelo Gemini.
+ */
+export async function parseUnstructuredDeliveryXlsxWithLayout(
+  buffer: ArrayBuffer | Buffer,
+  layout: {
+    header_row: number;
+    city_column: string;
+    days_columns: {
+      monday?: string;
+      tuesday?: string;
+      wednesday?: string;
+      thursday?: string;
+      friday?: string;
+      saturday?: string;
+      sunday?: string;
+    }
+  },
+  citiesLookup: Map<string, string>
+): Promise<{ valid_rows: ParsedDeliveryRow[]; errors: any[] }> {
+  const workbook = new ExcelJS.Workbook();
+  const buf = buffer instanceof Buffer ? buffer : Buffer.from(buffer as ArrayBuffer);
+  await workbook.xlsx.load(buf as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+
+  const sheet = workbook.worksheets[0];
+  if (!sheet) {
+    return { valid_rows: [], errors: [{ row: 0, field: "", message: "Planilha vazia ou formato inválido" }] };
+  }
+
+  const cityColIndex = letterToColIndex(layout.city_column);
+  
+  const dayColIndexes: { day: string; index: number }[] = [];
+  for (const [day, letter] of Object.entries(layout.days_columns)) {
+    if (letter) {
+      dayColIndexes.push({ day, index: letterToColIndex(letter) });
+    }
+  }
+
+  const validRows: ParsedDeliveryRow[] = [];
+  const errors: any[] = [];
+  const startRow = layout.header_row + 1;
+
+  sheet.eachRow((row, rowNumber) => {
+    if (rowNumber < startRow) return;
+
+    // Ignora linhas vazias
+    const allEmpty = !row.values || (row.values as unknown[]).every((v) => v === undefined || v === null || v === "");
+    if (allEmpty) return;
+
+    const cityRaw = getCellText(row.getCell(cityColIndex)).trim();
+    if (!cityRaw || cityRaw === "-" || cityRaw.toLowerCase() === "cidade") return;
+
+    const routeDays: string[] = [];
+
+    for (const { day, index } of dayColIndexes) {
+      const val = getCellText(row.getCell(index)).trim().toLowerCase();
+      // Se tiver "SIM", "S", "1", "X", "OK", etc., conta como dia de entrega
+      if (
+        val === "sim" || 
+        val === "s" || 
+        val === "1" || 
+        val === "x" || 
+        val === "ok" || 
+        val === "yes" ||
+        val === "true"
+      ) {
+        routeDays.push(day);
+      }
+    }
+
+    const normalized = cityRaw
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+      
+    const state = citiesLookup.get(normalized) || "SP";
+
+    validRows.push({
+      row_number: rowNumber,
+      city: cityRaw,
+      state,
+      route_days: routeDays,
+    });
+  });
+
+  return { valid_rows: validRows, errors };
+}

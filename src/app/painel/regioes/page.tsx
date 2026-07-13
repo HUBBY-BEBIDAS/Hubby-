@@ -42,10 +42,10 @@ type RegionForm = {
 type ImportPreview = {
   city: string;
   state: string;
-  delivery_days_business: number;
   route_days: string[];
-  cutoff_time: string;
-  minimum_order_cents: number;
+  is_update: boolean;
+  change_type: "new" | "update" | "no_change";
+  old_route_days: string[];
 };
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -304,7 +304,14 @@ function ImportModal({ token, onClose, onImported }: {
   const [msg, setMsg] = useState("");
   const [preview, setPreview] = useState<{
     regions: ImportPreview[];
-    ignored: number;
+    jobToken: string;
+    summary: {
+      total_cities: number;
+      new_cities: number;
+      updated_cities: number;
+      no_change_cities: number;
+      out_of_route_cities: number;
+    };
   } | null>(null);
 
   async function downloadTemplate() {
@@ -329,18 +336,30 @@ function ImportModal({ token, onClose, onImported }: {
     const fd = new FormData();
     fd.append("file", file);
     try {
-      const res = await fetch("/api/distributor/delivery-regions/import", {
+      const res = await fetch("/api/distributor/delivery/import/preview", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
       });
       const data = await res.json() as {
-        regions: ImportPreview[];
-        summary: { imported: number; ignored: number; total: number };
+        token: string;
+        summary: {
+          total_cities: number;
+          new_cities: number;
+          updated_cities: number;
+          no_change_cities: number;
+          out_of_route_cities: number;
+          error_count: number;
+        };
+        valid_rows: ImportPreview[];
         error?: string;
       };
       if (!res.ok) { setMsg(data.error ?? "Erro ao processar"); return; }
-      setPreview({ regions: data.regions, ignored: data.summary.ignored });
+      setPreview({
+        regions: data.valid_rows,
+        jobToken: data.token,
+        summary: data.summary
+      });
     } catch { setMsg("Erro de conexão"); }
     finally { setUploading(false); if (fileRef.current) fileRef.current.value = ""; }
   }
@@ -349,10 +368,10 @@ function ImportModal({ token, onClose, onImported }: {
     if (!preview || !token) return;
     setConfirming(true);
     try {
-      const res = await apiFetch("/api/distributor/delivery-regions", {
+      const res = await apiFetch("/api/distributor/delivery/import/confirm", {
         method: "POST",
         token,
-        body: JSON.stringify({ regions: preview.regions }),
+        body: JSON.stringify({ token: preview.jobToken }),
       });
       if (res.ok) { onImported(); onClose(); }
       else {
@@ -390,11 +409,14 @@ function ImportModal({ token, onClose, onImported }: {
           </button>
         ) : (
           <div className="flex flex-col gap-3 flex-1 overflow-hidden">
-            <div className="rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] p-4">
-              <p className="font-semibold text-[#0F172A]">Pré-visualização</p>
-              <div className="mt-2 flex gap-4 text-sm">
-                <span className="text-green-700 font-medium">{preview.regions.length} municípios identificados</span>
-                {preview.ignored > 0 && <span className="text-slate-400">{preview.ignored} ignorados</span>}
+            <div className="rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] p-4 text-xs">
+              <p className="font-semibold text-sm text-[#0F172A] mb-2">Pré-visualização</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-slate-600">
+                <div>Total: <span className="font-bold text-[#0F172A]">{preview.summary.total_cities} cidades</span></div>
+                <div>Novas rotas: <span className="font-bold text-green-700">+{preview.summary.new_cities}</span></div>
+                <div>Alteradas: <span className="font-bold text-amber-700">{preview.summary.updated_cities}</span></div>
+                <div>Sem alterações: <span className="font-bold text-slate-500">{preview.summary.no_change_cities}</span></div>
+                <div className="col-span-2">Fora de rota (serão removidas): <span className="font-bold text-red-700">{preview.summary.out_of_route_cities}</span></div>
               </div>
             </div>
 
@@ -403,22 +425,51 @@ function ImportModal({ token, onClose, onImported }: {
                 <thead className="sticky top-0 bg-[#F5F7FB]">
                   <tr>
                     <th className="px-3 py-2 text-left font-semibold text-slate-500">Município</th>
-                    <th className="px-3 py-2 text-center font-semibold text-slate-500">Prazo</th>
-                    <th className="px-3 py-2 text-center font-semibold text-slate-500">Corte</th>
-                    <th className="px-3 py-2 text-left font-semibold text-slate-500">Dias</th>
+                    <th className="px-3 py-2 text-center font-semibold text-slate-500">Status</th>
+                    <th className="px-3 py-2 text-left font-semibold text-slate-500">Roteiro (Dias de entrega)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#DBEAFE]">
-                  {preview.regions.map((r, i) => (
-                    <tr key={i}>
-                      <td className="px-3 py-2 font-medium text-[#0F172A]">
-                        {r.city} — {r.state}
-                      </td>
-                      <td className="px-3 py-2 text-center text-slate-600">{r.delivery_days_business}d</td>
-                      <td className="px-3 py-2 text-center text-slate-600">{r.cutoff_time}</td>
-                      <td className="px-3 py-2 text-slate-600">{routeDaysLabel(r.route_days)}</td>
-                    </tr>
-                  ))}
+                  {preview.regions.map((r, i) => {
+                    let badgeColor = "bg-slate-100 text-slate-600 border-slate-200";
+                    let statusLabel = routeDaysLabel(r.route_days);
+                    
+                    if (r.route_days.length === 0) {
+                      badgeColor = "bg-red-50 text-red-700 border-red-200";
+                      statusLabel = "Fora de rota";
+                    } else if (r.change_type === "new") {
+                      badgeColor = "bg-green-50 text-green-700 border-green-200";
+                      statusLabel = "Novo";
+                    } else if (r.change_type === "update") {
+                      badgeColor = "bg-amber-50 text-amber-700 border-amber-200";
+                      statusLabel = "Alterado";
+                    }
+
+                    return (
+                      <tr key={i} className="hover:bg-slate-50/50">
+                        <td className="px-3 py-2 font-medium text-[#0F172A]">
+                          {r.city} — {r.state}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-semibold ${badgeColor}`}>
+                            {statusLabel}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-slate-600">
+                          {r.change_type === "update" ? (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-[10px] text-slate-400 line-through">De: {routeDaysLabel(r.old_route_days)}</span>
+                              <span className="text-[#0F172A] font-medium">Para: {routeDaysLabel(r.route_days)}</span>
+                            </div>
+                          ) : r.change_type === "new" ? (
+                            routeDaysLabel(r.route_days)
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -426,7 +477,7 @@ function ImportModal({ token, onClose, onImported }: {
             <div className="flex gap-3 pt-1">
               <button onClick={confirm} disabled={confirming || preview.regions.length === 0}
                 className="flex-1 rounded-xl bg-[#2563EB] py-3 text-sm font-semibold text-white hover:bg-[#1D4ED8] disabled:opacity-50">
-                {confirming ? "Salvando…" : `Confirmar ${preview.regions.length} região${preview.regions.length !== 1 ? "ões" : ""}`}
+                {confirming ? "Salvando…" : "Confirmar importação"}
               </button>
               <button onClick={() => setPreview(null)}
                 className="flex-1 rounded-xl border border-[#DBEAFE] py-3 text-sm text-slate-500 hover:bg-[#F5F7FB]">

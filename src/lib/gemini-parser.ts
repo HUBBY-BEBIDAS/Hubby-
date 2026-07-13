@@ -147,3 +147,49 @@ export async function detectarLayoutComGemini(estruturaPlanilha: string): Promis
 
   return object;
 }
+
+export const geminiDeliveryLayoutSchema = z.object({
+  header_row: z.number().int().describe("O número da linha que contém o cabeçalho com os nomes das colunas de dias da semana (ex: 2)"),
+  city_column: z.string().describe("A letra da coluna que contém os nomes das cidades (ex: 'A')"),
+  days_columns: z.object({
+    monday: z.string().optional().describe("A letra da coluna correspondente a SEGUNDA-FEIRA (ex: 'B'). Deixe em branco se não houver."),
+    tuesday: z.string().optional().describe("A letra da coluna correspondente a TERÇA-FEIRA (ex: 'C'). Deixe em branco se não houver."),
+    wednesday: z.string().optional().describe("A letra da coluna correspondente a QUARTA-FEIRA (ex: 'D'). Deixe em branco se não houver."),
+    thursday: z.string().optional().describe("A letra da coluna correspondente a QUINTA-FEIRA (ex: 'E'). Deixe em branco se não houver."),
+    friday: z.string().optional().describe("A letra da coluna correspondente a SEXTA-FEIRA (ex: 'F'). Deixe em branco se não houver."),
+    saturday: z.string().optional().describe("A letra da coluna correspondente a SÁBADO (ex: 'G'). Deixe em branco se não houver."),
+    sunday: z.string().optional().describe("A letra da coluna correspondente a DOMINGO. Deixe em branco se não houver.")
+  })
+});
+
+export type GeminiDeliveryLayoutInfo = z.infer<typeof geminiDeliveryLayoutSchema>;
+
+/**
+ * Envia as primeiras 20 linhas estruturadas ao Gemini para identificar o layout de entrega (dias da semana e cidades).
+ */
+export async function detectarDeliveryLayoutComGemini(estruturaPlanilha: string): Promise<GeminiDeliveryLayoutInfo> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error("Variável de ambiente GEMINI_API_KEY não configurada");
+  }
+
+  const { object } = await generateObject({
+    model: googleAI("gemini-3-flash-preview"),
+    schema: geminiDeliveryLayoutSchema,
+    prompt: `
+      Você é o motor de inteligência artificial da plataforma Hubby (SaaS B2B de bebidas).
+      Sua tarefa é analisar a estrutura das primeiras 20 linhas de uma planilha Excel de rotas de entrega de uma distribuidora e identificar o layout.
+
+      Você deve determinar:
+      1. Qual linha contém os cabeçalhos com os dias da semana (ex: 'SEGUNDA-FEIRA', 'TERÇA-FEIRA', etc.).
+      2. Qual coluna (letra, ex: 'A') contém o nome das cidades (normalmente a primeira coluna preenchida com nomes como 'Adamantina', 'Guarulhos', etc.).
+      3. Quais colunas representam cada dia da semana (Segunda a Domingo). Por exemplo, a coluna 'B' para Segunda-Feira, 'C' para Terça-Feira, etc.
+
+      Aqui está o snippet das primeiras 20 linhas da planilha:
+      ---
+      ${estruturaPlanilha}
+      ---
+    `
+  });
+
+  return object;
+}
