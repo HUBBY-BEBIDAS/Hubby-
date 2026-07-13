@@ -355,6 +355,7 @@ export default function CotacaoPage() {
   const [maxDays, setMaxDays] = useState<number | "">("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [checkingActive, setCheckingActive] = useState(true);
 
   // Perfil do cliente (endereço)
   const [profile, setProfile] = useState<ClientProfile | null>(null);
@@ -362,13 +363,32 @@ export default function CotacaoPage() {
 
   useEffect(() => {
     if (!token) return;
+
+    // 1. Carrega o perfil do comprador
     apiFetch("/api/profile", { method: "GET", token })
       .then((r: Response) => r.json())
       .then((d: { profile?: ClientProfile }) => {
         if (d.profile) setProfile(d.profile);
       })
       .catch(() => {});
-  }, [token]);
+
+    // 2. Verifica se existe alguma cotação em aberto (e que não tenha pedidos enviados)
+    apiFetch("/api/quotations?status=open", { method: "GET", token })
+      .then((r: Response) => r.json())
+      .then((d: { quotations?: any[] }) => {
+        if (d.quotations && d.quotations.length > 0) {
+          const activeQuotation = d.quotations.find((q) => !q.orders || q.orders.length === 0);
+          if (activeQuotation) {
+            router.replace(`/cotacao/${activeQuotation.id}`);
+            return;
+          }
+        }
+        setCheckingActive(false);
+      })
+      .catch(() => {
+        setCheckingActive(false);
+      });
+  }, [token, router]);
 
   function handleProductSelect(result: ProductSearchResult) {
     setSelectedProduct(result);
@@ -438,6 +458,18 @@ export default function CotacaoPage() {
 
     if (!res.ok) { setError(data.error ?? "Erro ao criar cotação."); return; }
     router.push(`/cotacao/${data.quotation!.id}/ranking`);
+  }
+
+  if (checkingActive) {
+    return (
+      <div className="flex min-h-screen flex-col bg-[#F5F7FB]">
+        <Navbar />
+        <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 flex flex-col items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#2563EB] border-t-transparent mb-3" />
+          <p className="text-sm font-semibold text-slate-500">Verificando cotação ativa...</p>
+        </main>
+      </div>
+    );
   }
 
   const packagingLabel = selectedProduct

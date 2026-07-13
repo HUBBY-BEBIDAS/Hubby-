@@ -8,6 +8,7 @@ import { Navbar } from "@/components/Navbar";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { ProductAutocomplete, formatPackaging } from "@/components/ui/ProductAutocomplete";
 import type { ProductSearchResult } from "@/app/api/products/search/route";
+import { useQuotation } from "@/contexts/QuotationContext";
 
 type Category =
   | "beer" | "whisky" | "vodka" | "gin" | "rum" | "cachaca"
@@ -116,6 +117,7 @@ export default function EditQuotationPage() {
   const router = useRouter();
   const { id: quotationId } = useParams<{ id: string }>();
   const token = useApiToken();
+  const { refetch: refetchQuotation } = useQuotation();
   const quantityRef = useRef<HTMLInputElement>(null);
 
   const [status, setStatus] = useState<QuotationStatus | null>(null);
@@ -128,6 +130,7 @@ export default function EditQuotationPage() {
   const [quantity, setQuantity] = useState(1);
 
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [reordering, setReordering] = useState(false);
 
@@ -164,6 +167,35 @@ export default function EditQuotationPage() {
     setReordering(false);
     if (res.ok) {
       router.push(`/cotacao/${data.quotation.id}/ranking`);
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm("Tem certeza que deseja excluir esta cotação? Esta ação não pode ser desfeita.")) {
+      return;
+    }
+    if (!token) return;
+    setDeleting(true);
+    setError("");
+
+    try {
+      const res = await apiFetch(`/api/quotations/${quotationId}`, {
+        method: "DELETE",
+        token,
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error ?? "Erro ao excluir cotação.");
+        setDeleting(false);
+        return;
+      }
+
+      refetchQuotation().catch(() => {});
+      router.replace("/cotacao");
+    } catch {
+      setError("Erro ao excluir cotação.");
+      setDeleting(false);
     }
   }
 
@@ -400,16 +432,29 @@ export default function EditQuotationPage() {
           <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
         )}
 
-        <Button
-          fullWidth
-          size="lg"
-          loading={saving}
-          disabled={items.length === 0}
-          onClick={submitQuotation}
-          className="bg-[#22C55E] hover:bg-[#16A34A] font-bold"
-        >
-          Ver ranking de preços
-        </Button>
+        <div className="flex flex-col gap-3">
+          <Button
+            fullWidth
+            size="lg"
+            loading={saving}
+            disabled={items.length === 0}
+            onClick={submitQuotation}
+            className="bg-[#22C55E] hover:bg-[#16A34A] font-bold"
+          >
+            Ver ranking de preços
+          </Button>
+
+          <Button
+            fullWidth
+            variant="ghost"
+            size="lg"
+            loading={deleting}
+            onClick={handleDelete}
+            className="text-red-500 hover:bg-red-50 hover:text-red-600 font-bold border border-red-200"
+          >
+            Excluir Cotação
+          </Button>
+        </div>
       </main>
     </div>
   );

@@ -39,7 +39,7 @@ export function FloatingQuotationButton() {
       )}
 
       {/* Botão flutuante — aparece quando há itens */}
-      {itemCount > 0 && quotation && (
+      {itemCount > 0 && quotation && quotation.items && quotation.items.length > 0 && (
         <button
           onClick={() => router.push(`/cotacao/${quotation.id}/ranking`)}
           className="fixed bottom-5 right-4 z-40 flex items-center gap-2.5 rounded-2xl bg-[#22C55E] px-5 py-3.5 shadow-xl shadow-green-900/20 transition hover:bg-[#16A34A] active:scale-95 sm:right-6"

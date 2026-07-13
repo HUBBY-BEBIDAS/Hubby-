@@ -10,6 +10,7 @@ import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { Heart, Star, MapPin, Check, X, Sparkles, ShoppingCart, MessageSquare } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { useQuotation } from "@/contexts/QuotationContext";
 
 // ─── Tipos da API ─────────────────────────────────────────────────────────────
 
@@ -477,127 +478,51 @@ function freightCentsFor(entry: RankingEntry, subtotalCents: number): number {
   return 0;
 }
 
-function trySubsetCombo(
-  subset: RankingEntry[],
-  productGroups: ProductGroup[],
-  offerMap: Map<string, Map<string, ProductOffer>>
-): ValidCombo | null {
-  const subsetIdSet = new Set(subset.map((e) => e.distributor_id));
-
-  // Alocação inicial gulosa: cada produto → distribuidora mais barata do subset
-  const alloc = new Map<string, { distId: string; offer: ProductOffer }>();
-  for (const group of productGroups) {
-    const distOffers = offerMap.get(group.quotation_item_name);
-    if (!distOffers) continue;
-    let cheapest: { distId: string; offer: ProductOffer } | null = null;
-    for (const distId of subsetIdSet) {
-      const o = distOffers.get(distId);
-      if (!o) continue;
-      if (!cheapest || o.unit_price_cents < cheapest.offer.unit_price_cents) cheapest = { distId, offer: o };
-    }
-    if (cheapest) alloc.set(group.quotation_item_name, cheapest);
-  }
-
-  // Totais correntes por distribuidora
-  const totals = new Map<string, number>();
-  for (const { distId, offer } of alloc.values()) {
-    totals.set(distId, (totals.get(distId) ?? 0) + offer.total_price_cents);
-  }
-
-  // Corrige violações de pedido mínimo por realocação iterativa
-  let changed = true;
-  let iter = 0;
-  while (changed && iter++ < 60) {
-    changed = false;
-    for (const dist of subset) {
-      const total = totals.get(dist.distributor_id) ?? 0;
-      if (dist.minimum_order_cents === 0 || total >= dist.minimum_order_cents) continue;
-
-      // Candidatos: produtos alocados em outras distribuidoras que esta também tem
-      const candidates: Array<{
-        productName: string;
-        newOffer: ProductOffer;
-        currentDistId: string;
-        currentOffer: ProductOffer;
-        extraCost: number;
-      }> = [];
-
-      for (const [productName, { distId, offer }] of alloc) {
-        if (distId === dist.distributor_id) continue;
-        const newOffer = offerMap.get(productName)?.get(dist.distributor_id);
-        if (!newOffer) continue;
-        candidates.push({
-          productName, newOffer, currentDistId: distId, currentOffer: offer,
-          extraCost: newOffer.total_price_cents - offer.total_price_cents,
-        });
-      }
-      // Ordena por menor custo extra de realocação
-      candidates.sort((a, b) => a.extraCost - b.extraCost);
-
-      let deficit = dist.minimum_order_cents - total;
-      for (const c of candidates) {
-        if (deficit <= 0) break;
-        alloc.set(c.productName, { distId: dist.distributor_id, offer: c.newOffer });
-        totals.set(dist.distributor_id, (totals.get(dist.distributor_id) ?? 0) + c.newOffer.total_price_cents);
-        totals.set(c.currentDistId, (totals.get(c.currentDistId) ?? 0) - c.currentOffer.total_price_cents);
-        deficit -= c.newOffer.total_price_cents;
-        changed = true;
-      }
-      if (deficit > 0) return null; // Não consegue atingir o mínimo
-    }
-  }
-
-  // Validação final: todas as distribuidoras usadas atingem o mínimo
-  for (const dist of subset) {
-    const total = totals.get(dist.distributor_id) ?? 0;
-    if (total > 0 && dist.minimum_order_cents > 0 && total < dist.minimum_order_cents) return null;
-  }
-
-  const distResults: ComboDistributor[] = subset
-    .filter((d) => (totals.get(d.distributor_id) ?? 0) > 0)
-    .map((d) => {
-      const subtotal = totals.get(d.distributor_id) ?? 0;
-      const items: AllocItem[] = [];
-      for (const [productName, { distId, offer }] of alloc) {
-        if (distId === d.distributor_id) items.push({ productName, offer });
-      }
-      return { entry: d, items, subtotalCents: subtotal, freightCents: freightCentsFor(d, subtotal) };
-    });
-
-  return {
-    distributors: distResults,
-    grandTotalCents: distResults.reduce((s, d) => s + d.subtotalCents + d.freightCents, 0),
-  };
-}
-
 function computeBestCombo(
   allEntries: RankingEntry[],
   productGroups: ProductGroup[]
 ): ValidCombo | null {
   if (productGroups.length === 0 || allEntries.length === 0) return null;
 
-  const offerMap = new Map<string, Map<string, ProductOffer>>();
+  const distMap = new Map<string, RankingEntry>();
+  for (const entry of allEntries) {
+    distMap.set(entry.distributor_id, entry);
+  }
+
+  const allocsByDist = new Map<string, AllocItem[]>();
   for (const group of productGroups) {
-    const m = new Map<string, ProductOffer>();
-    for (const offer of group.offers) m.set(offer.distributor_id, offer);
-    offerMap.set(group.quotation_item_name, m);
+    // A primeira oferta é sempre a melhor com base no filtro e ordenação ativa
+    const bestOffer = group.offers[0];
+    if (!bestOffer) continue;
+
+    const distId = bestOffer.distributor_id;
+    if (!allocsByDist.has(distId)) allocsByDist.set(distId, []);
+    allocsByDist.get(distId)!.push({
+      productName: group.quotation_item_name,
+      offer: bestOffer,
+    });
   }
 
-  const N = Math.min(allEntries.length, 12);
-  // Limita subsets a tamanho 4 quando há muitas distribuidoras
-  const MAX_SIZE = allEntries.length <= 4 ? allEntries.length : 4;
-  let best: ValidCombo | null = null;
+  const distributors: ComboDistributor[] = [];
+  for (const [distId, items] of allocsByDist.entries()) {
+    const entry = distMap.get(distId);
+    if (!entry) continue;
 
-  for (let mask = 1; mask < (1 << N); mask++) {
-    let bits = 0;
-    for (let b = mask; b; b >>= 1) bits += b & 1;
-    if (bits > MAX_SIZE) continue;
-    const subset = allEntries.filter((_, i) => (mask >> i) & 1);
-    const result = trySubsetCombo(subset, productGroups, offerMap);
-    if (result && (!best || result.grandTotalCents < best.grandTotalCents)) best = result;
+    const subtotalCents = items.reduce((s, i) => s + i.offer.total_price_cents, 0);
+    distributors.push({
+      entry,
+      items,
+      subtotalCents,
+      freightCents: freightCentsFor(entry, subtotalCents),
+    });
   }
 
-  return best;
+  if (distributors.length === 0) return null;
+
+  return {
+    distributors,
+    grandTotalCents: distributors.reduce((s, d) => s + d.subtotalCents + d.freightCents, 0),
+  };
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
@@ -608,6 +533,7 @@ export default function RankingPage() {
   const router = useRouter();
   const token = useApiToken();
   const { addItem: addToCart, isInCart, openDrawer: openCartDrawer } = useCart();
+  const { refetch: refetchQuotation } = useQuotation();
 
   const [ranking, setRanking] = useState<RankingResult | null>(null);
   const [loadingRanking, setLoadingRanking] = useState(true);
@@ -823,7 +749,7 @@ export default function RankingPage() {
 
     const combo = computeBestCombo(allEntries, productGroups);
 
-    if (combo) {
+    if (combo && combo.distributors && combo.distributors.length > 0) {
       const latest = combo.distributors.reduce((a, b) =>
         a.entry.total_business_days >= b.entry.total_business_days ? a : b
       );
@@ -905,6 +831,18 @@ export default function RankingPage() {
     setConfirmPhase(false);
   }
 
+  function selectCheapestOffers() {
+    const keys = new Set<string>();
+    for (const group of productGroups) {
+      const cheapest = group.offers.find((o) => o.unit_price_cents === group.cheapestCents);
+      if (cheapest) {
+        keys.add(cheapest.key);
+      }
+    }
+    setSelectedKeys(keys);
+    setConfirmPhase(false);
+  }
+
   const suggestionApplied: boolean = (() => {
     if (smartSuggestion.scenario !== "A" && smartSuggestion.scenario !== "B") return false;
     const keys = smartSuggestion.combo.distributors.flatMap((d) => d.items.map((i) => i.offer.key));
@@ -943,6 +881,15 @@ export default function RankingPage() {
     [selectedByDistributor]
   );
 
+  const hasSelectedViolations = useMemo(() => {
+    for (const group of selectedByDistributor.values()) {
+      if (group.entry.minimum_order_cents > 0 && group.totalCents < group.entry.minimum_order_cents) {
+        return true;
+      }
+    }
+    return false;
+  }, [selectedByDistributor]);
+
   // ── Fase do fluxo: seleção → confirmação ─────────────────────────────────
 
   const [confirmPhase, setConfirmPhase] = useState(false);
@@ -953,6 +900,145 @@ export default function RankingPage() {
     new Map()
   );
   const [distError, setDistError] = useState<Map<string, string>>(new Map());
+  const [sendingAll, setSendingAll] = useState<"chat" | "email" | null>(null);
+
+  async function handleSendAll(channel: "chat" | "email") {
+    if (!token || !ranking) return;
+    if (selectedByDistributor.size === 0) return;
+
+    setSendingAll(channel);
+
+    setDistState((prev) => {
+      const next = new Map(prev);
+      for (const distId of selectedByDistributor.keys()) {
+        if (next.get(distId) !== "sent") {
+          next.set(distId, "sending");
+        }
+      }
+      return next;
+    });
+    setDistError((prev) => {
+      const next = new Map(prev);
+      for (const distId of selectedByDistributor.keys()) {
+        next.delete(distId);
+      }
+      return next;
+    });
+
+    try {
+      const ordersPayload = [...selectedByDistributor.entries()]
+        .filter(([distId]) => distState.get(distId) !== "sent")
+        .map(([distId, group]) => ({
+          distributor_id: distId,
+          items: group.items.map((i) => ({
+            product_name: i.product_name,
+            brand: i.quotation_item_brand,
+            category: i.category,
+            packaging: i.packaging,
+            quantity: i.quantity,
+            unit_price_cents: i.unit_price_cents,
+          })),
+          total_cents: group.totalCents,
+          estimated_delivery_date: group.entry.estimated_delivery_date,
+          send_channel: channel,
+        }));
+
+      if (ordersPayload.length === 0) {
+        setSendingAll(null);
+        return;
+      }
+
+      const res = await apiFetch(`/api/quotations/${quotationId}/send`, {
+        method: "POST",
+        token,
+        body: JSON.stringify({ orders: ordersPayload }),
+      });
+
+      const data = await res.json();
+      setSendingAll(null);
+
+      if (!res.ok) {
+        setDistState((prev) => {
+          const next = new Map(prev);
+          for (const item of ordersPayload) {
+            next.set(item.distributor_id, "idle");
+          }
+          return next;
+        });
+        setDistError((prev) => {
+          const next = new Map(prev);
+          for (const item of ordersPayload) {
+            next.set(item.distributor_id, data.error ?? "Erro ao enviar pedido.");
+          }
+          return next;
+        });
+        return;
+      }
+
+      const results = (data.orders ?? []) as Array<{
+        distributor_id: string;
+        status: string;
+        room_id?: string | null;
+        credential_status?: string;
+        error?: string;
+      }>;
+
+      setDistState((prev) => {
+        const next = new Map(prev);
+        for (const r of results) {
+          if (r.status === "sent") {
+            next.set(r.distributor_id, "sent");
+          } else {
+            next.set(r.distributor_id, "idle");
+          }
+        }
+        return next;
+      });
+
+      setDistError((prev) => {
+        const next = new Map(prev);
+        for (const r of results) {
+          if (r.status !== "sent") {
+            next.set(r.distributor_id, r.error ?? "Pedido rejeitado pela distribuidora.");
+          }
+        }
+        return next;
+      });
+
+      for (const r of results) {
+        if (r.status === "sent" && (r.credential_status === "existing" || r.credential_status === "approved")) {
+          setApprovedCredentials((prev) => new Set(prev).add(r.distributor_id));
+        }
+      }
+
+      refetchQuotation().catch(() => {});
+
+      if (channel === "chat") {
+        const sentChatOrder = results.find((r) => r.status === "sent" && r.room_id);
+        if (sentChatOrder?.room_id) {
+          router.push(`/chat?roomId=${sentChatOrder.room_id}`);
+        } else {
+          router.push("/chat");
+        }
+      }
+    } catch {
+      setSendingAll(null);
+      setDistState((prev) => {
+        const next = new Map(prev);
+        for (const distId of selectedByDistributor.keys()) {
+          if (next.get(distId) !== "sent") next.set(distId, "idle");
+        }
+        return next;
+      });
+      setDistError((prev) => {
+        const next = new Map(prev);
+        for (const distId of selectedByDistributor.keys()) {
+          next.set(distId, "Erro de conexão. Tente novamente.");
+        }
+        return next;
+      });
+    }
+  }
 
   function getDistState(id: string): "idle" | "sending" | "sent" {
     return distState.get(id) ?? "idle";
@@ -1082,6 +1168,7 @@ export default function RankingPage() {
       );
     }
     // Email: já disparado server-side — sem ação adicional no cliente
+    refetchQuotation().catch(() => {});
   }
 
   const allSent =
@@ -1248,6 +1335,39 @@ export default function RankingPage() {
             <p className="font-bold text-[#0F172A]">Total geral</p>
             <p className="text-2xl font-semibold text-[#22C55E]">{formatBRL(totalSelectedCents)}</p>
           </div>
+
+          {/* Enviar tudo de uma vez */}
+          {!allSent && selectedByDistributor.size > 1 && (
+            <div className="mb-6 flex flex-col gap-3 rounded-3xl border border-blue-100 bg-[#E0F2FE]/30 p-6">
+              <p className="text-sm font-semibold text-slate-700">
+                Enviar cotação para as {selectedByDistributor.size} distribuidoras simultaneamente:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Button
+                  onClick={() => handleSendAll("chat")}
+                  loading={sendingAll === "chat"}
+                  disabled={sendingAll != null}
+                  className="flex items-center justify-center gap-2"
+                >
+                  <MessageSquare size={16} />
+                  Confirmar e enviar por Chat
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => handleSendAll("email")}
+                  loading={sendingAll === "email"}
+                  disabled={sendingAll != null}
+                  className="flex items-center justify-center gap-2"
+                >
+                  <svg className="h-4 w-4 text-slate-500" viewBox="0 0 24 18" fill="none">
+                    <rect x="1" y="1" width="22" height="16" rx="2.5" stroke="currentColor" strokeWidth="1.6"/>
+                    <path d="M1.5 2L12 10.5 22.5 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                  </svg>
+                  Confirmar e enviar por E-mail
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Ver histórico quando tudo for enviado */}
           {allSent && (
@@ -1532,7 +1652,7 @@ export default function RankingPage() {
                     Melhor combinação: {smartSuggestion.distributorCount} distribuidoras
                   </h2>
                   <p className="mt-0.5 text-sm text-white/70">
-                    Todos os pedidos mínimos atendidos — menor custo total com frete.
+                    Melhor combinação com menor custo total.
                   </p>
                 </div>
 
@@ -1600,7 +1720,7 @@ export default function RankingPage() {
                     {smartSuggestion.combo.distributors[0]?.entry.company_name}
                   </h2>
                   <p className="mt-0.5 text-sm text-white/70">
-                    Outras distribuidoras exigem pedido mínimo que seu pedido não atinge.
+                    Este distribuidor oferece a melhor opção de custo para o seu pedido.
                   </p>
                 </div>
 
@@ -1639,7 +1759,7 @@ export default function RankingPage() {
             )}
 
             {/* Cenário C: nenhuma distribuidora fecha o mínimo */}
-            {smartSuggestion.scenario === "C" && (
+            {smartSuggestion.scenario === "C" && (selectedCount === 0 || hasSelectedViolations) && (
               <div className="mb-6 rounded-3xl border border-amber-200 bg-amber-50 p-5">
                 <div className="flex items-start gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100">

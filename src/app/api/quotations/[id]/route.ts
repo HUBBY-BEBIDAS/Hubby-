@@ -138,3 +138,80 @@ export const PATCH = withAuth(
   },
   { roles: ["client"] }
 );
+
+// ─── DELETE /api/quotations/:id ──────────────────────────────────────────────
+
+/**
+ * Exclui uma cotação aberta/rascunho que ainda não foi enviada.
+ */
+export const DELETE = withAuth(
+  async (_req: NextRequest, user, context) => {
+    try {
+      const id = context?.params.id;
+      if (!id) return Response.json({ error: "ID não fornecido" }, { status: 400 });
+
+      const client = await prisma.client.findUnique({
+        where: { user_id: user.userId },
+        select: { id: true },
+      });
+      if (!client) return Response.json({ error: "Perfil não encontrado" }, { status: 404 });
+
+      const quotation = await prisma.quotation.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          client_id: true,
+          status: true,
+          orders: { select: { id: true } },
+        },
+      });
+
+      if (!quotation || quotation.client_id !== client.id) {
+        return Response.json({ error: "Cotação não encontrada" }, { status: 404 });
+      }
+
+      if (quotation.orders.length > 0) {
+        if (quotation.status !== "closed") {
+          await prisma.quotation.update({
+            where: { id },
+            data: { status: "closed" },
+          });
+        }
+        return Response.json(
+          { error: "Esta cotação já foi enviada e não pode ser excluída." },
+          { status: 409 }
+        );
+      }
+
+      if (quotation.status !== "open" && quotation.status !== "draft") {
+        return Response.json(
+          { error: "Apenas cotações não enviadas podem ser excluídas", status: quotation.status },
+          { status: 409 }
+        );
+      }
+
+      // Exclui a cotação (os itens serão excluídos em cascata)
+      await prisma.quotation.delete({
+        where: { id },
+      });
+
+      // Invalida cache do ranking
+      deleteRankingCache(id).catch(() => {});
+
+      return Response.json({ message: "Cotação excluída com sucesso" });
+    } catch (err: any) {
+      try {
+        const errorMsg = err instanceof Error ? err.stack || err.message : String(err);
+        require("fs").writeFileSync(
+          "C:\\Users\\enzog\\.gemini\\antigravity-ide\\brain\\e09a015d-a31e-4d61-bfb0-128bee7c45fa\\error.log",
+          errorMsg,
+          "utf-8"
+        );
+      } catch (e) {
+        console.error("Failed to write error log:", e);
+      }
+      throw err;
+    }
+  },
+  { roles: ["client"] }
+);

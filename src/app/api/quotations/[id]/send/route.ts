@@ -392,6 +392,15 @@ export const POST = withAuth(
       });
     }
 
+    // Fecha a cotação se pelo menos um pedido foi enviado com sucesso
+    const anySent = orderResults.some((o) => o.status === "sent");
+    if (anySent) {
+      await prisma.quotation.update({
+        where: { id: quotationId },
+        data: { status: "closed" },
+      });
+    }
+
     return Response.json(
       {
         group_id: groupId,

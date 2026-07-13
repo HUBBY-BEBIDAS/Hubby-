@@ -21,6 +21,7 @@ export type OpenQuotation = {
   id:     string;
   items:  QuotationItem[];
   status: string;
+  orders?: any[];
 };
 
 export type AddItemParams = {
@@ -74,8 +75,8 @@ export function QuotationProvider({ children }: { children: React.ReactNode }) {
       const res = await apiFetch("/api/quotations?status=open", { method: "GET", token });
       if (!res.ok) return;
       const data = await res.json() as { quotations: OpenQuotation[] };
-      // Pega a cotação aberta mais recente
-      const open = data.quotations.find((q) => q.status === "open") ?? null;
+      // Pega a cotação aberta mais recente (que não tenha pedidos enviados)
+      const open = data.quotations.find((q) => q.status === "open" && (!q.orders || q.orders.length === 0)) ?? null;
       setQuotation(open);
     } catch {
       // silencia erro de rede
