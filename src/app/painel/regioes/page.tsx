@@ -431,7 +431,7 @@ function ImportModal({ token, onClose, onImported }: {
                 </thead>
                 <tbody className="divide-y divide-[#DBEAFE]">
                   {preview.regions.map((r, i) => {
-                    let badgeColor = "bg-slate-100 text-slate-600 border-slate-200";
+                    let badgeColor = "bg-green-100 text-slate-600 border-slate-200";
                     let statusLabel = "Em rota";
                     
                     if (r.route_days.length === 0) {
