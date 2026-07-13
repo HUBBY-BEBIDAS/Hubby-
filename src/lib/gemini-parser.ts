@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateObject } from "ai";
 
-// Configura o provedor Google AI explicitamente usando a chave de API correta
-const googleAI = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY || "",
+// Configura o provedor Anthropic (Claude) usando a chave de API correspondente
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || "",
 });
 
 export const geminiProductImportSchema = z.object({
@@ -49,12 +49,12 @@ export type GeminiProductItem = z.infer<typeof geminiProductImportSchema>["produ
  * Envia o trecho da planilha em CSV ao Gemini 1.5 Flash para análise estruturada.
  */
 export async function interpretarPlanilhaComGemini(dadosCsv: string): Promise<GeminiProductItem[]> {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("Variável de ambiente GEMINI_API_KEY não configurada");
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error("Variável de ambiente ANTHROPIC_API_KEY não configurada");
   }
 
   const { object } = await generateObject({
-    model: googleAI("gemini-3-flash-preview"),
+    model: anthropic("claude-sonnet-5"),
     schema: geminiProductImportSchema,
     prompt: `
       Você é o motor de inteligência artificial da plataforma Hubby (SaaS B2B de bebidas).
@@ -119,12 +119,12 @@ export type GeminiLayoutInfo = z.infer<typeof geminiLayoutSchema>;
  * Envia as primeiras 20 linhas estruturadas ao Gemini para identificar o layout da planilha.
  */
 export async function detectarLayoutComGemini(estruturaPlanilha: string): Promise<GeminiLayoutInfo> {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("Variável de ambiente GEMINI_API_KEY não configurada");
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error("Variável de ambiente ANTHROPIC_API_KEY não configurada");
   }
 
   const { object } = await generateObject({
-    model: googleAI("gemini-3-flash-preview"),
+    model: anthropic("claude-sonnet-5"),
     schema: geminiLayoutSchema,
     prompt: `
       Você é o motor de inteligência artificial da plataforma Hubby (SaaS B2B de bebidas).
@@ -168,12 +168,12 @@ export type GeminiDeliveryLayoutInfo = z.infer<typeof geminiDeliveryLayoutSchema
  * Envia as primeiras 20 linhas estruturadas ao Gemini para identificar o layout de entrega (dias da semana e cidades).
  */
 export async function detectarDeliveryLayoutComGemini(estruturaPlanilha: string): Promise<GeminiDeliveryLayoutInfo> {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("Variável de ambiente GEMINI_API_KEY não configurada");
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error("Variável de ambiente ANTHROPIC_API_KEY não configurada");
   }
 
   const { object } = await generateObject({
-    model: googleAI("gemini-3-flash-preview"),
+    model: anthropic("claude-sonnet-5"),
     schema: geminiDeliveryLayoutSchema,
     prompt: `
       Você é o motor de inteligência artificial da plataforma Hubby (SaaS B2B de bebidas).

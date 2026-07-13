@@ -16,8 +16,8 @@ const confirmSchema = z.object({
       category: z.string(),
       brand: z.string(),
       packaging_type: z.string(),
-      packaging_volume_ml: z.number().int().positive(),
-      price_cents: z.number().int().positive(),
+      packaging_volume_ml: z.number().int().min(0),
+      price_cents: z.number().int().min(0),
       available: z.boolean(),
     })
   ).optional(),
@@ -59,6 +59,7 @@ export const POST = withAuth(
 
     const parsed = confirmSchema.safeParse(body);
     if (!parsed.success) {
+      console.error("[confirm-products] Erro de validação dos dados:", JSON.stringify(parsed.error.format(), null, 2));
       return Response.json(
         { error: "Dados inválidos", details: parsed.error.flatten().fieldErrors },
         { status: 422 }
