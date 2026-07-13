@@ -24,6 +24,7 @@ import {
 } from "../lib/queue";
 import type { ParsedRow } from "../lib/excel-parser";
 import { markDistributorProductsUpdated } from "../lib/ranking-cache";
+import { interpretarPlanilhaComGemini } from "../lib/gemini-parser";
 
 // ─── Clientes compartilhados no worker ───────────────────────────────────────
 
@@ -110,12 +111,11 @@ async function processImportJob(
     throw new Error("Dados do preview expirados ou inválidos. Faça um novo upload.");
   }
 
-  const { valid_rows } = JSON.parse(raw) as { valid_rows: ParsedRow[] };
-  const total = valid_rows.length;
-
-  if (total === 0) {
-    return { created: 0, updated: 0, failed: 0 };
-  }
+  const { valid_rows, is_ai, raw_csv } = JSON.parse(raw) as { 
+    valid_rows: ParsedRow[]; 
+    is_ai?: boolean;
+    raw_csv?: string;
+  };
 
   // 2. Carrega todos os produtos existentes da distribuidora para lookup eficiente
   const existingProducts = await prisma.product.findMany({
@@ -137,23 +137,80 @@ async function processImportJob(
   let created = 0;
   let updated = 0;
   let failed = 0;
-  let processed = 0;
 
-  // 3. Processa em lotes para não sobrecarregar o banco
-  for (let i = 0; i < valid_rows.length; i += BATCH_SIZE) {
-    const batch = valid_rows.slice(i, i + BATCH_SIZE);
+  if (is_ai && raw_csv) {
+    console.log(`[worker] Iniciando importação baseada em IA para distribuidora: ${distributor_id}`);
+    
+    const lines = raw_csv.split("\n").filter(Boolean);
+    const totalLines = lines.length;
 
-    await Promise.all(
-      batch.map(async (row) => {
-        const result = await upsertProduct(distributor_id, row, existingMap);
-        if (result === "created") created++;
-        else if (result === "updated") updated++;
-        else failed++;
-      })
-    );
+    if (totalLines === 0) {
+      return { created: 0, updated: 0, failed: 0 };
+    }
 
-    processed += batch.length;
-    await job.updateProgress(Math.round((processed / total) * 100));
+    const GEMINI_BATCH_SIZE = 50;
+    let processedLinesCount = 0;
+
+    for (let i = 0; i < lines.length; i += GEMINI_BATCH_SIZE) {
+      const batchLines = lines.slice(i, i + GEMINI_BATCH_SIZE);
+      const batchCsv = batchLines.join("\n");
+
+      try {
+        console.log(`[worker] Processando lote de IA de ${i + 1} a ${Math.min(i + GEMINI_BATCH_SIZE, totalLines)} de ${totalLines}...`);
+        const aiItems = await interpretarPlanilhaComGemini(batchCsv);
+        
+        const batchParsedRows: ParsedRow[] = aiItems.map((item) => ({
+          row_number: item.row_number,
+          name: item.name,
+          category: item.category,
+          brand: item.brand,
+          packaging_type: item.packaging_type,
+          packaging_volume_ml: item.packaging_volume_ml,
+          price_cents: Math.round(item.price_brl * 100),
+          available: true,
+        }));
+
+        await Promise.all(
+          batchParsedRows.map(async (row) => {
+            const result = await upsertProduct(distributor_id, row, existingMap);
+            if (result === "created") created++;
+            else if (result === "updated") updated++;
+            else failed++;
+          })
+        );
+      } catch (err: any) {
+        console.error(`[worker] Erro ao processar lote de IA ${i + 1}-${i + GEMINI_BATCH_SIZE}:`, err);
+        failed += batchLines.length;
+      }
+
+      processedLinesCount += batchLines.length;
+      await job.updateProgress(Math.round((processedLinesCount / totalLines) * 100));
+    }
+  } else {
+    const total = valid_rows.length;
+
+    if (total === 0) {
+      return { created: 0, updated: 0, failed: 0 };
+    }
+
+    let processed = 0;
+
+    // Processa em lotes para não sobrecarregar o banco
+    for (let i = 0; i < valid_rows.length; i += BATCH_SIZE) {
+      const batch = valid_rows.slice(i, i + BATCH_SIZE);
+
+      await Promise.all(
+        batch.map(async (row) => {
+          const result = await upsertProduct(distributor_id, row, existingMap);
+          if (result === "created") created++;
+          else if (result === "updated") updated++;
+          else failed++;
+        })
+      );
+
+      processed += batch.length;
+      await job.updateProgress(Math.round((processed / total) * 100));
+    }
   }
 
   // 4. Invalida o cache de ranking desta distribuidora

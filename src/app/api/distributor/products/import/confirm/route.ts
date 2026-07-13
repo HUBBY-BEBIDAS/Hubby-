@@ -85,10 +85,39 @@ export const POST = withAuth(
       try {
         const raw = await redis.get(key);
         if (raw) {
-          const parsedData = JSON.parse(raw) as { valid_rows: ParsedRow[] };
-          productsToImport = parsedData.valid_rows;
-          // Limpa a chave do Redis
-          await redis.del(key).catch(() => {});
+          const parsedData = JSON.parse(raw) as { valid_rows: ParsedRow[]; is_ai?: boolean };
+          
+          if (parsedData.is_ai || parsedData.valid_rows.length > 100) {
+            // Se for importação por IA ou contiver muitos registros, enfileira OBRIGATORIAMENTE no BullMQ para processar em background sem timeout
+            try {
+              const queue = getImportQueue();
+              const job = await queue.add(
+                "import",
+                {
+                  distributor_id: distributor.id,
+                  preview_key: key,
+                  requested_by: user.userId,
+                },
+                {
+                  jobId: `import-${distributor.id}-${Date.now()}`,
+                }
+              );
+              return Response.json({
+                job_id: job.id,
+                status: "queued",
+                message:
+                  "Importação enfileirada. Acompanhe o progresso em GET /api/distributor/products/import/status/:jobId",
+              });
+            } catch (queueErr) {
+              console.error("[confirm] Falha ao enfileirar job, tentando processar síncrono:", queueErr);
+              productsToImport = parsedData.valid_rows;
+              await redis.del(key).catch(() => {});
+            }
+          } else {
+            // Caso padrão (não-IA e pequeno), processa síncrono
+            productsToImport = parsedData.valid_rows;
+            await redis.del(key).catch(() => {});
+          }
         }
       } catch (err) {
         console.warn("[confirm] Falha ao ler do Redis, tentando enfileirar ou falhando:", err);

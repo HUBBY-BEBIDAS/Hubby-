@@ -151,6 +151,23 @@ function parseBoolean(raw: string): boolean {
   return true; // padrão: disponível
 }
 
+const GENERIC_PREFIXES = [
+  "agua", "água", "tonica", "tônica", "azeite", "oleo", "óleo", "aperitivo", 
+  "fernet", "refrigerante", "suco", "cerveja", "vinho", "bebida", "destilado", "oleo"
+];
+
+const FAMOUS_BRANDS = [
+  "st pierre", "st. pierre", "eazy booze", "heineken", "jack daniel", "absolut", "soya", "campari", 
+  "cynar", "jagermeister", "jager", "lillet", "aperol", "brasilberg", "kosten", "salinas", 
+  "paganini", "corona", "budweiser", "stella", "skol", "brahma", "antarctica", 
+  "amstel", "eisenbahn", "chandon", "red bull", "monster", "coca", "guarana", 
+  "fanta", "sprite", "schweppes", "smirnoff", "gordons", "tanqueray", "bombay",
+  "beefeater", "ballantines", "red label", "black label", "chivas", "old parrog",
+  "jose cuervo", "patron", "bacardi", "havana", "sagativa", "51", "velho barreiro",
+  "ypioca", "salton", "miolo", "periquita", "andorinha", "galliano", "licor 43",
+  "baileys", "amarula", "contini", "dreher", "domecq", "st pierre"
+];
+
 function tryParseCustomTwoColumns(sheet: ExcelJS.Worksheet): ParseResult | null {
   // Encontra colunas de descrição e preço
   let descColIndex = -1;
@@ -209,22 +226,7 @@ function tryParseCustomTwoColumns(sheet: ExcelJS.Worksheet): ParseResult | null 
   const errors: RowError[] = [];
   let dataRowCount = 0;
 
-  const GENERIC_PREFIXES = [
-    "agua", "água", "tonica", "tônica", "azeite", "oleo", "óleo", "aperitivo", 
-    "fernet", "refrigerante", "suco", "cerveja", "vinho", "bebida", "destilado", "oleo"
-  ];
 
-  const FAMOUS_BRANDS = [
-    "st pierre", "st. pierre", "eazy booze", "heineken", "jack daniel", "absolut", "soya", "campari", 
-    "cynar", "jagermeister", "jager", "lillet", "aperol", "brasilberg", "kosten", "salinas", 
-    "paganini", "corona", "budweiser", "stella", "skol", "brahma", "antarctica", 
-    "amstel", "eisenbahn", "chandon", "red bull", "monster", "coca", "guarana", 
-    "fanta", "sprite", "schweppes", "smirnoff", "gordons", "tanqueray", "bombay",
-    "beefeater", "ballantines", "red label", "black label", "chivas", "old parrog",
-    "jose cuervo", "patron", "bacardi", "havana", "sagativa", "51", "velho barreiro",
-    "ypioca", "salton", "miolo", "periquita", "andorinha", "galliano", "licor 43",
-    "baileys", "amarula", "contini", "dreher", "domecq", "st pierre"
-  ];
 
   sheet.eachRow((row, rowNumber) => {
     // Ignora linhas vazias
@@ -393,12 +395,7 @@ export async function parseProductsXlsx(buffer: ArrayBuffer | Buffer): Promise<P
   const foundFields = new Set(Object.values(colMap));
   const missingCols = REQUIRED_COLUMNS.filter((f) => !foundFields.has(f));
   if (missingCols.length > 0) {
-    // Tenta usar o parser customizado de 2 colunas como fallback
-    const customResult = tryParseCustomTwoColumns(sheet);
-    if (customResult && customResult.valid_rows.length > 0) {
-      return customResult;
-    }
-
+    // Retorna erro para delegar o processamento ao parser inteligente com Gemini
     return {
       valid_rows: [],
       errors: [{
@@ -505,6 +502,200 @@ export async function parseProductsXlsx(buffer: ArrayBuffer | Buffer): Promise<P
       packaging_volume_ml: packaging_volume_ml!,
       price_cents: price_cents!,
       available,
+    });
+  });
+
+  return { valid_rows: validRows, errors };
+}
+
+/**
+ * Converte letra da coluna Excel para índice 1-based (ex: "A" -> 1, "B" -> 2, "Z" -> 26, "AA" -> 27)
+ */
+function letterToColIndex(letter: string): number {
+  let column = 0;
+  const cleanLetter = letter.toUpperCase().trim();
+  for (let i = 0; i < cleanLetter.length; i++) {
+    column = column * 26 + cleanLetter.charCodeAt(i) - 64;
+  }
+  return column;
+}
+
+/**
+ * Analisa uma planilha não-estruturada utilizando o layout mapeado pela IA do Gemini.
+ * O processamento do restante das linhas (extração de ml, embalagem, categoria) ocorre de forma determinística em código local de alta performance.
+ */
+export async function parseUnstructuredXlsxWithLayout(
+  buffer: ArrayBuffer | Buffer,
+  layout: {
+    header_row: number;
+    product_name_column: string;
+    price_column: string;
+    brand_column?: string;
+  }
+): Promise<ParseResult> {
+  const workbook = new ExcelJS.Workbook();
+  const buf = buffer instanceof Buffer ? buffer : Buffer.from(buffer as ArrayBuffer);
+  await workbook.xlsx.load(buf as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+
+  const sheet = workbook.worksheets[0];
+  if (!sheet) {
+    return { valid_rows: [], errors: [{ row: 0, field: "", message: "Planilha vazia ou formato inválido" }] };
+  }
+
+  const descColIndex = letterToColIndex(layout.product_name_column);
+  const priceColIndex = letterToColIndex(layout.price_column);
+  const brandColIndex = layout.brand_column ? letterToColIndex(layout.brand_column) : -1;
+
+  const validRows: ParsedRow[] = [];
+  const errors: RowError[] = [];
+  let dataRowCount = 0;
+
+  const startRow = layout.header_row + 1;
+
+  sheet.eachRow((row, rowNumber) => {
+    if (rowNumber < startRow) return;
+
+    // Ignora linhas vazias
+    const allEmpty = !row.values || (row.values as unknown[]).every((v) => v === undefined || v === null || v === "");
+    if (allEmpty) return;
+
+    // Ignora fórmulas
+    let formulaError = false;
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      if (isCellFormula(cell)) formulaError = true;
+    });
+    if (formulaError) return;
+
+    const descRaw = getCellText(row.getCell(descColIndex));
+    const priceRaw = getCellText(row.getCell(priceColIndex));
+
+    if (!descRaw || !priceRaw) return;
+
+    const priceCents = parsePriceToCents(priceRaw);
+    if (priceCents === null || priceCents <= 0) {
+      return; // Pula linhas sem preços válidos
+    }
+
+    dataRowCount++;
+    if (dataRowCount > MAX_ROWS) {
+      if (dataRowCount === MAX_ROWS + 1) {
+        errors.push({ row: rowNumber, field: "", message: `Limite de ${MAX_ROWS} linhas excedido` });
+      }
+      return;
+    }
+
+    // --- Parser de Descrição Inteligente ---
+    const cleanedText = descRaw.trim();
+    let name = cleanedText;
+
+    // 1. Extração de Volume
+    let volumeMl = 1000; // default
+    const volMatch = cleanedText.match(/\b(\d+)\s*(ml|l)\b/i);
+    if (volMatch) {
+      const val = parseInt(volMatch[1], 10);
+      const unit = volMatch[2].toLowerCase();
+      volumeMl = unit === "l" ? val * 1000 : val;
+      name = name.replace(volMatch[0], "");
+    } else {
+      const endNumMatch = cleanedText.match(/\b(250|269|270|275|310|330|350|355|500|600|670|700|750|900|1000|1500)\b/);
+      if (endNumMatch) {
+        volumeMl = parseInt(endNumMatch[1], 10);
+        name = name.replace(endNumMatch[0], "");
+      }
+    }
+
+    // 2. Extração de Tipo de Embalagem
+    let packagingType: PackagingType = "garrafa";
+    const lowerDesc = cleanedText.toLowerCase();
+    if (lowerDesc.includes("lata") || lowerDesc.includes("can")) {
+      packagingType = "lata";
+      name = name.replace(/lata/gi, "");
+    } else if (lowerDesc.includes("caixa") || lowerDesc.includes("box")) {
+      packagingType = "caixa";
+      name = name.replace(/caixa/gi, "");
+    } else if (lowerDesc.includes("fardo") || lowerDesc.includes("pack")) {
+      packagingType = "fardo";
+      name = name.replace(/fardo/gi, "");
+    } else if (lowerDesc.includes("barril") || lowerDesc.includes("keg")) {
+      packagingType = "barril";
+      name = name.replace(/barril/gi, "");
+    } else if (lowerDesc.includes("tetra pak") || lowerDesc.includes("tetra_pak") || lowerDesc.includes("tetrapak")) {
+      packagingType = "tetra_pak";
+      name = name.replace(/tetra\s*pak|tetrapak/gi, "");
+    }
+
+    name = name.replace(/\s+/g, " ").trim();
+
+    // 3. Extração de Marca
+    let brand = "";
+    if (brandColIndex !== -1) {
+      brand = getCellText(row.getCell(brandColIndex)).trim();
+    }
+    
+    if (!brand) {
+      const lowerName = name.toLowerCase();
+      for (const b of FAMOUS_BRANDS) {
+        if (lowerName.includes(b)) {
+          brand = FAMOUS_BRANDS.find((x) => x === b)!;
+          brand = brand.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+          break;
+        }
+      }
+    }
+
+    if (!brand) {
+      const words = name.split(" ").filter((w) => w.length > 1);
+      let foundWord = "";
+      for (const w of words) {
+        const normW = normalizeKey(w);
+        if (!GENERIC_PREFIXES.includes(normW)) {
+          foundWord = w;
+          break;
+        }
+      }
+      brand = foundWord ? foundWord.charAt(0).toUpperCase() + foundWord.slice(1).toLowerCase() : "Diversos";
+    }
+
+    // 4. Detecção de Categoria
+    let category: ProductCategory = "other";
+    if (lowerDesc.includes("cerveja") || lowerDesc.includes("chopp") || lowerDesc.includes("beer") || lowerDesc.includes("heineken") || lowerDesc.includes("stella") || lowerDesc.includes("corona") || lowerDesc.includes("budweiser") || lowerDesc.includes("amstel") || lowerDesc.includes("skol") || lowerDesc.includes("brahma") || lowerDesc.includes("antarctica") || lowerDesc.includes("eisenbahn")) {
+      category = "beer";
+    } else if (lowerDesc.includes("whisky") || lowerDesc.includes("whiskey") || lowerDesc.includes("jack") || lowerDesc.includes("red label") || lowerDesc.includes("black label") || lowerDesc.includes("chivas")) {
+      category = "whisky";
+    } else if (lowerDesc.includes("vodka") || lowerDesc.includes("absolut") || lowerDesc.includes("smirnoff")) {
+      category = "vodka";
+    } else if (lowerDesc.includes("gin") || lowerDesc.includes("tanqueray") || lowerDesc.includes("bombay") || lowerDesc.includes("beefeater")) {
+      category = "gin";
+    } else if (lowerDesc.includes("rum") || lowerDesc.includes("bacardi") || lowerDesc.includes("havana")) {
+      category = "rum";
+    } else if (lowerDesc.includes("cachaca") || lowerDesc.includes("cachaça") || lowerDesc.includes("caninha") || lowerDesc.includes("51") || lowerDesc.includes("velho barreiro") || lowerDesc.includes("ypioca") || lowerDesc.includes("sagativa")) {
+      category = "cachaca";
+    } else if (lowerDesc.includes("vinho") || lowerDesc.includes("wine") || lowerDesc.includes("tinto") || lowerDesc.includes("branco") || lowerDesc.includes("salton") || lowerDesc.includes("miolo") || lowerDesc.includes("paganini")) {
+      category = "wine";
+    } else if (lowerDesc.includes("espumante") || lowerDesc.includes("champagne") || lowerDesc.includes("sparkling") || lowerDesc.includes("chandon")) {
+      category = "sparkling";
+    } else if (lowerDesc.includes("energetico") || lowerDesc.includes("energético") || lowerDesc.includes("energy") || lowerDesc.includes("red bull") || lowerDesc.includes("monster")) {
+      category = "energy";
+    } else if (lowerDesc.includes("refrigerante") || lowerDesc.includes("soda") || lowerDesc.includes("tonica") || lowerDesc.includes("tônica") || lowerDesc.includes("coca") || lowerDesc.includes("guarana") || lowerDesc.includes("fanta") || lowerDesc.includes("sprite") || lowerDesc.includes("schweppes")) {
+      category = "soft_drink";
+    } else if (lowerDesc.includes("agua") || lowerDesc.includes("água") || lowerDesc.includes("water")) {
+      category = "water";
+    } else if (lowerDesc.includes("suco") || lowerDesc.includes("juice")) {
+      category = "juice";
+    }
+
+    if (!name) name = cleanedText;
+    name = name.charAt(0).toUpperCase() + name.slice(1);
+
+    validRows.push({
+      row_number: rowNumber,
+      name,
+      category,
+      brand,
+      packaging_type: packagingType,
+      packaging_volume_ml: volumeMl,
+      price_cents: priceCents,
+      available: true,
     });
   });
 

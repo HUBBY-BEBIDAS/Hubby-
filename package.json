@@ -15,6 +15,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.12",
     "@auth/prisma-adapter": "^2.11.1",
     "@aws-sdk/client-s3": "^3.1027.0",
     "@aws-sdk/s3-request-presigner": "^3.1027.0",
@@ -25,6 +26,7 @@
     "@types/nodemailer": "^8.0.0",
     "@types/qrcode": "^1.5.6",
     "@types/speakeasy": "^2.0.10",
+    "ai": "^7.0.22",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.73.2",
     "exceljs": "^4.4.0",
@@ -42,7 +44,8 @@
     "react-dom": "19.2.4",
     "speakeasy": "^2.0.0",
     "stripe": "^22.0.1",
-    "zod": "^4.3.6"
+    "xlsx": "^0.18.5",
+    "zod": "^4.4.3"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -1,15 +1,19 @@
 import { NextRequest } from "next/server";
 import crypto from "crypto";
+import ExcelJS from "exceljs";
 import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import {
   parseProductsXlsx,
+  parseUnstructuredXlsxWithLayout,
   MAX_ROWS,
   MAX_FILE_SIZE_BYTES,
   type ParsedRow,
 } from "@/lib/excel-parser";
 import { previewKey, PREVIEW_TTL } from "@/lib/queue";
+import { detectarLayoutComGemini } from "@/lib/gemini-parser";
+import type { ProductCategory, PackagingType } from "@prisma/client";
 
 // Chave de produto para lookup de upsert — mesma lógica do worker
 function productLookupKey(
@@ -80,9 +84,49 @@ export const POST = withAuth(
       );
     }
 
-    // Parse do xlsx
+    // Parse do xlsx tradicional
     const buffer = Buffer.from(await file.arrayBuffer());
-    const { valid_rows, errors } = await parseProductsXlsx(buffer);
+    let valid_rows: ParsedRow[] = [];
+    let errors: any[] = [];
+    let isAi = false;
+    let fullCsv = "";
+
+    try {
+      const traditionalResult = await parseProductsXlsx(buffer);
+      valid_rows = traditionalResult.valid_rows;
+      errors = traditionalResult.errors;
+    } catch (err) {
+      console.warn("[preview] Falha no parser tradicional, tentando Gemini:", err);
+    }
+
+    // Se o parser tradicional não retornou linhas válidas (ex: cabeçalhos incorretos), usamos Gemini
+    if (valid_rows.length === 0) {
+      try {
+        console.log("[preview] Iniciando detecção de layout com Gemini...");
+        
+        // 1. Extrai a estrutura das primeiras 20 linhas formatada para o prompt da IA
+        const excelStructure = await getRawExcelStructureForLayout(buffer, 20);
+        
+        // 2. Chama a IA para identificar o layout (cabeçalho, colunas de nome, preço, marca)
+        const layout = await detectarLayoutComGemini(excelStructure);
+        console.log("[preview] Layout detectado pela IA:", layout);
+        
+        // 3. Executa o parser local de alta velocidade com o layout detectado
+        const parseResult = await parseUnstructuredXlsxWithLayout(buffer, {
+          header_row: layout.header_row,
+          product_name_column: layout.product_name_column,
+          price_column: layout.price_column,
+          brand_column: layout.brand_column
+        });
+        
+        valid_rows = parseResult.valid_rows;
+        errors = parseResult.errors;
+        
+      } catch (geminiErr: any) {
+        console.error("[preview] Erro ao detectar layout ou processar com Gemini:", geminiErr);
+        errors = [{ row: 0, field: "AI", message: `Falha ao interpretar com IA: ${geminiErr.message}` }];
+      }
+    }
 
     // Classifica linhas como novas ou atualizações
     // Carrega todos os produtos existentes uma vez (lookup eficiente)
@@ -118,7 +162,11 @@ export const POST = withAuth(
       await redis.setex(
         key,
         PREVIEW_TTL,
-        JSON.stringify({ valid_rows: classifiedRows })
+        JSON.stringify({ 
+          valid_rows: classifiedRows,
+          is_ai: isAi,
+          raw_csv: fullCsv
+        })
       );
     } catch (err) {
       console.warn("[preview] Falha ao salvar preview no Redis:", err);
@@ -126,6 +174,7 @@ export const POST = withAuth(
 
     return Response.json({
       token,
+      is_ai: isAi,
       summary: {
         new_count: newCount,
         update_count: updateCount,
@@ -142,3 +191,69 @@ export const POST = withAuth(
   },
   { roles: ["distributor_admin"] }
 );
+
+/**
+ * Converte a estrutura das primeiras N linhas da planilha Excel em uma representação textual clara para a IA.
+ * Formato gerado:
+ * Linha 5: Col A: CÓDIGO | Col B: PRODUTO | Col C: PREÇO
+ * Linha 6: Col A: 2 | Col B: ABSINTO | Col C: 37.30
+ */
+export async function getRawExcelStructureForLayout(
+  buffer: ArrayBuffer | Buffer,
+  maxRows: number = 20
+): Promise<string> {
+  const workbook = new ExcelJS.Workbook();
+  const buf = buffer instanceof Buffer ? buffer : Buffer.from(buffer as ArrayBuffer);
+  await workbook.xlsx.load(buf as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+  const sheet = workbook.worksheets[0];
+  if (!sheet) throw new Error("Planilha vazia ou formato inválido");
+
+  const lines: string[] = [];
+
+  function colIndexToLetter(index: number): string {
+    let letter = "";
+    let temp = index;
+    while (temp > 0) {
+      let modulo = (temp - 1) % 26;
+      letter = String.fromCharCode(65 + modulo) + letter;
+      temp = Math.floor((temp - 1) / 26);
+    }
+    return letter;
+  }
+
+  sheet.eachRow((row, rowNumber) => {
+    if (rowNumber > maxRows) return;
+
+    // Ignora linhas vazias
+    const allEmpty = !row.values || (row.values as unknown[]).every(
+      (v) => v === undefined || v === null || v === ""
+    );
+    if (allEmpty) return;
+
+    const rowCells: string[] = [];
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const val = cell.value;
+      let cellText = "";
+      
+      if (val !== null && val !== undefined) {
+        if (typeof val === "object" && "result" in (val as object)) {
+          cellText = String((val as { result: unknown }).result ?? "");
+        } else if (val instanceof Date) {
+          cellText = val.toLocaleDateString();
+        } else if (typeof val === "object") {
+          cellText = JSON.stringify(val);
+        } else {
+          cellText = String(val);
+        }
+      }
+
+      const colLetter = colIndexToLetter(colNumber);
+      rowCells.push(`Col ${colLetter}: ${cellText.trim()}`);
+    });
+
+    lines.push(`Linha ${rowNumber}: ${rowCells.join(" | ")}`);
+  });
+
+  return lines.join("\n");
+}
+
