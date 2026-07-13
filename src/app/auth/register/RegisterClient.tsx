@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { CityAutocomplete, type CityOption } from "@/components/ui/CityAutocomplete";
+import { StateSelect } from "@/components/ui/StateSelect";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { Check, Gift, Eye, EyeOff } from "lucide-react";
 
@@ -309,6 +311,7 @@ export default function RegisterClient() {
   const [establishmentType, setEstablishmentType] = useState("bar");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
+  const [citySelected, setCitySelected] = useState(false); // controla se o usuário escolheu da lista
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [referralCode, setReferralCode]   = useState("");
   const [referralValid, setReferralValid] = useState<boolean | null>(null);
@@ -344,21 +347,15 @@ export default function RegisterClient() {
     return () => clearTimeout(timer);
   }, [referralCode, role]);
 
-  // Live coverage check as user types city/state
+  // Verifica cobertura somente se a cidade foi escolhida do autocomplete
   const [coverageCheck, setCoverageCheck] = useState<"covered" | "not_covered" | null>(null);
   useEffect(() => {
-    if (role !== "client" || city.length < 3 || state.length !== 2) {
+    if (!citySelected || !city || !state) {
       setCoverageCheck(null);
       return;
     }
-    const t = setTimeout(() => {
-      fetch(`/api/coverage/check?city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}`)
-        .then((r) => r.json())
-        .then((d: { covered: boolean }) => setCoverageCheck(d.covered ? "covered" : "not_covered"))
-        .catch(() => setCoverageCheck(null));
-    }, 600);
-    return () => clearTimeout(t);
-  }, [city, state, role]);
+    setCoverageCheck("covered"); // Cidade da lista já garante cobertura
+  }, [city, state, citySelected, role]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -681,21 +678,28 @@ export default function RegisterClient() {
                 </div>
 
                 <div className="flex gap-3">
-                  <Input
+                  <CityAutocomplete
                     label="Cidade de entrega"
                     value={city}
-                    onChange={(e) => { setCity(e.target.value); setCoverageCheck(null); }}
-                    className="flex-1"
+                    onSelect={(opt: CityOption) => {
+                      if (opt.city) {
+                        setCity(opt.city);
+                        setState(opt.state);
+                        setCitySelected(true);
+                        setCoverageCheck("covered");
+                      } else {
+                        setCitySelected(false);
+                        setCoverageCheck(null);
+                      }
+                    }}
                     required
                   />
-                  <Input
+                  <StateSelect
                     label="UF"
                     value={state}
-                    onChange={(e) => { setState(e.target.value.toUpperCase()); setCoverageCheck(null); }}
-                    maxLength={2}
-                    className="w-20"
-                    placeholder="SP"
+                    onChange={(uf) => { setState(uf); setCitySelected(false); setCoverageCheck(null); }}
                     required
+                    className="w-36"
                   />
                 </div>
 

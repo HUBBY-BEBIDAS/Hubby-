@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
+import { normalizeCityName } from "@/lib/coverage";
 import { computeRanking, extractDistributorIds } from "@/lib/ranking-engine";
 import { getRankingCache, setRankingCache } from "@/lib/ranking-cache";
 import type { RankingResult, RankedDistributor } from "@/lib/ranking-engine";
@@ -230,8 +231,9 @@ async function computeRestrictedDistributors(
     },
   });
 
-  // Filtrar client-side para excluir a cidade exata do cliente
-  const filtered = regions.filter((r) => r.city.toLowerCase() !== cityLower);
+  // Filtrar client-side para excluir a cidade exata do cliente (usando normalização)
+  const cityClean = normalizeCityName(deliveryCity).toLowerCase();
+  const filtered = regions.filter((r) => normalizeCityName(r.city).toLowerCase() !== cityClean);
 
   const results: RestrictedDistributor[] = [];
 

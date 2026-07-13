@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
+import { normalizeCityName } from "@/lib/coverage";
 
 /**
  * GET /api/catalog/novidades
@@ -21,14 +22,18 @@ export const GET = withAuth(
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const now   = new Date();
 
-    const regions = await prisma.deliveryRegion.findMany({
+    const allStateRegions = await prisma.deliveryRegion.findMany({
       where: {
-        city:  { equals: city,  mode: "insensitive" },
         state: { equals: state, mode: "insensitive" },
         distributor: { approved_by_admin: true },
       },
-      select: { distributor_id: true },
+      select: { distributor_id: true, city: true },
     });
+
+    const targetCityClean = normalizeCityName(city).toLowerCase();
+    const regions = allStateRegions.filter(
+      (r) => normalizeCityName(r.city).toLowerCase() === targetCityClean
+    );
 
     if (regions.length === 0) return Response.json({ products: [] });
 

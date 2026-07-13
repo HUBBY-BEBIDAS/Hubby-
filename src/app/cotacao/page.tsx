@@ -121,13 +121,29 @@ function AddressSection({
       const res = await apiFetch(`/api/address/cep/${digits}`, { method: "GET", token });
       const data = await res.json() as CepResult & { error?: string };
       if (!res.ok) { setCepError(data.error ?? "CEP não encontrado"); return; }
+
+      // Valida se a cidade do CEP é a mesma cidade cadastrada no perfil
+      const normalizeName = (s: string) =>
+        s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+
+      const profileCity = profile?.delivery_city ?? "";
+      if (profileCity && normalizeName(data.city) !== normalizeName(profileCity)) {
+        setCepError(
+          `Este CEP pertence a "${data.city}", mas o seu endereço de entrega está cadastrado como "${profileCity}". ` +
+          `O CEP deve pertencer à mesma cidade do seu cadastro. ` +
+          `Você pode atualizar sua cidade em Perfil → Meu Perfil.`
+        );
+        setCepLookup(null);
+        return;
+      }
+
       setCepLookup(data);
     } catch {
       setCepError("Erro ao consultar CEP");
     } finally {
       setCepLoading(false);
     }
-  }, [token]);
+  }, [token, profile?.delivery_city]);
 
   useEffect(() => {
     const digits = cepInput.replace(/\D/g, "");

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
 import { calculateDeliveryEstimate, getNowBRT } from "@/lib/delivery-calculator";
+import { normalizeCityName } from "@/lib/coverage";
 
 /**
  * GET /api/catalog/product-distributors
@@ -32,10 +33,9 @@ export const GET = withAuth(
     const state = client.delivery_state;
     const now   = getNowBRT();
 
-    // Regiões que atendem a cidade do cliente
-    const regions = await prisma.deliveryRegion.findMany({
+    // Regiões que atendem o estado do cliente
+    const allStateRegions = await prisma.deliveryRegion.findMany({
       where: {
-        city:  { equals: city,  mode: "insensitive" },
         state: { equals: state, mode: "insensitive" },
         distributor: { approved_by_admin: true },
       },
@@ -65,6 +65,11 @@ export const GET = withAuth(
         },
       },
     });
+
+    const targetCityClean = normalizeCityName(city).toLowerCase();
+    const regions = allStateRegions.filter(
+      (r) => normalizeCityName(r.city).toLowerCase() === targetCityClean
+    );
 
     const result = regions
       .filter((r) => r.distributor.products.length > 0)

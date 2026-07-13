@@ -18,6 +18,7 @@ import {
   calculateDeliveryEstimate,
   getNowBRT,
 } from "@/lib/delivery-calculator";
+import { normalizeCityName } from "@/lib/coverage";
 import type { Product, QuotationItem, Quotation, Client } from "@prisma/client";
 
 // ─── Tipos de saída ───────────────────────────────────────────────────────────
@@ -234,13 +235,12 @@ export async function computeRanking(
     .replace(/\s*\([^)]*\)\s*/g, "")
     .trim();
 
-  // 1. Busca todas as regiões de entrega que cobrem a cidade do cliente,
-  //    trazendo os produtos disponíveis de cada distribuidora.
-  console.log(`[ranking] buscando regiões para: cidade="${deliveryCity}" (original: "${quotation.delivery_city}") estado="${deliveryState}" cotação=${quotation.id}`);
+  // 1. Busca todas as regiões de entrega que cobrem o estado do cliente,
+  //    e depois filtra pela cidade normalizada client-side.
+  console.log(`[ranking] buscando regiões para: estado="${deliveryState}" cotação=${quotation.id}`);
 
-  const regions = await prisma.deliveryRegion.findMany({
+  const allStateRegions = await prisma.deliveryRegion.findMany({
     where: {
-      city: { equals: deliveryCity, mode: "insensitive" },
       state: { equals: deliveryState, mode: "insensitive" },
     },
     include: {
@@ -253,6 +253,11 @@ export async function computeRanking(
       },
     },
   });
+
+  const targetCityClean = normalizeCityName(deliveryCity).toLowerCase();
+  const regions = allStateRegions.filter(
+    (r) => normalizeCityName(r.city).toLowerCase() === targetCityClean
+  );
 
   // Busca promoções ativas para todos os produtos das distribuidoras encontradas
   const allProductIds = regions.flatMap((r) => r.distributor.products.map((p) => p.id));

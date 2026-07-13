@@ -153,14 +153,18 @@ export const GET = withAuth(
     const state = client.delivery_state;
     const now   = new Date();
 
-    const regions = await prisma.deliveryRegion.findMany({
+    const allStateRegions = await prisma.deliveryRegion.findMany({
       where: {
-        city:  { equals: city,  mode: "insensitive" },
         state: { equals: state, mode: "insensitive" },
         distributor: { approved_by_admin: true },
       },
-      select: { distributor_id: true },
+      select: { distributor_id: true, city: true },
     });
+
+    const targetCityClean = normalizeCityName(city).toLowerCase();
+    const regions = allStateRegions.filter(
+      (r) => normalizeCityName(r.city).toLowerCase() === targetCityClean
+    );
 
     if (regions.length === 0) {
       return Response.json({ products: [], brands: [], city, state, total: 0, page, total_pages: 0 });

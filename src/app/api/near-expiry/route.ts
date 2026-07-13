@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
+import { normalizeCityName } from "@/lib/coverage";
 
 const PRODUCT_SELECT = {
   id: true,
@@ -25,13 +26,16 @@ export const GET = withAuth(async (req: NextRequest, user) => {
     });
     if (!client) return Response.json({ offers: [] });
 
-    const regions = await prisma.deliveryRegion.findMany({
+    const allStateRegions = await prisma.deliveryRegion.findMany({
       where: {
-        city: { equals: client.delivery_city, mode: "insensitive" },
-        state: client.delivery_state,
+        state: { equals: client.delivery_state, mode: "insensitive" },
       },
-      select: { distributor_id: true },
+      select: { distributor_id: true, city: true },
     });
+    const targetCityClean = normalizeCityName(client.delivery_city).toLowerCase();
+    const regions = allStateRegions.filter(
+      (r) => normalizeCityName(r.city).toLowerCase() === targetCityClean
+    );
     const distributorIds = [...new Set(regions.map((r) => r.distributor_id))];
 
     const offers = await prisma.nearExpiryOffer.findMany({

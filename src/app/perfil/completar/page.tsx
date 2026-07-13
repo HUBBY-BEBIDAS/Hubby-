@@ -4,6 +4,8 @@ import { useState, FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { CityAutocomplete, type CityOption } from "@/components/ui/CityAutocomplete";
+import { StateSelect } from "@/components/ui/StateSelect";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 
 const ESTABLISHMENT_TYPES = [
@@ -156,21 +158,23 @@ export default function CompletarPerfilPage() {
             <hr className="my-1" />
 
             <div className="flex gap-3">
-              <Input
-                label="Cidade"
+              <CityAutocomplete
+                label="Cidade de entrega"
                 value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="flex-1"
+                onSelect={(opt: CityOption) => {
+                  if (opt.city) {
+                    setCity(opt.city);
+                    setState(opt.state);
+                  }
+                }}
                 required
               />
-              <Input
+              <StateSelect
                 label="UF"
                 value={state}
-                onChange={(e) => setState(e.target.value.toUpperCase())}
-                maxLength={2}
-                className="w-20"
-                placeholder="SP"
+                onChange={(uf) => setState(uf)}
                 required
+                className="w-36"
               />
             </div>
 

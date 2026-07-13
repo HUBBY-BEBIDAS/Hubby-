@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { CityAutocomplete, type CityOption } from "@/components/ui/CityAutocomplete";
+import { StateSelect } from "@/components/ui/StateSelect";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { Check, Plus, Trash2, MapPin, Gift, Copy, Star } from "lucide-react";
 
@@ -475,21 +477,22 @@ export default function PerfilClientePage() {
             </div>
 
             <div className="flex gap-3">
-              <Input
-                label="Cidade"
+              <CityAutocomplete
+                label="Cidade de entrega"
                 value={form.delivery_city}
-                onChange={(e) => setForm((f) => ({ ...f, delivery_city: e.target.value }))}
-                className="flex-1"
+                onSelect={(opt: CityOption) => {
+                  if (opt.city) {
+                    setForm((f) => ({ ...f, delivery_city: opt.city, delivery_state: opt.state }));
+                  }
+                }}
                 required
               />
-              <Input
+              <StateSelect
                 label="UF"
                 value={form.delivery_state}
-                onChange={(e) => setForm((f) => ({ ...f, delivery_state: e.target.value.toUpperCase() }))}
-                maxLength={2}
-                className="w-20"
-                placeholder="SP"
+                onChange={(uf) => setForm((f) => ({ ...f, delivery_state: uf }))}
                 required
+                className="w-36"
               />
             </div>
 
