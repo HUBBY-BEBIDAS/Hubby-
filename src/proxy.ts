@@ -12,6 +12,7 @@ const PUBLIC_PATHS = [
   "/api/auth/login",    // login mobile — retorna JWT no body
   "/api/auth",          // NextAuth (signin, callback, csrf, session…)
   "/api/coverage/check", // consulta de cobertura pública durante cadastro
+  "/api/cnpj/validate", // validação pública de CNPJ no cadastro
   "/sobre",
 ];
 

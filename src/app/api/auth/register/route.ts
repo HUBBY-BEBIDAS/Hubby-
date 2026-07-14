@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { EstablishmentType } from "@prisma/client";
 import { queryBureau, evaluateHubbyEntry, HUBBY_REJECTION_MESSAGE } from "@/lib/bureau";
+import { validateCnpjReceita } from "@/lib/cnpj";
 import { isCovered, normalizeCityName } from "@/lib/coverage";
 import { ensureUniqueCode } from "@/lib/referral";
 import { checkLoginRateLimit } from "@/lib/rate-limit";
@@ -140,6 +141,13 @@ export async function POST(req: NextRequest) {
     const password_hash = await bcrypt.hash(d.password, 12);
 
     if (d.role === "client") {
+      // Valida CNPJ na Receita Federal via ReceitaWS
+      const cnpjResult = await validateCnpjReceita(d.cnpj);
+      if (!cnpjResult.valid) {
+        return Response.json({ error: cnpjResult.message }, { status: 422 });
+      }
+      const officialCompanyName = cnpjResult.data.razao_social;
+
       // ─── Critério de entrada Hubby ─────────────────────────────────────────
       let hubbyStatus: "approved_clean" | "approved_with_warning" = "approved_clean";
       try {
@@ -170,7 +178,7 @@ export async function POST(req: NextRequest) {
         await tx.client.create({
           data: {
             user_id: user.id,
-            company_name: d.company_name,
+            company_name: officialCompanyName,
             cnpj: d.cnpj,
             establishment_type: d.establishment_type as EstablishmentType,
             responsible_name: d.responsible_name,

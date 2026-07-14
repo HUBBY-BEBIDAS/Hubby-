@@ -3,6 +3,7 @@ import { z } from "zod";
 import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
 import { normalizeCityName } from "@/lib/coverage";
+import { validateCnpjReceita } from "@/lib/cnpj";
 
 const schema = z.object({
   company_name: z.string().min(2, "Razão social obrigatória").trim(),
@@ -75,10 +76,17 @@ export const POST = withAuth(
       select: { email: true },
     });
 
+    // Valida CNPJ na Receita Federal via ReceitaWS
+    const cnpjResult = await validateCnpjReceita(d.cnpj);
+    if (!cnpjResult.valid) {
+      return Response.json({ error: cnpjResult.message }, { status: 422 });
+    }
+    const officialCompanyName = cnpjResult.data.razao_social;
+
     const client = await prisma.client.create({
       data: {
         user_id: user.userId,
-        company_name: d.company_name,
+        company_name: officialCompanyName,
         cnpj: d.cnpj,
         establishment_type: d.establishment_type,
         responsible_name: d.responsible_name,
