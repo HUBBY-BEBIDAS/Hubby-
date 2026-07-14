@@ -1610,7 +1610,7 @@ export default function RankingPage() {
           </div>
         )}
 
-        {productGroups.length === 0 && !rankingError && ranking && (
+        {allEntries.length === 0 && !rankingError && ranking && (
           <EmptyRegion
             city={ranking.delivery_city}
             state={ranking.delivery_state}
@@ -1636,6 +1636,29 @@ export default function RankingPage() {
               }
             }}
           />
+        )}
+
+        {allEntries.length > 0 && productGroups.length === 0 && !rankingError && ranking && (
+          <div className="rounded-3xl border border-[#DBEAFE] bg-white p-8 text-center mb-6">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
+              <svg className="h-7 w-7 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h2 className="mb-1 text-lg font-bold text-[#0F172A]">
+              Nenhum produto correspondido
+            </h2>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+              Encontramos {allEntries.length} distribuidora(s) que atendem {ranking.delivery_city} / {ranking.delivery_state}, mas nenhuma delas possui os produtos da sua cotação em estoque ou com a mesma grafia.
+            </p>
+            <button
+              onClick={() => router.push(`/cotacao/${quotationId}`)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[#22C55E] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90 transition-opacity"
+            >
+              Editar cotação
+            </button>
+          </div>
         )}
 
         {/* ── Sugestão inteligente ──────────────────────────────────────────── */}

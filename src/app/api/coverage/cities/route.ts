@@ -14,26 +14,26 @@ export async function GET(req: NextRequest) {
   const q     = searchParams.get("q")?.trim() ?? "";
   const state = searchParams.get("state")?.trim().toUpperCase() ?? "";
 
-  // Busca cidades distintas no banco (DeliveryRegion)
+  // Busca cidades distintas no banco (DeliveryRegion) por estado
   const rows = await prisma.deliveryRegion.findMany({
     where: {
-      ...(state  ? { state: { equals: state, mode: "insensitive" } } : {}),
-      ...(q.length >= 2
-        ? { city: { contains: q, mode: "insensitive" } }
-        : {}),
+      ...(state ? { state: { equals: state, mode: "insensitive" } } : {}),
     },
     select: { city: true, state: true },
     distinct: ["city", "state"],
     orderBy: [{ state: "asc" }, { city: "asc" }],
-    take: 20,
   });
 
-  // Normaliza os nomes e remove duplicatas residuais (diferença de acentuação, etc.)
+  // Normaliza os nomes e filtra client-side usando correspondência sem acentos
+  const qClean = q.length >= 2 ? normalizeCityName(q).toLowerCase() : "";
   const seen = new Set<string>();
   const cities: { city: string; state: string }[] = [];
 
   for (const r of rows) {
     const normalized = normalizeCityName(r.city);
+    if (qClean && !normalized.toLowerCase().includes(qClean)) {
+      continue;
+    }
     const key = `${normalized}|${r.state.toUpperCase()}`;
     if (!seen.has(key)) {
       seen.add(key);
@@ -41,5 +41,6 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return Response.json({ cities });
+  // Retorna no máximo 20 resultados para o autocomplete
+  return Response.json({ cities: cities.slice(0, 20) });
 }

@@ -74,7 +74,7 @@ export type CnpjValidationResult =
   | { valid: false; reason: "invalid_format" | "not_found" | "api_error" | "inactive"; message: string };
 
 /**
- * Consulta o CNPJ na Receita Federal via BrasilAPI.
+ * Consulta o CNPJ na Receita Federal via ReceitaWS.
  * Inclui validação local de formato antes de fazer a chamada.
  */
 export async function validateCnpjReceita(
@@ -93,7 +93,7 @@ export async function validateCnpjReceita(
   let data: CnpjReceitaData;
   try {
     const response = await fetch(
-      `https://brasilapi.com.br/api/cnpj/v1/${cleaned}`,
+      `https://receitaws.com.br/v1/cnpj/${cleaned}`,
       {
         headers: { Accept: "application/json" },
         signal: AbortSignal.timeout(8000), // 8s timeout
@@ -101,23 +101,80 @@ export async function validateCnpjReceita(
       }
     );
 
-    if (response.status === 404) {
-      return {
-        valid: false,
-        reason: "not_found",
-        message: "CNPJ não encontrado na Receita Federal",
-      };
-    }
-
     if (!response.ok) {
       return {
         valid: false,
         reason: "api_error",
-        message: "Não foi possível consultar a Receita Federal. Tente novamente em instantes.",
+        message: "Não foi possível consultar a Receita Federal via ReceitaWS. Tente novamente em instantes.",
       };
     }
 
-    data = await response.json() as CnpjReceitaData;
+    const wsData = await response.json() as {
+      status: "OK" | "ERROR";
+      message?: string;
+      cnpj: string;
+      nome: string;
+      fantasia?: string;
+      situacao: string;
+      motivo_situacao?: string;
+      data_situacao?: string;
+      cep: string;
+      logradouro: string;
+      numero: string;
+      complemento: string;
+      bairro: string;
+      municipio: string;
+      uf: string;
+      email?: string;
+      telefone?: string;
+      abertura: string;
+      atividade_principal?: Array<{ code: string; text: string }>;
+    };
+
+    if (wsData.status === "ERROR") {
+      const msg = wsData.message || "CNPJ não encontrado";
+      const isRateLimit = msg.toLowerCase().includes("too many requests") || msg.toLowerCase().includes("limite");
+      return {
+        valid: false,
+        reason: isRateLimit ? "api_error" : "not_found",
+        message: isRateLimit
+          ? "Limite de consultas atingido. Tente novamente em instantes."
+          : msg,
+      };
+    }
+
+    if (wsData.situacao !== "ATIVA") {
+      return {
+        valid: false,
+        reason: "inactive",
+        message: `CNPJ com situação "${wsData.situacao}" na Receita Federal. Apenas empresas ativas podem se cadastrar.`,
+      };
+    }
+
+    const primaryCnae = wsData.atividade_principal?.[0];
+    const cnaeCode = primaryCnae ? parseInt(primaryCnae.code.replace(/\D/g, ""), 10) : 0;
+    const cnaeDesc = primaryCnae ? primaryCnae.text : "";
+
+    data = {
+      cnpj:                         cleaned,
+      razao_social:                 wsData.nome ?? "",
+      nome_fantasia:                wsData.fantasia ?? "",
+      situacao_cadastral:           wsData.situacao ?? "",
+      descricao_situacao_cadastral: wsData.situacao ?? "",
+      data_situacao_cadastral:      wsData.data_situacao ?? "",
+      cep:                          wsData.cep ?? "",
+      logradouro:                   wsData.logradouro ?? "",
+      numero:                       wsData.numero ?? "",
+      complemento:                  wsData.complemento ?? "",
+      bairro:                       wsData.bairro ?? "",
+      municipio:                    wsData.municipio ?? "",
+      uf:                           wsData.uf ?? "",
+      email:                        wsData.email ?? null,
+      ddd_telefone_1:               wsData.telefone ?? null,
+      data_inicio_atividade:        wsData.abertura ?? "",
+      cnae_fiscal:                  cnaeCode,
+      cnae_fiscal_descricao:        cnaeDesc,
+    };
   } catch (err) {
     const isTimeout = err instanceof Error && err.name === "TimeoutError";
     return {
@@ -126,15 +183,6 @@ export async function validateCnpjReceita(
       message: isTimeout
         ? "Consulta à Receita Federal excedeu o tempo limite. Tente novamente."
         : "Erro ao consultar a Receita Federal.",
-    };
-  }
-
-  // CNPJs inativos não podem se cadastrar
-  if (data.situacao_cadastral !== "ATIVA") {
-    return {
-      valid: false,
-      reason: "inactive",
-      message: `CNPJ com situação "${data.descricao_situacao_cadastral ?? data.situacao_cadastral}" na Receita Federal. Apenas empresas ativas podem se cadastrar.`,
     };
   }
 
