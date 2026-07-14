@@ -26,7 +26,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           id={inputId}
           className={[
             "w-full rounded-xl border px-3 py-2.5 text-[14px] font-medium text-[#0F172A] placeholder:text-slate-400 placeholder:font-normal",
-            "transition-colors outline-none",
+            "transition-colors outline-none disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed disabled:border-[#DBEAFE]/70",
             suffix ? "pr-10" : "",
             error
               ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-200"

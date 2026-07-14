@@ -373,7 +373,11 @@ export default function RegisterClient() {
         setCnpjValidating(false);
         if (res.ok && data.valid) {
           setCnpjValid(true);
-          setCnpjOfficialName(data.data?.razao_social ?? "");
+          const officialName = data.data?.razao_social ?? "";
+          setCnpjOfficialName(officialName);
+          if (officialName) {
+            setCompanyName(officialName);
+          }
         } else {
           setCnpjValid(false);
           setCnpjError(data.message ?? "CNPJ inválido ou inativo na Receita Federal.");
@@ -655,6 +659,8 @@ export default function RegisterClient() {
               label={role === "client" ? "Nome do estabelecimento" : "Razão Social"}
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
+              disabled
+              placeholder="Preenchido automaticamente pelo CNPJ"
               required
             />
 

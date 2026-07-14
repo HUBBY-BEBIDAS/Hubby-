@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -51,9 +51,69 @@ export default function CompletarPerfilPage() {
   const [state, setState] = useState("");
   const [address, setAddress] = useState("");
 
+  const [cnpjValidating, setCnpjValidating] = useState(false);
+  const [cnpjValid, setCnpjValid] = useState<boolean | null>(null);
+  const [cnpjError, setCnpjError] = useState("");
+  const [cnpjOfficialName, setCnpjOfficialName] = useState("");
+
+  // Valida o CNPJ na ReceitaWS quando atinge 14 dígitos e preenche a razão social
+  useEffect(() => {
+    const clean = cnpj.replace(/\D/g, "");
+    if (clean.length !== 14) {
+      setCnpjValid(null);
+      setCnpjError("");
+      setCnpjOfficialName("");
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setCnpjValidating(true);
+      setCnpjError("");
+      setCnpjValid(null);
+      try {
+        const res = await fetch(`/api/cnpj/validate?cnpj=${clean}`);
+        const data = await res.json() as { valid: boolean; message?: string; data?: { razao_social: string } };
+        setCnpjValidating(false);
+        if (res.ok && data.valid) {
+          setCnpjValid(true);
+          const officialName = data.data?.razao_social ?? "";
+          setCnpjOfficialName(officialName);
+          if (officialName) {
+            setCompanyName(officialName);
+          }
+        } else {
+          setCnpjValid(false);
+          setCnpjError(data.message ?? "CNPJ inválido ou inativo na Receita Federal.");
+        }
+      } catch {
+        setCnpjValidating(false);
+        setCnpjValid(false);
+        setCnpjError("Erro ao conectar ao serviço de consulta de CNPJ.");
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [cnpj]);
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
+
+    // Impede envio se o CNPJ ainda estiver sendo verificado ou for inválido
+    const cleanCnpjStr = cnpj.replace(/\D/g, "");
+    if (cleanCnpjStr.length === 14) {
+      if (cnpjValidating) {
+        setError("Aguarde a validação do CNPJ na Receita Federal...");
+        return;
+      }
+      if (cnpjValid !== true) {
+        setError(cnpjError || "Por favor, informe um CNPJ ativo na Receita Federal.");
+        return;
+      }
+    } else {
+      setError("Por favor, preencha o CNPJ completo.");
+      return;
+    }
 
     if (!token) {
       setError("Sessão expirada. Recarregue a página.");
@@ -114,6 +174,8 @@ export default function CompletarPerfilPage() {
               label="Razão Social / Nome do estabelecimento"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
+              disabled
+              placeholder="Preenchido automaticamente pelo CNPJ"
               required
             />
 
@@ -124,6 +186,50 @@ export default function CompletarPerfilPage() {
               placeholder="00.000.000/0000-00"
               required
             />
+
+            {cnpj.replace(/\D/g, "").length === 14 && (
+              <div className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 ${
+                cnpjValidating 
+                  ? "border-blue-200 bg-blue-50/50" 
+                  : cnpjValid === true
+                    ? "border-[#22C55E]/30 bg-[#22C55E]/5"
+                    : "border-red-200 bg-red-50/50"
+              }`}>
+                {cnpjValidating ? (
+                  <>
+                    <span className="mt-1 h-3.5 w-3.5 animate-spin rounded-full border border-blue-500 border-t-transparent" />
+                    <div>
+                      <p className="text-xs font-bold text-blue-700">Verificando CNPJ na Receita Federal...</p>
+                      <p className="mt-0.5 text-[11px] font-medium text-slate-500">Consultando situação cadastral do estabelecimento.</p>
+                    </div>
+                  </>
+                ) : cnpjValid === true ? (
+                  <>
+                    <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#16A34A]" viewBox="0 0 16 16" fill="none" aria-hidden>
+                      <path d="M8 1.5L2 4v4c0 3.31 2.55 5.91 6 6.5 3.45-.59 6-3.19 6-6.5V4L8 1.5Z" fill="#16A34A" opacity=".2" stroke="#16A34A" strokeWidth="1.2" strokeLinejoin="round"/>
+                      <path d="M5.5 8l2 2 3-3" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <div>
+                      <p className="text-xs font-bold text-[#16A34A]">CNPJ ATIVO na Receita Federal</p>
+                      <p className="mt-0.5 text-[11px] font-bold text-slate-700 truncate max-w-[280px]">
+                        {cnpjOfficialName}
+                      </p>
+                      <p className="text-[10px] text-slate-400">Razão Social e situação cadastral confirmados.</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                      <p className="text-xs font-bold text-red-700">Falha na verificação do CNPJ</p>
+                      <p className="mt-0.5 text-[11px] font-medium text-red-600">{cnpjError || "CNPJ inativo ou inexistente."}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">
