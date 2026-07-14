@@ -2236,7 +2236,7 @@ export default function RankingPage() {
       })()}
 
       {/* ── Barra fixa: Concluir pedido ───────────────────────────────────── */}
-      {selectedCount > 0 && (
+      {selectedCount > 0 && !confirmPhase && (
         <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#DBEAFE] bg-white/95 px-4 py-4 backdrop-blur-sm">
           <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-4">
             <div>

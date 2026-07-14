@@ -1,19 +1,21 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ShoppingCart, ArrowRight, X, Check } from "lucide-react";
 import { useQuotation } from "@/contexts/QuotationContext";
 
 export function FloatingQuotationButton() {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: session } = useSession();
   const { quotation, itemCount, toast, dismissToast } = useQuotation();
 
   const role     = (session?.user as { role?: string })?.role ?? "";
   const isClient = role === "client";
 
-  if (!isClient) return null;
+  // Não exibe o botão flutuante se já estiver nas páginas de cotação/ranking
+  if (!isClient || pathname.startsWith("/cotacao")) return null;
 
   return (
     <>
