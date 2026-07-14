@@ -267,6 +267,7 @@ export default function CompletarPerfilPage() {
               <CityAutocomplete
                 label="Cidade de entrega"
                 value={city}
+                stateFilter={state}
                 onSelect={(opt: CityOption) => {
                   if (opt.city) {
                     setCity(opt.city);

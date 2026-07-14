@@ -367,7 +367,7 @@ export default function CotacaoPage() {
   const [items, setItems] = useState<QuotationItem[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<ProductSearchResult | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState<number | "">(1);
   const [maxDays, setMaxDays] = useState<number | "">("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -421,6 +421,8 @@ export default function CotacaoPage() {
   function addItem(e: FormEvent) {
     e.preventDefault();
     if (!selectedProduct) return;
+    const parsedQty = typeof quantity === "number" ? quantity : parseInt(quantity) || 1;
+    const qty = Math.max(1, parsedQty);
     setItems((prev) => [
       ...prev,
       {
@@ -429,7 +431,7 @@ export default function CotacaoPage() {
         brand: selectedProduct.brand,
         category: selectedProduct.category as Category,
         packaging: formatPackaging(selectedProduct.packaging_type, selectedProduct.packaging_volume_ml),
-        quantity,
+        quantity: qty,
       },
     ]);
     clearSelection();
@@ -558,7 +560,15 @@ export default function CotacaoPage() {
                     type="number"
                     min={1}
                     value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "") {
+                        setQuantity("");
+                      } else {
+                        const num = Number(val);
+                        setQuantity(isNaN(num) ? "" : num);
+                      }
+                    }}
                     required
                     ref={quantityRef}
                   />

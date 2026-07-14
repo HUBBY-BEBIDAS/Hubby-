@@ -127,7 +127,7 @@ export default function EditQuotationPage() {
 
   const [searchValue, setSearchValue] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<ProductSearchResult | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState<number | "">(1);
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -214,6 +214,8 @@ export default function EditQuotationPage() {
   function addItem(e: FormEvent) {
     e.preventDefault();
     if (!selectedProduct) return;
+    const parsedQty = typeof quantity === "number" ? quantity : parseInt(quantity) || 1;
+    const qty = Math.max(1, parsedQty);
     setItems((prev) => [
       ...prev,
       {
@@ -222,7 +224,7 @@ export default function EditQuotationPage() {
         brand: selectedProduct.brand,
         category: selectedProduct.category as Category,
         packaging: formatPackaging(selectedProduct.packaging_type, selectedProduct.packaging_volume_ml),
-        quantity,
+        quantity: qty,
       },
     ]);
     clearSelection();
@@ -344,7 +346,15 @@ export default function EditQuotationPage() {
                   min={1}
                   max={100000}
                   value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "") {
+                      setQuantity("");
+                    } else {
+                      const num = Number(val);
+                      setQuantity(isNaN(num) ? "" : num);
+                    }
+                  }}
                   className="w-20 rounded-xl border border-[#DBEAFE] bg-white px-3 py-2 text-center text-sm font-bold text-[#0F172A] outline-none focus:border-[#22C55E]"
                 />
                 <button type="submit" className="rounded-xl bg-[#22C55E] px-4 py-2 text-sm font-bold text-white hover:bg-[#16A34A]">

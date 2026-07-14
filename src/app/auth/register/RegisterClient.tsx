@@ -773,6 +773,7 @@ export default function RegisterClient() {
                   <CityAutocomplete
                     label="Cidade de entrega"
                     value={city}
+                    stateFilter={state}
                     onSelect={(opt: CityOption) => {
                       if (opt.city) {
                         setCity(opt.city);
