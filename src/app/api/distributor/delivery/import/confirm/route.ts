@@ -55,18 +55,18 @@ export const POST = withAuth(
       }>;
     };
 
-    // Executa as transações de atualização/deleção das rotas no banco de dados
+    // Executa a atualização/deleção das rotas no banco de dados
     try {
-      // Como prisma.$transaction aceita array de operações Prisma, podemos executá-lo em lotes
-      // Para evitar transações gigantescas que possam bloquear o banco, rodamos em lotes de 100
+      // Executamos as operações em paralelo usando Promise.all em lotes de 100
+      // para evitar transações gigantescas que possam estourar o timeout de 5 segundos do Prisma.
       const BATCH_SIZE = 100;
       for (let i = 0; i < valid_rows.length; i += BATCH_SIZE) {
         const batch = valid_rows.slice(i, i + BATCH_SIZE);
         
-        await prisma.$transaction(
-          batch.map((row) => {
+        await Promise.all(
+          batch.map(async (row) => {
             if (row.route_days.length > 0) {
-              return prisma.deliveryRegion.upsert({
+              await prisma.deliveryRegion.upsert({
                 where: {
                   distributor_id_city_state: {
                     distributor_id: distributor.id,
@@ -89,7 +89,7 @@ export const POST = withAuth(
               });
             } else {
               // Se não tem dias de rota (ex: FORA DE ROTA), remove do banco se existir
-              return prisma.deliveryRegion.deleteMany({
+              await prisma.deliveryRegion.deleteMany({
                 where: {
                   distributor_id: distributor.id,
                   city: row.city,
