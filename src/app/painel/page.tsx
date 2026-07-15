@@ -9,7 +9,7 @@ import { Navbar } from "@/components/Navbar";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { ClientDashboard } from "./client-dashboard";
 import {
-  Building2, CheckCircle, AlertTriangle, XCircle, Check, X,
+  Building2, CheckCircle, AlertTriangle, XCircle, Check, X, Phone, Eye,
 } from "lucide-react";
 
 type PendingFeedback = {
@@ -47,18 +47,32 @@ type DashboardData = {
   total_products: number;
 };
 
+interface OrderItemSnapshot {
+  product_name: string;
+  brand: string;
+  category?: string;
+  packaging?: string;
+  quantity: number;
+  unit_price_cents: number;
+  total_price_cents?: number;
+}
+
 type OrderItem = {
   id: string;
   group_id: string;
   status: "sent" | "viewed" | "approved" | "rejected" | "delivered";
   total_cents: number;
+  items_snapshot: OrderItemSnapshot[] | null;
   sent_at: string;
   client: {
     id: string;
     company_name: string;
+    cnpj: string;
     establishment_type: string;
+    responsible_name: string | null;
     delivery_city: string;
     delivery_state: string;
+    delivery_address_full: string | null;
     whatsapp: string;
   };
 };
@@ -132,6 +146,9 @@ export default function PainelPage() {
   const [deliverProblemType, setDeliverProblemType] = useState<"late_payment" | "no_payment" | null>(null);
   const [deliverNotes, setDeliverNotes] = useState("");
   const [submittingDeliver, setSubmittingDeliver] = useState(false);
+  const [viewOrderId, setViewOrderId] = useState<string | null>(null);
+
+  const selectedOrder = orders.find((o) => o.id === viewOrderId);
 
   useEffect(() => {
     if (!token) return;
@@ -610,6 +627,189 @@ export default function PainelPage() {
           </div>
         )}
 
+        {/* Modal — visualizar detalhes do pedido */}
+        {selectedOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+            <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl max-h-[90vh] flex flex-col">
+              {/* Header */}
+              <div className="flex items-start justify-between border-b border-slate-100 pb-4 mb-4">
+                <div>
+                  <h3 className="text-base font-display font-semibold text-[#0F172A]">
+                    Detalhes do Pedido
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    ID: <span className="font-mono">{selectedOrder.id}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => setViewOrderId(null)}
+                  className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Scrollable Body */}
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
+                {/* Status and Total */}
+                <div className="flex items-center justify-between bg-[#F8FAFC] p-4 rounded-2xl border border-slate-100">
+                  <div>
+                    <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider block mb-1">Status</span>
+                    <Badge variant={STATUS_BADGE[selectedOrder.status] ?? "gray"}>
+                      {STATUS_LABEL[selectedOrder.status] ?? selectedOrder.status}
+                    </Badge>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider block mb-1">Valor Total</span>
+                    <span className="font-mono text-xl font-bold text-[#0F172A]">
+                      {formatBRL(selectedOrder.total_cents)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Client Info Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="border border-[#DBEAFE]/60 bg-[#EFF6FF]/10 p-3.5 rounded-2xl">
+                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      Cliente
+                    </h4>
+                    <p className="text-sm font-semibold text-[#0F172A] truncate">
+                      {selectedOrder.client.company_name}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      CNPJ: <span className="font-mono">{selectedOrder.client.cnpj}</span>
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Tipo: {selectedOrder.client.establishment_type}
+                    </p>
+                  </div>
+
+                  <div className="border border-slate-100 bg-slate-50/30 p-3.5 rounded-2xl">
+                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      Contato e Envio
+                    </h4>
+                    <p className="text-sm font-medium text-[#0F172A] truncate">
+                      Responsável: {selectedOrder.client.responsible_name || "Não informado"}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Data: <span className="font-mono">{formatDateTime(selectedOrder.sent_at)}</span>
+                    </p>
+                    {selectedOrder.client.whatsapp && (
+                      <a
+                        href={`https://wa.me/55${selectedOrder.client.whatsapp.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-[#2563EB] hover:underline"
+                      >
+                        <Phone size={12} /> WhatsApp
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Delivery Address */}
+                <div className="border border-slate-100 p-3.5 rounded-2xl">
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Endereço de Entrega
+                  </h4>
+                  <p className="text-xs text-slate-700 font-medium leading-relaxed">
+                    {selectedOrder.client.delivery_address_full || "Não informado"}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {selectedOrder.client.delivery_city} — {selectedOrder.client.delivery_state}
+                  </p>
+                </div>
+
+                {/* Items List */}
+                <div className="border border-slate-100 rounded-2xl overflow-hidden">
+                  <div className="bg-slate-50 px-4 py-2 border-b border-slate-100">
+                    <h4 className="text-xs font-semibold text-slate-600">
+                      Itens do Pedido
+                    </h4>
+                  </div>
+                  <div className="divide-y divide-slate-100 max-h-[220px] overflow-y-auto">
+                    {((selectedOrder.items_snapshot as unknown as OrderItemSnapshot[]) || []).map((item, idx) => (
+                      <div key={idx} className="px-4 py-3 flex items-center justify-between text-xs hover:bg-slate-50/50">
+                        <div className="flex-1 min-w-0 pr-3">
+                          <p className="font-semibold text-[#0F172A] truncate">
+                            {item.product_name}
+                          </p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">
+                            {item.brand} {item.packaging ? `· ${item.packaging}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4 text-right">
+                          <div>
+                            <span className="text-[9px] text-slate-400 block font-medium">Qtd</span>
+                            <span className="font-semibold text-[#0F172A]">{item.quantity}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-slate-400 block font-medium">Preço</span>
+                            <span className="font-mono text-slate-500">{formatBRL(item.unit_price_cents)}</span>
+                          </div>
+                          <div className="min-w-[65px]">
+                            <span className="text-[9px] text-slate-400 block font-medium">Subtotal</span>
+                            <span className="font-mono font-bold text-[#0F172A]">
+                              {formatBRL((item.total_price_cents || (item.quantity * item.unit_price_cents)))}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action buttons footer */}
+              <div className="border-t border-slate-100 pt-4 mt-4 flex gap-3">
+                {selectedOrder.status === "sent" && (
+                  <>
+                    <button
+                      disabled={updating === selectedOrder.id}
+                      onClick={async () => {
+                        await updateStatus(selectedOrder.id, "approved");
+                      }}
+                      className="flex-1 rounded-2xl bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    >
+                      <Check size={16} /> Aprovar Pedido
+                    </button>
+                    <button
+                      disabled={updating === selectedOrder.id}
+                      onClick={async () => {
+                        await updateStatus(selectedOrder.id, "rejected");
+                      }}
+                      className="flex-1 rounded-2xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    >
+                      <X size={16} /> Recusar Pedido
+                    </button>
+                  </>
+                )}
+                {selectedOrder.status === "approved" && (
+                  <button
+                    onClick={() => {
+                      setViewOrderId(null);
+                      setDeliverModal({
+                        orderId: selectedOrder.id,
+                        clientName: selectedOrder.client.company_name,
+                        totalCents: selectedOrder.total_cents,
+                      });
+                    }}
+                    className="flex-1 rounded-2xl bg-slate-900 py-3 text-sm font-bold text-white hover:bg-slate-800 flex items-center justify-center gap-1.5"
+                  >
+                    Marcar como entregue
+                  </button>
+                )}
+                <button
+                  onClick={() => setViewOrderId(null)}
+                  className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Leads recentes */}
         <div className="rounded-3xl border border-[#DBEAFE] bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-[#DBEAFE] px-6 py-4">
@@ -658,32 +858,41 @@ export default function PainelPage() {
                         </Badge>
                       </div>
 
-                      {order.status === "sent" && (
-                        <div className="flex gap-2">
-                          <button
-                            disabled={updating === order.id}
-                            onClick={() => updateStatus(order.id, "approved")}
-                            className="rounded-xl bg-green-100 px-3 py-1 text-xs font-medium text-green-800 hover:bg-green-200 disabled:opacity-50"
-                          >
-                            <Check size={12} className="inline mr-1" />Aprovar
-                          </button>
-                          <button
-                            disabled={updating === order.id}
-                            onClick={() => updateStatus(order.id, "rejected")}
-                            className="rounded-xl bg-red-100 px-3 py-1 text-xs font-medium text-red-800 hover:bg-red-200 disabled:opacity-50"
-                          >
-                            <X size={12} className="inline mr-1" />Recusar
-                          </button>
-                        </div>
-                      )}
-                      {order.status === "approved" && (
+                      <div className="flex gap-2">
                         <button
-                          onClick={() => setDeliverModal({ orderId: order.id, clientName: order.client.company_name, totalCents: order.total_cents })}
-                          className="rounded-xl bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
+                          onClick={() => setViewOrderId(order.id)}
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1"
                         >
-                          Marcar como entregue
+                          <Eye size={12} /> Ver pedido
                         </button>
-                      )}
+
+                        {order.status === "sent" && (
+                          <div className="flex gap-2">
+                            <button
+                              disabled={updating === order.id}
+                              onClick={() => updateStatus(order.id, "approved")}
+                              className="rounded-xl bg-green-100 px-3 py-1 text-xs font-medium text-green-800 hover:bg-green-200 disabled:opacity-50"
+                            >
+                              <Check size={12} className="inline mr-1" />Aprovar
+                            </button>
+                            <button
+                              disabled={updating === order.id}
+                              onClick={() => updateStatus(order.id, "rejected")}
+                              className="rounded-xl bg-red-100 px-3 py-1 text-xs font-medium text-red-800 hover:bg-red-200 disabled:opacity-50"
+                            >
+                              <X size={12} className="inline mr-1" />Recusar
+                            </button>
+                          </div>
+                        )}
+                        {order.status === "approved" && (
+                          <button
+                            onClick={() => setDeliverModal({ orderId: order.id, clientName: order.client.company_name, totalCents: order.total_cents })}
+                            className="rounded-xl bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
+                          >
+                            Marcar como entregue
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </li>
