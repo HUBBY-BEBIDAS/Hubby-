@@ -51,20 +51,20 @@ type AutocompleteItem = { id: string; name: string; brand: string; packaging_typ
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const CATEGORIES = [
-  { value: "",           label: "Todos" },
-  { value: "beer",       label: "Cervejas" },
-  { value: "whisky",     label: "Whiskies" },
-  { value: "vodka",      label: "Vodkas" },
-  { value: "gin",        label: "Gins" },
-  { value: "rum",        label: "Runs" },
-  { value: "cachaca",    label: "Cachaças" },
-  { value: "wine",       label: "Vinhos" },
-  { value: "sparkling",  label: "Espumantes" },
-  { value: "energy",     label: "Energéticos" },
+  { value: "", label: "Todos" },
+  { value: "beer", label: "Cervejas" },
+  { value: "whisky", label: "Whiskies" },
+  { value: "vodka", label: "Vodkas" },
+  { value: "gin", label: "Gins" },
+  { value: "rum", label: "Runs" },
+  { value: "cachaca", label: "Cachaças" },
+  { value: "wine", label: "Vinhos" },
+  { value: "sparkling", label: "Espumantes" },
+  { value: "energy", label: "Energéticos" },
   { value: "soft_drink", label: "Refrigerantes" },
-  { value: "water",      label: "Águas" },
-  { value: "juice",      label: "Sucos" },
-  { value: "other",      label: "Outros" },
+  { value: "water", label: "Águas" },
+  { value: "juice", label: "Sucos" },
+  { value: "other", label: "Outros" },
 ];
 
 const PACKAGING_LABEL: Record<string, string> = {
@@ -73,9 +73,9 @@ const PACKAGING_LABEL: Record<string, string> = {
 };
 
 const SORT_OPTIONS = [
-  { value: "cheapest",    label: "Mais barato" },
-  { value: "popular",     label: "Mais popular" },
-  { value: "newest",      label: "Lançamentos" },
+  { value: "cheapest", label: "Mais barato" },
+  { value: "popular", label: "Mais popular" },
+  { value: "newest", label: "Lançamentos" },
   { value: "promo_first", label: "Promoções primeiro" },
 ];
 
@@ -139,14 +139,22 @@ function ProductCard({
   onToggleCompare: (e: React.MouseEvent) => void;
   listView: boolean;
 }) {
-  const hasPromo    = product.promotion !== null;
+  const hasPromo = product.promotion !== null;
   const hasDiscount = hasPromo && product.effective_price_cents < product.min_price_cents;
 
   if (listView) {
     return (
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onClick}
-        className="group flex w-full items-center gap-4 rounded-2xl border border-[#DBEAFE] bg-white px-4 py-3 text-left shadow-sm transition-all hover:border-[#2563EB]/40 hover:shadow-md active:scale-[0.99]"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick();
+          }
+        }}
+        className="group flex w-full items-center gap-4 rounded-2xl border border-[#DBEAFE] bg-white px-4 py-3 text-left shadow-sm transition-all hover:border-[#2563EB]/40 hover:shadow-md active:scale-[0.99] cursor-pointer"
       >
         {/* Checkbox comparar */}
         <div
@@ -206,7 +214,7 @@ function ProductCard({
         >
           <Heart size={16} className={wishlisted ? "fill-current text-red-500" : ""} />
         </button>
-      </button>
+      </div>
     );
   }
 
@@ -294,16 +302,18 @@ function CompareModal({ products, onClose, onOpenDetail }: {
   onOpenDetail: (p: CatalogProduct) => void;
 }) {
   const rows = [
-    { label: "Preço a partir de",  render: (p: CatalogProduct) => <span className="font-black text-[#2563EB]">{formatBRL(p.effective_price_cents)}</span> },
-    { label: "Embalagem",          render: (p: CatalogProduct) => `${PACKAGING_LABEL[p.packaging_type] ?? p.packaging_type} ${p.packaging_volume_ml}ml` },
-    { label: "Distribuidoras",     render: (p: CatalogProduct) => `${p.distributor_count} na sua região` },
-    { label: "Promoção",           render: (p: CatalogProduct) => p.promotion ? promoLabel(p.promotion) : "—" },
-    { label: "Tendência de preço", render: (p: CatalogProduct) => {
-      if (!p.price_trend || p.price_trend === "stable") return "Estável";
-      const icon = p.price_trend === "down" ? "↓" : "↑";
-      const color = p.price_trend === "down" ? "text-green-600" : "text-red-500";
-      return <span className={color}>{icon} {p.price_change_pct?.toFixed(1)}%</span>;
-    }},
+    { label: "Preço a partir de", render: (p: CatalogProduct) => <span className="font-black text-[#2563EB]">{formatBRL(p.effective_price_cents)}</span> },
+    { label: "Embalagem", render: (p: CatalogProduct) => `${PACKAGING_LABEL[p.packaging_type] ?? p.packaging_type} ${p.packaging_volume_ml}ml` },
+    { label: "Distribuidoras", render: (p: CatalogProduct) => `${p.distributor_count} na sua região` },
+    { label: "Promoção", render: (p: CatalogProduct) => p.promotion ? promoLabel(p.promotion) : "—" },
+    {
+      label: "Tendência de preço", render: (p: CatalogProduct) => {
+        if (!p.price_trend || p.price_trend === "stable") return "Estável";
+        const icon = p.price_trend === "down" ? "↓" : "↑";
+        const color = p.price_trend === "down" ? "text-green-600" : "text-red-500";
+        return <span className={color}>{icon} {p.price_change_pct?.toFixed(1)}%</span>;
+      }
+    },
   ];
 
   return (
@@ -398,37 +408,37 @@ export default function CatalogoPage() {
   const token = useApiToken();
 
   // Filtros
-  const [category,    setCategory]   = useState("");
-  const [brand,       setBrand]      = useState("");
+  const [category, setCategory] = useState("");
+  const [brand, setBrand] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [search,      setSearch]     = useState("");
-  const [sort,        setSort]       = useState("cheapest");
-  const [priceRange,  setPriceRange] = useState<[number, number]>([0, 100000]);
-  const [priceMax,    setPriceMax]   = useState(100000); // max descoberto no catalog
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("cheapest");
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
+  const [priceMax, setPriceMax] = useState(100000); // max descoberto no catalog
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode,    setViewMode]   = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Produtos + paginação
-  const [products,    setProducts]   = useState<CatalogProduct[]>([]);
-  const [loading,     setLoading]    = useState(true);
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
+  const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [page,        setPage]       = useState(1);
-  const [totalPages,  setTotalPages] = useState(1);
-  const [total,       setTotal]      = useState(0);
-  const [brands,      setBrands]     = useState<string[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [brands, setBrands] = useState<string[]>([]);
 
   // Localidade
-  const [city,  setCity]  = useState("");
+  const [city, setCity] = useState("");
   const [state, setState] = useState("");
 
   // Seções especiais
-  const [nearExpiry,   setNearExpiry]   = useState<NearExpiryOffer[]>([]);
-  const [nearLoading,  setNearLoading]  = useState(true);
-  const [frequentes,   setFrequentes]   = useState<CatalogProduct[]>([]);
-  const [novidades,    setNovidades]    = useState<CatalogProduct[]>([]);
+  const [nearExpiry, setNearExpiry] = useState<NearExpiryOffer[]>([]);
+  const [nearLoading, setNearLoading] = useState(true);
+  const [frequentes, setFrequentes] = useState<CatalogProduct[]>([]);
+  const [novidades, setNovidades] = useState<CatalogProduct[]>([]);
 
   // Wishlist
-  const [wishlisted,  setWishlisted]  = useState<Set<string>>(new Set());
+  const [wishlisted, setWishlisted] = useState<Set<string>>(new Set());
 
   // Comparar
   const [compareList, setCompareList] = useState<CatalogProduct[]>([]);
@@ -452,29 +462,29 @@ export default function CatalogoPage() {
     if (pg === 1) setLoading(true); else setLoadingMore(true);
 
     const params = new URLSearchParams();
-    if (category)          params.set("category", category);
-    if (search)            params.set("q", search);
-    if (brand)             params.set("brand", brand);
+    if (category) params.set("category", category);
+    if (search) params.set("q", search);
+    if (brand) params.set("brand", brand);
     if (priceRange[0] > 0) params.set("min_price", String(priceRange[0]));
     if (priceRange[1] < priceMax) params.set("max_price", String(priceRange[1]));
-    params.set("sort",  sort);
-    params.set("page",  String(pg));
+    params.set("sort", sort);
+    params.set("page", String(pg));
     params.set("limit", "24");
 
     try {
-      const res  = await apiFetch(`/api/catalog?${params}`, { method: "GET", token });
+      const res = await apiFetch(`/api/catalog?${params}`, { method: "GET", token });
       const data = await res.json() as {
         products: CatalogProduct[]; brands: string[];
         city: string; state: string; total: number; total_pages: number;
       };
 
       if (append) setProducts((prev) => [...prev, ...data.products]);
-      else        setProducts(data.products ?? []);
+      else setProducts(data.products ?? []);
 
       setBrands(data.brands ?? []);
       setTotalPages(data.total_pages ?? 1);
       setTotal(data.total ?? 0);
-      if (data.city)  setCity(data.city);
+      if (data.city) setCity(data.city);
       if (data.state) setState(data.state);
 
       // Descobre preço máximo para o slider apenas no primeiro carregamento do catálogo
@@ -522,18 +532,18 @@ export default function CatalogoPage() {
     apiFetch("/api/near-expiry", { method: "GET", token })
       .then((r: Response) => r.json())
       .then((d: { offers: NearExpiryOffer[] }) => setNearExpiry(d.offers ?? []))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setNearLoading(false));
 
     apiFetch("/api/catalog/frequentes", { method: "GET", token })
       .then((r: Response) => r.json())
       .then((d: { products: CatalogProduct[] }) => setFrequentes(d.products ?? []))
-      .catch(() => {});
+      .catch(() => { });
 
     apiFetch("/api/catalog/novidades", { method: "GET", token })
       .then((r: Response) => r.json())
       .then((d: { products: CatalogProduct[] }) => setNovidades(d.products ?? []))
-      .catch(() => {});
+      .catch(() => { });
 
 
     apiFetch("/api/wishlist", { method: "GET", token })
@@ -541,7 +551,7 @@ export default function CatalogoPage() {
       .then((d: { items: { product_key: string }[] }) => {
         setWishlisted(new Set(d.items.map((i) => i.product_key)));
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [token]);
 
   // ── Debounce da busca ──────────────────────────────────────────────────────
@@ -581,7 +591,7 @@ export default function CatalogoPage() {
     });
     const encodedKey = encodeURIComponent(key);
     if (isIn) {
-      apiFetch(`/api/wishlist/${encodedKey}`, { method: "DELETE", token }).catch(() => {});
+      apiFetch(`/api/wishlist/${encodedKey}`, { method: "DELETE", token }).catch(() => { });
     } else {
       apiFetch(`/api/wishlist/${encodedKey}`, {
         method: "POST",
@@ -591,7 +601,7 @@ export default function CatalogoPage() {
           packaging_type: product.packaging_type, packaging_volume_ml: product.packaging_volume_ml,
           image_url: product.image_url,
         }),
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }
 
@@ -612,385 +622,385 @@ export default function CatalogoPage() {
 
   return (
     <>
-    <div className="min-h-screen bg-[#F5F7FB]">
-      <Navbar />
+      <div className="min-h-screen bg-[#F5F7FB]">
+        <Navbar />
 
-      <main className="mx-auto w-full max-w-6xl px-4 py-8">
+        <main className="mx-auto w-full max-w-6xl px-4 py-8">
 
-        {/* ── Header ──────────────────────────────────────────────────── */}
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-[#0F172A]">Catálogo de produtos</h1>
-            <p className="mt-0.5 text-sm text-slate-500">
-              {city ? `Menores preços em ${city} / ${state}` : "Carregando sua região…"}
-              {promoCount > 0 && (
-                <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
-                  <Tag size={10} className="mr-0.5 inline" />{promoCount} em promoção
-                </span>
-              )}
-            </p>
-          </div>
-          {/* Toggle grid/lista */}
-          <div className="flex shrink-0 items-center gap-1 rounded-xl border border-[#DBEAFE] bg-white p-1">
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`rounded-lg p-2 transition ${viewMode === "grid" ? "bg-[#2563EB] text-white" : "text-slate-400 hover:text-slate-600"}`}
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              className={`rounded-lg p-2 transition ${viewMode === "list" ? "bg-[#2563EB] text-white" : "text-slate-400 hover:text-slate-600"}`}
-            >
-              <List size={15} />
-            </button>
-          </div>
-        </div>
-
-        {/* ── Busca com autocomplete ───────────────────────────────────── */}
-        <div className="relative mb-4">
-          <div className="relative">
-            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="search"
-              placeholder="Buscar por nome ou marca…"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onFocus={() => autocomplete.length > 0 && setShowAutocomplete(true)}
-              onBlur={() => setTimeout(() => setShowAutocomplete(false), 200)}
-              className="w-full max-w-sm rounded-xl border border-[#DBEAFE] bg-white py-2.5 pl-9 pr-4 text-sm text-[#0F172A] placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none"
-            />
-          </div>
-          {showAutocomplete && autocomplete.length > 0 && (
-            <div className="absolute left-0 top-full z-30 mt-1 w-full max-w-sm rounded-2xl border border-[#DBEAFE] bg-white shadow-xl">
-              {autocomplete.map((item) => (
-                <button
-                  key={item.id}
-                  onMouseDown={() => { setSearchInput(item.name); setSearch(item.name); setShowAutocomplete(false); }}
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-[#F5F7FB] first:rounded-t-2xl last:rounded-b-2xl"
-                >
-                  <Search size={13} className="shrink-0 text-slate-400" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-[#0F172A]">{item.name}</p>
-                    <p className="text-[11px] text-slate-400">{item.brand} · {PACKAGING_LABEL[item.packaging_type] ?? item.packaging_type} {item.packaging_volume_ml}ml</p>
-                  </div>
-                </button>
-              ))}
+          {/* ── Header ──────────────────────────────────────────────────── */}
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-[#0F172A]">Catálogo de produtos</h1>
+              <p className="mt-0.5 text-sm text-slate-500">
+                {city ? `Menores preços em ${city} / ${state}` : "Carregando sua região…"}
+                {promoCount > 0 && (
+                  <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
+                    <Tag size={10} className="mr-0.5 inline" />{promoCount} em promoção
+                  </span>
+                )}
+              </p>
             </div>
-          )}
-        </div>
+            {/* Toggle grid/lista */}
+            <div className="flex shrink-0 items-center gap-1 rounded-xl border border-[#DBEAFE] bg-white p-1">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`rounded-lg p-2 transition ${viewMode === "grid" ? "bg-[#2563EB] text-white" : "text-slate-400 hover:text-slate-600"}`}
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`rounded-lg p-2 transition ${viewMode === "list" ? "bg-[#2563EB] text-white" : "text-slate-400 hover:text-slate-600"}`}
+              >
+                <List size={15} />
+              </button>
+            </div>
+          </div>
 
-        {/* ── Filtros: categorias ──────────────────────────────────────── */}
-        <div className="mb-3 flex flex-wrap gap-2">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.value}
-              onClick={() => { setCategory(c.value); setBrand(""); }}
-              className={[
-                "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-                category === c.value
-                  ? "bg-[#2563EB] text-white"
-                  : "border border-[#DBEAFE] bg-white text-slate-600 hover:bg-[#EFF6FF]",
-              ].join(" ")}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Filtros avançados + ordenação ────────────────────────────── */}
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-          {/* Sort */}
-          {SORT_OPTIONS.map((s) => (
-            <button
-              key={s.value}
-              onClick={() => setSort(s.value)}
-              className={[
-                "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
-                sort === s.value
-                  ? "bg-[#0F172A] text-white"
-                  : "border border-[#DBEAFE] bg-white text-slate-600 hover:bg-[#F5F7FB]",
-              ].join(" ")}
-            >
-              {s.label}
-            </button>
-          ))}
-
-          {/* Filtros avançados toggle */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={[
-              "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors",
-              showFilters ? "bg-[#EFF6FF] text-[#2563EB]" : "border border-[#DBEAFE] bg-white text-slate-600 hover:bg-[#F5F7FB]",
-            ].join(" ")}
-          >
-            <SlidersHorizontal size={12} />Filtros
-            {(brand || priceRange[0] > 0 || priceRange[1] < priceMax) && (
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#2563EB] text-[9px] text-white">!</span>
-            )}
-          </button>
-
-          {/* Limpar filtros */}
-          {(brand || priceRange[0] > 0 || priceRange[1] < priceMax || search) && (
-            <button
-              onClick={() => { setBrand(""); setPriceRange([0, priceMax]); setSearch(""); setSearchInput(""); }}
-              className="flex items-center gap-1 text-xs text-slate-400 hover:text-[#2563EB]"
-            >
-              <X size={11} />Limpar
-            </button>
-          )}
-        </div>
-
-        {showFilters && (
-          <div className="mb-6 rounded-2xl border border-[#DBEAFE] bg-white p-5 shadow-sm">
-            <div className="grid gap-5 sm:grid-cols-2">
-              {/* Marcas */}
-              <div>
-                <p className="mb-2 text-xs font-semibold text-slate-600">Marca</p>
-                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+          {/* ── Busca com autocomplete ───────────────────────────────────── */}
+          <div className="relative mb-4">
+            <div className="relative">
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                placeholder="Buscar por nome ou marca…"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onFocus={() => autocomplete.length > 0 && setShowAutocomplete(true)}
+                onBlur={() => setTimeout(() => setShowAutocomplete(false), 200)}
+                className="w-full max-w-sm rounded-xl border border-[#DBEAFE] bg-white py-2.5 pl-9 pr-4 text-sm text-[#0F172A] placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none"
+              />
+            </div>
+            {showAutocomplete && autocomplete.length > 0 && (
+              <div className="absolute left-0 top-full z-30 mt-1 w-full max-w-sm rounded-2xl border border-[#DBEAFE] bg-white shadow-xl">
+                {autocomplete.map((item) => (
                   <button
-                    onClick={() => setBrand("")}
-                    className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${!brand ? "bg-[#2563EB] text-white" : "border border-[#DBEAFE] text-slate-600 hover:bg-[#EFF6FF]"}`}
+                    key={item.id}
+                    onMouseDown={() => { setSearchInput(item.name); setSearch(item.name); setShowAutocomplete(false); }}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-[#F5F7FB] first:rounded-t-2xl last:rounded-b-2xl"
                   >
-                    Todas
+                    <Search size={13} className="shrink-0 text-slate-400" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-[#0F172A]">{item.name}</p>
+                      <p className="text-[11px] text-slate-400">{item.brand} · {PACKAGING_LABEL[item.packaging_type] ?? item.packaging_type} {item.packaging_volume_ml}ml</p>
+                    </div>
                   </button>
-                  {brands.map((b) => (
-                    <button
-                      key={b}
-                      onClick={() => setBrand(brand === b ? "" : b)}
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${brand === b ? "bg-[#2563EB] text-white" : "border border-[#DBEAFE] text-slate-600 hover:bg-[#EFF6FF]"}`}
-                    >
-                      {b}
-                    </button>
-                  ))}
-                </div>
+                ))}
               </div>
+            )}
+          </div>
 
-              {/* Faixa de preço */}
-              <div>
-                <p className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-600">
-                  <span>Faixa de preço</span>
-                  <span className="text-[#2563EB]">{formatBRL(priceRange[0])} – {formatBRL(priceRange[1])}</span>
-                </p>
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="range" min={0} max={priceMax} step={100}
-                    value={priceRange[0]}
-                    onChange={(e) => { const v = parseInt(e.target.value); if (v <= priceRange[1]) setPriceRange([v, priceRange[1]]); }}
-                    className="w-full accent-[#2563EB]"
-                  />
-                  <input
-                    type="range" min={0} max={priceMax} step={100}
-                    value={priceRange[1]}
-                    onChange={(e) => { const v = parseInt(e.target.value); if (v >= priceRange[0]) setPriceRange([priceRange[0], v]); }}
-                    className="w-full accent-[#2563EB]"
-                  />
-                  <div className="flex justify-between text-[10px] text-slate-400">
-                    <span>R$0</span><span>{formatBRL(priceMax)}</span>
+          {/* ── Filtros: categorias ──────────────────────────────────────── */}
+          <div className="mb-3 flex flex-wrap gap-2">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c.value}
+                onClick={() => { setCategory(c.value); setBrand(""); }}
+                className={[
+                  "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+                  category === c.value
+                    ? "bg-[#2563EB] text-white"
+                    : "border border-[#DBEAFE] bg-white text-slate-600 hover:bg-[#EFF6FF]",
+                ].join(" ")}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Filtros avançados + ordenação ────────────────────────────── */}
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            {/* Sort */}
+            {SORT_OPTIONS.map((s) => (
+              <button
+                key={s.value}
+                onClick={() => setSort(s.value)}
+                className={[
+                  "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+                  sort === s.value
+                    ? "bg-[#0F172A] text-white"
+                    : "border border-[#DBEAFE] bg-white text-slate-600 hover:bg-[#F5F7FB]",
+                ].join(" ")}
+              >
+                {s.label}
+              </button>
+            ))}
+
+            {/* Filtros avançados toggle */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={[
+                "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+                showFilters ? "bg-[#EFF6FF] text-[#2563EB]" : "border border-[#DBEAFE] bg-white text-slate-600 hover:bg-[#F5F7FB]",
+              ].join(" ")}
+            >
+              <SlidersHorizontal size={12} />Filtros
+              {(brand || priceRange[0] > 0 || priceRange[1] < priceMax) && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#2563EB] text-[9px] text-white">!</span>
+              )}
+            </button>
+
+            {/* Limpar filtros */}
+            {(brand || priceRange[0] > 0 || priceRange[1] < priceMax || search) && (
+              <button
+                onClick={() => { setBrand(""); setPriceRange([0, priceMax]); setSearch(""); setSearchInput(""); }}
+                className="flex items-center gap-1 text-xs text-slate-400 hover:text-[#2563EB]"
+              >
+                <X size={11} />Limpar
+              </button>
+            )}
+          </div>
+
+          {showFilters && (
+            <div className="mb-6 rounded-2xl border border-[#DBEAFE] bg-white p-5 shadow-sm">
+              <div className="grid gap-5 sm:grid-cols-2">
+                {/* Marcas */}
+                <div>
+                  <p className="mb-2 text-xs font-semibold text-slate-600">Marca</p>
+                  <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                    <button
+                      onClick={() => setBrand("")}
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${!brand ? "bg-[#2563EB] text-white" : "border border-[#DBEAFE] text-slate-600 hover:bg-[#EFF6FF]"}`}
+                    >
+                      Todas
+                    </button>
+                    {brands.map((b) => (
+                      <button
+                        key={b}
+                        onClick={() => setBrand(brand === b ? "" : b)}
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${brand === b ? "bg-[#2563EB] text-white" : "border border-[#DBEAFE] text-slate-600 hover:bg-[#EFF6FF]"}`}
+                      >
+                        {b}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* ── Meus produtos frequentes ──────────────────────────────────── */}
-        {frequentes.length > 0 && (
-          <div className="mb-8">
-            <div className="mb-3 flex items-center gap-2">
-              <Clock size={15} className="text-[#2563EB]" />
-              <p className="text-sm font-bold text-[#0F172A]">Meus produtos frequentes</p>
-            </div>
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {frequentes.map((p) => (
-                <MiniCard
-                  key={p.key}
-                  product={p}
-                  onClick={() => setModalProduct(productToModalData(p))}
-                  wishlisted={wishlisted.has(p.key)}
-                  onToggleWishlist={(e) => toggleWishlist(e, p)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Novidades na sua região ───────────────────────────────────── */}
-        {novidades.length > 0 && (
-          <div className="mb-8">
-            <div className="mb-3 flex items-center gap-2">
-              <Sparkles size={15} className="text-amber-500" />
-              <p className="text-sm font-bold text-[#0F172A]">Novidades na sua região</p>
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">Últimos 7 dias</span>
-            </div>
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {novidades.map((p) => (
-                <MiniCard
-                  key={p.key}
-                  product={p}
-                  onClick={() => setModalProduct(productToModalData(p))}
-                  wishlisted={wishlisted.has(p.key)}
-                  onToggleWishlist={(e) => toggleWishlist(e, p)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-
-        {/* ── Ofertas com prazo ─────────────────────────────────────────── */}
-        {!nearLoading && nearExpiry.length > 0 && (
-          <div className="mb-8">
-            <div className="mb-3 flex items-center gap-2">
-              <Flame size={16} className="text-red-500" />
-              <p className="text-base font-bold text-[#0F172A]">Ofertas com prazo — aproveite antes que acabe</p>
-              <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
-                {nearExpiry.length} oferta{nearExpiry.length !== 1 ? "s" : ""}
-              </span>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {[...nearExpiry].sort((a, b) => b.discount_pct - a.discount_pct).map((offer) => {
-                const daysLeft = Math.max(0, Math.ceil((new Date(offer.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
-                const isUrgent = daysLeft <= 7;
-                const discountedCents = Math.round(offer.product.price_cents * (1 - offer.discount_pct / 100));
-                return (
-                  <div key={offer.id} className={`flex items-start gap-3 rounded-2xl border p-4 ${isUrgent ? "border-red-300 bg-red-50" : "border-orange-200 bg-orange-50"}`}>
-                    {offer.product.image_url
-                      ? <img src={offer.product.image_url} alt={offer.product.name} className="h-14 w-14 shrink-0 rounded-xl object-contain bg-white" loading="lazy" />
-                      : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-slate-300"><ShoppingCart size={18} /></div>}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-[#0F172A]">{offer.product.name}</p>
-                          <p className="text-[11px] text-slate-500">{offer.distributor.company_name}</p>
-                        </div>
-                        <span className={`shrink-0 flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${isUrgent ? "bg-red-600 text-white" : "bg-orange-100 text-orange-700"}`}>
-                          <Clock size={9} />{daysLeft}d{isUrgent ? "!" : ""}
-                        </span>
-                      </div>
-                      <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs text-slate-400 line-through">{formatBRL(offer.product.price_cents)}</span>
-                        <span className="text-base font-black text-green-600">{formatBRL(discountedCents)}</span>
-                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-black text-green-700">-{offer.discount_pct}%</span>
-                      </div>
-                      <p className="text-[11px] text-slate-500">{offer.stock} un disponíveis</p>
-                      <button
-                        onClick={() => setModalProduct({
-                          name: offer.product.name, brand: offer.product.brand, category: offer.product.category,
-                          packaging_type: offer.product.packaging_type, packaging_volume_ml: offer.product.packaging_volume_ml,
-                          image_url: offer.product.image_url, cheapest_product_id: offer.product.id,
-                          cheapest_distributor_id: offer.distributor.id, promotion: null,
-                        })}
-                        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl bg-green-600 py-1.5 text-xs font-bold text-white transition hover:bg-green-700 active:scale-95"
-                      >
-                        <ShoppingCart size={12} />Ver preços e cotar
-                      </button>
+                {/* Faixa de preço */}
+                <div>
+                  <p className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-600">
+                    <span>Faixa de preço</span>
+                    <span className="text-[#2563EB]">{formatBRL(priceRange[0])} – {formatBRL(priceRange[1])}</span>
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="range" min={0} max={priceMax} step={100}
+                      value={priceRange[0]}
+                      onChange={(e) => { const v = parseInt(e.target.value); if (v <= priceRange[1]) setPriceRange([v, priceRange[1]]); }}
+                      className="w-full accent-[#2563EB]"
+                    />
+                    <input
+                      type="range" min={0} max={priceMax} step={100}
+                      value={priceRange[1]}
+                      onChange={(e) => { const v = parseInt(e.target.value); if (v >= priceRange[0]) setPriceRange([priceRange[0], v]); }}
+                      className="w-full accent-[#2563EB]"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400">
+                      <span>R$0</span><span>{formatBRL(priceMax)}</span>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* ── Grid de produtos + infinite scroll ───────────────────────── */}
-        <div className="mb-2 flex items-center justify-between">
-          {!loading && total > 0 && (
-            <p className="text-xs text-slate-400">
-              {total} produto{total !== 1 ? "s" : ""} encontrado{total !== 1 ? "s" : ""}
-            </p>
           )}
-          {compareList.length > 0 && (
-            <p className="text-xs text-slate-400">{compareList.length} selecionado{compareList.length !== 1 ? "s" : ""} para comparar</p>
-          )}
-        </div>
 
-        {loading ? (
-          <div className={viewMode === "grid"
-            ? "grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-            : "space-y-3"}>
-            {[...Array(12)].map((_, i) => <SkeletonCard key={i} list={viewMode === "list"} />)}
+          {/* ── Meus produtos frequentes ──────────────────────────────────── */}
+          {frequentes.length > 0 && (
+            <div className="mb-8">
+              <div className="mb-3 flex items-center gap-2">
+                <Clock size={15} className="text-[#2563EB]" />
+                <p className="text-sm font-bold text-[#0F172A]">Meus produtos frequentes</p>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {frequentes.map((p) => (
+                  <MiniCard
+                    key={p.key}
+                    product={p}
+                    onClick={() => setModalProduct(productToModalData(p))}
+                    wishlisted={wishlisted.has(p.key)}
+                    onToggleWishlist={(e) => toggleWishlist(e, p)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Novidades na sua região ───────────────────────────────────── */}
+          {novidades.length > 0 && (
+            <div className="mb-8">
+              <div className="mb-3 flex items-center gap-2">
+                <Sparkles size={15} className="text-amber-500" />
+                <p className="text-sm font-bold text-[#0F172A]">Novidades na sua região</p>
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">Últimos 7 dias</span>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {novidades.map((p) => (
+                  <MiniCard
+                    key={p.key}
+                    product={p}
+                    onClick={() => setModalProduct(productToModalData(p))}
+                    wishlisted={wishlisted.has(p.key)}
+                    onToggleWishlist={(e) => toggleWishlist(e, p)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+
+          {/* ── Ofertas com prazo ─────────────────────────────────────────── */}
+          {!nearLoading && nearExpiry.length > 0 && (
+            <div className="mb-8">
+              <div className="mb-3 flex items-center gap-2">
+                <Flame size={16} className="text-red-500" />
+                <p className="text-base font-bold text-[#0F172A]">Ofertas com prazo — aproveite antes que acabe</p>
+                <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
+                  {nearExpiry.length} oferta{nearExpiry.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {[...nearExpiry].sort((a, b) => b.discount_pct - a.discount_pct).map((offer) => {
+                  const daysLeft = Math.max(0, Math.ceil((new Date(offer.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+                  const isUrgent = daysLeft <= 7;
+                  const discountedCents = Math.round(offer.product.price_cents * (1 - offer.discount_pct / 100));
+                  return (
+                    <div key={offer.id} className={`flex items-start gap-3 rounded-2xl border p-4 ${isUrgent ? "border-red-300 bg-red-50" : "border-orange-200 bg-orange-50"}`}>
+                      {offer.product.image_url
+                        ? <img src={offer.product.image_url} alt={offer.product.name} className="h-14 w-14 shrink-0 rounded-xl object-contain bg-white" loading="lazy" />
+                        : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-slate-300"><ShoppingCart size={18} /></div>}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-[#0F172A]">{offer.product.name}</p>
+                            <p className="text-[11px] text-slate-500">{offer.distributor.company_name}</p>
+                          </div>
+                          <span className={`shrink-0 flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${isUrgent ? "bg-red-600 text-white" : "bg-orange-100 text-orange-700"}`}>
+                            <Clock size={9} />{daysLeft}d{isUrgent ? "!" : ""}
+                          </span>
+                        </div>
+                        <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs text-slate-400 line-through">{formatBRL(offer.product.price_cents)}</span>
+                          <span className="text-base font-black text-green-600">{formatBRL(discountedCents)}</span>
+                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-black text-green-700">-{offer.discount_pct}%</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">{offer.stock} un disponíveis</p>
+                        <button
+                          onClick={() => setModalProduct({
+                            name: offer.product.name, brand: offer.product.brand, category: offer.product.category,
+                            packaging_type: offer.product.packaging_type, packaging_volume_ml: offer.product.packaging_volume_ml,
+                            image_url: offer.product.image_url, cheapest_product_id: offer.product.id,
+                            cheapest_distributor_id: offer.distributor.id, promotion: null,
+                          })}
+                          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl bg-green-600 py-1.5 text-xs font-bold text-white transition hover:bg-green-700 active:scale-95"
+                        >
+                          <ShoppingCart size={12} />Ver preços e cotar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Grid de produtos + infinite scroll ───────────────────────── */}
+          <div className="mb-2 flex items-center justify-between">
+            {!loading && total > 0 && (
+              <p className="text-xs text-slate-400">
+                {total} produto{total !== 1 ? "s" : ""} encontrado{total !== 1 ? "s" : ""}
+              </p>
+            )}
+            {compareList.length > 0 && (
+              <p className="text-xs text-slate-400">{compareList.length} selecionado{compareList.length !== 1 ? "s" : ""} para comparar</p>
+            )}
           </div>
-        ) : products.length === 0 ? (
-          <div className="rounded-2xl border border-[#DBEAFE] bg-white px-6 py-16 text-center">
-            <Search size={32} className="mx-auto text-slate-200" />
-            <p className="mt-3 font-semibold text-slate-700">Nenhum produto encontrado</p>
-            <p className="mt-1 text-sm text-slate-400">Tente ajustar os filtros ou a busca.</p>
-          </div>
-        ) : (
-          <>
+
+          {loading ? (
             <div className={viewMode === "grid"
               ? "grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
               : "space-y-3"}>
-              {products.map((p) => (
-                <ProductCard
-                  key={p.key}
-                  product={p}
-                  onClick={() => setModalProduct(productToModalData(p))}
-                  wishlisted={wishlisted.has(p.key)}
-                  onToggleWishlist={(e) => toggleWishlist(e, p)}
-                  compareChecked={compareList.some((c) => c.key === p.key)}
-                  onToggleCompare={(e) => toggleCompare(e, p)}
-                  listView={viewMode === "list"}
-                />
-              ))}
+              {[...Array(12)].map((_, i) => <SkeletonCard key={i} list={viewMode === "list"} />)}
             </div>
-
-            {/* Skeleton loading do infinite scroll */}
-            {loadingMore && (
-              <div className={`mt-4 ${viewMode === "grid" ? "grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" : "space-y-3"}`}>
-                {[...Array(4)].map((_, i) => <SkeletonCard key={i} list={viewMode === "list"} />)}
+          ) : products.length === 0 ? (
+            <div className="rounded-2xl border border-[#DBEAFE] bg-white px-6 py-16 text-center">
+              <Search size={32} className="mx-auto text-slate-200" />
+              <p className="mt-3 font-semibold text-slate-700">Nenhum produto encontrado</p>
+              <p className="mt-1 text-sm text-slate-400">Tente ajustar os filtros ou a busca.</p>
+            </div>
+          ) : (
+            <>
+              <div className={viewMode === "grid"
+                ? "grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+                : "space-y-3"}>
+                {products.map((p) => (
+                  <ProductCard
+                    key={p.key}
+                    product={p}
+                    onClick={() => setModalProduct(productToModalData(p))}
+                    wishlisted={wishlisted.has(p.key)}
+                    onToggleWishlist={(e) => toggleWishlist(e, p)}
+                    compareChecked={compareList.some((c) => c.key === p.key)}
+                    onToggleCompare={(e) => toggleCompare(e, p)}
+                    listView={viewMode === "list"}
+                  />
+                ))}
               </div>
-            )}
 
-            {/* Sentinel para IntersectionObserver */}
-            <div ref={sentinelRef} className="h-8" />
+              {/* Skeleton loading do infinite scroll */}
+              {loadingMore && (
+                <div className={`mt-4 ${viewMode === "grid" ? "grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" : "space-y-3"}`}>
+                  {[...Array(4)].map((_, i) => <SkeletonCard key={i} list={viewMode === "list"} />)}
+                </div>
+              )}
 
-            {page >= totalPages && products.length > 0 && !loadingMore && (
-              <p className="mt-4 text-center text-xs text-slate-400">Todos os produtos carregados</p>
-            )}
-          </>
-        )}
-      </main>
-    </div>
+              {/* Sentinel para IntersectionObserver */}
+              <div ref={sentinelRef} className="h-8" />
 
-    {/* Modais e elementos flutuantes */}
-
-    {/* Botão flutuante de comparação */}
-    {compareList.length >= 2 && (
-      <div className="fixed bottom-20 left-1/2 z-40 -translate-x-1/2">
-        <button
-          onClick={() => setShowCompare(true)}
-          className="flex items-center gap-2 rounded-2xl bg-[#0F172A] px-5 py-3 text-sm font-bold text-white shadow-2xl transition hover:bg-[#1E293B] active:scale-95"
-        >
-          <GitCompare size={16} />
-          Comparar {compareList.length} produto{compareList.length !== 1 ? "s" : ""}
-          {compareList.length < 3 && (
-            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px]">+{3 - compareList.length} opções</span>
+              {page >= totalPages && products.length > 0 && !loadingMore && (
+                <p className="mt-4 text-center text-xs text-slate-400">Todos os produtos carregados</p>
+              )}
+            </>
           )}
-          <button onClick={(e) => { e.stopPropagation(); setCompareList([]); }} className="ml-1 text-white/50 hover:text-white">
-            <X size={13} />
-          </button>
-        </button>
+        </main>
       </div>
-    )}
 
-    {/* Modal de comparação */}
-    {showCompare && (
-      <CompareModal
-        products={compareList}
-        onClose={() => setShowCompare(false)}
-        onOpenDetail={(p) => { setShowCompare(false); setModalProduct(productToModalData(p)); }}
-      />
-    )}
+      {/* Modais e elementos flutuantes */}
 
-    {/* Modal de detalhe do produto */}
-    {modalProduct && (
-      <ProductDetailModal
-        product={modalProduct}
-        onClose={() => setModalProduct(null)}
-      />
-    )}
+      {/* Botão flutuante de comparação */}
+      {compareList.length >= 2 && (
+        <div className="fixed bottom-20 left-1/2 z-40 -translate-x-1/2">
+          <button
+            onClick={() => setShowCompare(true)}
+            className="flex items-center gap-2 rounded-2xl bg-[#0F172A] px-5 py-3 text-sm font-bold text-white shadow-2xl transition hover:bg-[#1E293B] active:scale-95"
+          >
+            <GitCompare size={16} />
+            Comparar {compareList.length} produto{compareList.length !== 1 ? "s" : ""}
+            {compareList.length < 3 && (
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px]">+{3 - compareList.length} opções</span>
+            )}
+            <button onClick={(e) => { e.stopPropagation(); setCompareList([]); }} className="ml-1 text-white/50 hover:text-white">
+              <X size={13} />
+            </button>
+          </button>
+        </div>
+      )}
+
+      {/* Modal de comparação */}
+      {showCompare && (
+        <CompareModal
+          products={compareList}
+          onClose={() => setShowCompare(false)}
+          onOpenDetail={(p) => { setShowCompare(false); setModalProduct(productToModalData(p)); }}
+        />
+      )}
+
+      {/* Modal de detalhe do produto */}
+      {modalProduct && (
+        <ProductDetailModal
+          product={modalProduct}
+          onClose={() => setModalProduct(null)}
+        />
+      )}
     </>
   );
 }

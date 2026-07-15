@@ -173,7 +173,7 @@ model Client {
   responsible_name          String
   whatsapp                  String
   max_delivery_days_default Int?
-  client_plan               ClientPlan   @default(pro)
+  client_plan               ClientPlan   @default(free)
   client_plan_status        PlanStatus   @default(active)
   client_plan_period        PlanPeriod   @default(monthly)
   stripe_customer_id        String?      @unique
@@ -266,8 +266,8 @@ model Distributor {
   user_id                     String     @unique
   company_name                String
   cnpj                        String     @unique
-  plan                        Plan       @default(enterprise)
-  plan_status                 PlanStatus @default(active)
+  plan                        Plan       @default(starter)
+  plan_status                 PlanStatus @default(trial)
   plan_period                 PlanPeriod @default(monthly)
   responsible_name            String     @default("")
   whatsapp_commercial         String
