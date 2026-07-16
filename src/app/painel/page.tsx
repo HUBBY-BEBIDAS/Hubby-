@@ -9,7 +9,7 @@ import { Navbar } from "@/components/Navbar";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { ClientDashboard } from "./client-dashboard";
 import {
-  Building2, CheckCircle, AlertTriangle, XCircle, Check, X, Phone, Eye,
+  Building2, CheckCircle, AlertTriangle, XCircle, Check, X, Phone, Eye, MessageSquare,
 } from "lucide-react";
 
 type PendingFeedback = {
@@ -55,6 +55,7 @@ interface OrderItemSnapshot {
   quantity: number;
   unit_price_cents: number;
   total_price_cents?: number;
+  prepared?: boolean;
 }
 
 type Period = "7d" | "30d" | "90d" | "12m";
@@ -82,18 +83,18 @@ type OrderItem = {
 
 const STATUS_LABEL: Record<string, string> = {
   sent: "Aguardando",
-  viewed: "Visualizado",
-  approved: "Aprovado",
+  viewed: "Em preparo",
+  approved: "Em rota de entrega",
   rejected: "Recusado",
   delivered: "Entregue",
 };
 
-const STATUS_BADGE: Record<string, "yellow" | "blue" | "green" | "red" | "gray"> = {
+const STATUS_BADGE: Record<string, "yellow" | "blue" | "green" | "red" | "gray" | "indigo"> = {
   sent: "yellow",
   viewed: "blue",
-  approved: "green",
+  approved: "indigo",
   rejected: "red",
-  delivered: "gray",
+  delivered: "green",
 };
 
 function formatBRL(cents: number) {
@@ -398,6 +399,54 @@ export default function PainelPage() {
     notes: "",
   });
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [orderFilterTab, setOrderFilterTab] = useState<"sent" | "viewed" | "approved" | "completed">("sent");
+  const [prepOrderId, setPrepOrderId] = useState<string | null>(null);
+  const [chattingClientId, setChattingClientId] = useState<string | null>(null);
+
+  async function handleToggleItemPrepared(orderId: string, idx: number) {
+    if (!token) return;
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) return;
+
+    const snapshot = [...(order.items_snapshot || [])];
+    snapshot[idx] = { ...snapshot[idx], prepared: !snapshot[idx].prepared };
+
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, items_snapshot: snapshot } : o))
+    );
+
+    try {
+      await apiFetch(`/api/distributor/orders/${orderId}/items`, {
+        method: "PATCH",
+        token,
+        body: JSON.stringify({ items_snapshot: snapshot }),
+      });
+    } catch (err) {
+      console.error("Erro ao salvar preparo:", err);
+    }
+  }
+
+  async function handleStartChat(clientId: string) {
+    if (!token || chattingClientId) return;
+    setChattingClientId(clientId);
+    try {
+      const res = await apiFetch("/api/chat/rooms", {
+        method: "POST",
+        token,
+        body: JSON.stringify({ client_id: clientId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        router.push(`/chat?roomId=${data.room.id}`);
+      } else {
+        alert("Erro ao iniciar conversa no chat.");
+      }
+    } catch {
+      alert("Erro ao conectar com o servidor.");
+    } finally {
+      setChattingClientId(null);
+    }
+  }
 
   // ── Deliver feedback modal (ao entregar) ──────────────────────────────────
   const [deliverModal, setDeliverModal] = useState<{
@@ -872,6 +921,158 @@ export default function PainelPage() {
           </div>
         )}
 
+        {/* Modal — Preparo do Pedido */}
+        {prepOrderId && (() => {
+          const order = orders.find((o) => o.id === prepOrderId);
+          if (!order) return null;
+
+          const items = (order.items_snapshot as unknown as OrderItemSnapshot[]) || [];
+          const totalItems = items.length;
+          const preparedItems = items.filter((item: any) => item.prepared).length;
+          const progressPercent = totalItems > 0 ? Math.round((preparedItems / totalItems) * 100) : 0;
+          const allPrepared = preparedItems === totalItems;
+
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+              <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl max-h-[90vh] flex flex-col">
+                
+                {/* Header */}
+                <div className="flex items-start justify-between border-b border-slate-100 pb-4 mb-4">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-[#2563EB] tracking-wider block mb-0.5">Etapa: Preparo</span>
+                    <h3 className="text-base font-display font-semibold text-[#0F172A]">
+                      Preparar Pedido - {order.client.company_name}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Marque os itens conforme for separando as bebidas em estoque.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setPrepOrderId(null)}
+                    className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                {/* Progress bar */}
+                <div className="mb-4 bg-[#F8FAFC] border border-slate-100 p-3.5 rounded-2xl">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#0F172A] mb-1.5">
+                    <span>Progresso do Preparo</span>
+                    <span className="font-mono">{preparedItems} de {totalItems} itens ({progressPercent}%)</span>
+                  </div>
+                  <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-[#22C55E] rounded-full transition-all duration-300"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Checklist */}
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1 mb-4 scrollbar-thin">
+                  {items.map((item: any, idx: number) => (
+                    <label 
+                      key={idx} 
+                      className={`flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
+                        item.prepared 
+                          ? "bg-green-50/50 border-green-200/80 text-[#16A34A]" 
+                          : "bg-white border-slate-100 text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={!!item.prepared}
+                          onChange={() => handleToggleItemPrepared(order.id, idx)}
+                          className="h-4.5 w-4.5 rounded border-slate-300 text-[#22C55E] focus:ring-[#22C55E]"
+                        />
+                        <div className="min-w-0">
+                          <p className={`text-xs font-semibold truncate ${item.prepared ? "line-through opacity-75" : ""}`}>
+                            {item.product_name}
+                          </p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">
+                            {item.brand} {item.packaging ? `· ${item.packaging}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right ml-4">
+                        <span className="text-xs font-bold font-mono block">
+                          × {item.quantity}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-medium">unidades</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+
+                {/* Comunique-se */}
+                <div className="bg-[#EFF6FF] border border-[#DBEAFE] rounded-2xl p-4 mb-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-blue-900">Dúvidas ou falta de estoque?</p>
+                    <p className="text-[10px] text-blue-700 mt-0.5">Fale com o cliente para negociar substituições.</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    {order.client.whatsapp && (
+                      <a
+                        href={`https://wa.me/55${order.client.whatsapp.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-xl bg-white border border-[#DBEAFE] p-2 text-[#2563EB] hover:bg-blue-50 transition-colors shadow-sm flex items-center justify-center"
+                        title="WhatsApp do Cliente"
+                      >
+                        <Phone size={14} />
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleStartChat(order.client.id)}
+                      disabled={chattingClientId === order.client.id}
+                      className="rounded-xl bg-[#2563EB] text-white px-3 py-2 text-xs font-bold hover:bg-blue-700 transition-colors flex items-center gap-1 shadow-sm disabled:opacity-50"
+                    >
+                      {chattingClientId === order.client.id ? (
+                        <span className="h-3.5 w-3.5 animate-spin rounded-full border border-white border-t-transparent" />
+                      ) : (
+                        <>
+                          <MessageSquare size={13} />
+                          <span>Chat</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Action Footer */}
+                <div className="flex gap-3 mt-auto">
+                  <button
+                    type="button"
+                    disabled={updating === order.id}
+                    onClick={async () => {
+                      if (!allPrepared) {
+                        const confirmLeave = confirm("Ainda faltam itens a serem preparados. Deseja prosseguir e enviar para entrega assim mesmo?");
+                        if (!confirmLeave) return;
+                      }
+                      await updateStatus(order.id, "approved");
+                      setPrepOrderId(null);
+                    }}
+                    className="flex-1 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 text-sm text-center transition-colors disabled:opacity-50"
+                  >
+                    Enviar para entrega
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrepOrderId(null)}
+                    className="rounded-2xl border border-slate-200 px-5 py-3.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    Fechar
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── Modal: feedback rápido na entrega ────────────────────────────── */}
         {deliverModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -1079,22 +1280,35 @@ export default function PainelPage() {
                     <button
                       disabled={updating === selectedOrder.id}
                       onClick={async () => {
-                        await updateStatus(selectedOrder.id, "approved");
+                        await updateStatus(selectedOrder.id, "viewed");
+                        setViewOrderId(null);
                       }}
                       className="flex-1 rounded-2xl bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
-                      <Check size={16} /> Aprovar Pedido
+                      <Check size={16} /> Aceitar Pedido
                     </button>
                     <button
                       disabled={updating === selectedOrder.id}
                       onClick={async () => {
                         await updateStatus(selectedOrder.id, "rejected");
+                        setViewOrderId(null);
                       }}
                       className="flex-1 rounded-2xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
                       <X size={16} /> Recusar Pedido
                     </button>
                   </>
+                )}
+                {selectedOrder.status === "viewed" && (
+                  <button
+                    onClick={() => {
+                      setViewOrderId(null);
+                      setPrepOrderId(selectedOrder.id);
+                    }}
+                    className="flex-1 rounded-2xl bg-[#2563EB] py-3 text-sm font-bold text-white hover:bg-blue-700 flex items-center justify-center gap-1.5"
+                  >
+                    <Check size={16} /> Preparar Pedido
+                  </button>
                 )}
                 {selectedOrder.status === "approved" && (
                   <button
@@ -1123,9 +1337,9 @@ export default function PainelPage() {
         )}
 
         {/* Leads recentes */}
-        <div className="rounded-3xl border border-[#DBEAFE] bg-white shadow-sm">
+        <div className="rounded-3xl border border-[#DBEAFE] bg-white shadow-sm overflow-hidden">
           <div className="flex items-center justify-between border-b border-[#DBEAFE] px-6 py-4">
-            <h2 className="text-sm font-display font-semibold text-[#0F172A]">Pedidos recentes</h2>
+            <h2 className="text-sm font-display font-semibold text-[#0F172A]">Pedidos e Acompanhamento</h2>
             <button
               onClick={() => router.push("/painel/pedidos")}
               className="text-xs text-[#2563EB] hover:underline"
@@ -1134,83 +1348,135 @@ export default function PainelPage() {
             </button>
           </div>
 
-          {orders.length === 0 ? (
-            <div className="px-6 py-10 text-center">
-              <p className="text-sm text-slate-400">Nenhum pedido recebido ainda.</p>
-            </div>
-          ) : (
-            <ul className="divide-y divide-[#DBEAFE]">
-              {orders.map((order) => (
-                <li key={order.id} className="px-6 py-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate font-medium text-[#0F172A]">
-                        {order.client.company_name}
-                      </p>
-                      <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-[#22C55E]/10 px-2 py-0.5 text-[10px] font-bold text-[#16A34A]">
-                        <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden>
-                          <path d="M8 1.5L2 4v4c0 3.31 2.55 5.91 6 6.5 3.45-.59 6-3.19 6-6.5V4L8 1.5Z" fill="#16A34A" opacity=".2" stroke="#16A34A" strokeWidth="1.2" strokeLinejoin="round" />
-                          <path d="M5.5 8l2 2 3-3" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        CNPJ verificado pela Hubby
-                      </span>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {order.client.delivery_city} — {order.client.delivery_state} ·{" "}
-                        <span className="font-mono font-medium">{formatDateTime(order.sent_at)}</span>
-                      </p>
-                    </div>
+          {/* Sub-abas de status de pedido */}
+          <div className="flex border-b border-slate-100 bg-[#F8FAFC] px-4 py-2 text-xs font-bold gap-2 overflow-x-auto">
+            {[
+              { id: "sent", label: "Aguardando", count: orders.filter((o) => o.status === "sent").length },
+              { id: "viewed", label: "Em Preparo", count: orders.filter((o) => o.status === "viewed").length },
+              { id: "approved", label: "Em Entrega", count: orders.filter((o) => o.status === "approved").length },
+              { id: "completed", label: "Finalizados", count: orders.filter((o) => o.status === "delivered" || o.status === "rejected").length },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setOrderFilterTab(tab.id as any)}
+                className={`rounded-xl px-3 py-2 transition-all whitespace-nowrap ${
+                  orderFilterTab === tab.id
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-700"
+                }`}
+              >
+                {tab.label}
+                {tab.count > 0 && (
+                  <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                    orderFilterTab === tab.id ? "bg-white/25 text-white" : "bg-slate-200 text-slate-700"
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
 
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[15px] font-medium text-[#0F172A]">
-                          {formatBRL(order.total_cents)}
+          {(() => {
+            const filteredOrders = orders.filter((order) => {
+              if (orderFilterTab === "sent") return order.status === "sent";
+              if (orderFilterTab === "viewed") return order.status === "viewed";
+              if (orderFilterTab === "approved") return order.status === "approved";
+              return order.status === "delivered" || order.status === "rejected";
+            });
+
+            if (filteredOrders.length === 0) {
+              return (
+                <div className="px-6 py-12 text-center bg-white rounded-b-3xl">
+                  <p className="text-sm text-slate-400">Nenhum pedido nesta etapa no momento.</p>
+                </div>
+              );
+            }
+
+            return (
+              <ul className="divide-y divide-[#DBEAFE] bg-white rounded-b-3xl">
+                {filteredOrders.map((order) => (
+                  <li key={order.id} className="px-6 py-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate font-bold text-sm text-[#0F172A]">
+                          {order.client.company_name}
+                        </p>
+                        <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#22C55E]/10 px-2 py-0.5 text-[9px] font-bold text-[#16A34A]">
+                          <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden>
+                            <path d="M8 1.5L2 4v4c0 3.31 2.55 5.91 6 6.5 3.45-.59 6-3.19 6-6.5V4L8 1.5Z" fill="#16A34A" opacity=".2" stroke="#16A34A" strokeWidth="1.2" strokeLinejoin="round" />
+                            <path d="M5.5 8l2 2 3-3" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          CNPJ verificado pela Hubby
                         </span>
-                        <Badge variant={STATUS_BADGE[order.status] ?? "gray"}>
-                          {STATUS_LABEL[order.status] ?? order.status}
-                        </Badge>
+                        <p className="mt-1.5 text-xs text-slate-500">
+                          {order.client.delivery_city} — {order.client.delivery_state} ·{" "}
+                          <span className="font-mono font-medium">{formatDateTime(order.sent_at)}</span>
+                        </p>
                       </div>
 
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setViewOrderId(order.id)}
-                          className="rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1"
-                        >
-                          <Eye size={12} /> Ver pedido
-                        </button>
+                      <div className="flex flex-col items-end gap-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm font-bold text-[#0F172A]">
+                            {formatBRL(order.total_cents)}
+                          </span>
+                          <Badge variant={STATUS_BADGE[order.status] ?? "gray"}>
+                            {STATUS_LABEL[order.status] ?? order.status}
+                          </Badge>
+                        </div>
 
-                        {order.status === "sent" && (
-                          <div className="flex gap-2">
-                            <button
-                              disabled={updating === order.id}
-                              onClick={() => updateStatus(order.id, "approved")}
-                              className="rounded-xl bg-green-100 px-3 py-1 text-xs font-medium text-green-800 hover:bg-green-200 disabled:opacity-50"
-                            >
-                              <Check size={12} className="inline mr-1" />Aprovar
-                            </button>
-                            <button
-                              disabled={updating === order.id}
-                              onClick={() => updateStatus(order.id, "rejected")}
-                              className="rounded-xl bg-red-100 px-3 py-1 text-xs font-medium text-red-800 hover:bg-red-200 disabled:opacity-50"
-                            >
-                              <X size={12} className="inline mr-1" />Recusar
-                            </button>
-                          </div>
-                        )}
-                        {order.status === "approved" && (
+                        <div className="flex gap-2">
                           <button
-                            onClick={() => setDeliverModal({ orderId: order.id, clientName: order.client.company_name, totalCents: order.total_cents })}
-                            className="rounded-xl bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
+                            onClick={() => setViewOrderId(order.id)}
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1 shadow-sm"
                           >
-                            Marcar como entregue
+                            <Eye size={12} /> Ver pedido
                           </button>
-                        )}
+
+                          {order.status === "sent" && (
+                            <div className="flex gap-2">
+                              <button
+                                disabled={updating === order.id}
+                                onClick={() => updateStatus(order.id, "viewed")}
+                                className="rounded-xl bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700 disabled:opacity-50 flex items-center gap-1 shadow-sm"
+                              >
+                                <Check size={12} /> Aceitar
+                              </button>
+                              <button
+                                disabled={updating === order.id}
+                                onClick={() => updateStatus(order.id, "rejected")}
+                                className="rounded-xl bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 text-xs font-bold hover:bg-red-100 disabled:opacity-50 flex items-center gap-1 shadow-sm"
+                              >
+                                <X size={12} /> Recusar
+                              </button>
+                            </div>
+                          )}
+
+                          {order.status === "viewed" && (
+                            <button
+                              onClick={() => setPrepOrderId(order.id)}
+                              className="rounded-xl bg-[#2563EB] text-white px-4 py-1.5 text-xs font-bold hover:bg-blue-700 flex items-center gap-1 shadow-sm"
+                            >
+                              <Check size={12} /> Preparar
+                            </button>
+                          )}
+
+                          {order.status === "approved" && (
+                            <button
+                              onClick={() => setDeliverModal({ orderId: order.id, clientName: order.client.company_name, totalCents: order.total_cents })}
+                              className="rounded-xl bg-slate-900 text-white px-3 py-1.5 text-xs font-bold hover:bg-slate-800 shadow-sm"
+                            >
+                              Confirmar entrega
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+                  </li>
+                ))}
+              </ul>
+            );
+          })()}
         </div>
         </>
         )}
