@@ -21,6 +21,16 @@ interface TopProductPoint {
   saved_cents: number;
 }
 
+interface RecentOrder {
+  id: string;
+  group_id: string;
+  total_cents: number;
+  status: "sent" | "viewed" | "approved" | "rejected" | "delivered";
+  sent_at: string;
+  estimated_delivery_date: string | null;
+  distributor_name: string;
+}
+
 interface DashboardData {
   total_spent_cents: number;
   total_saved_cents: number;
@@ -28,6 +38,7 @@ interface DashboardData {
   order_count: number;
   monthly_data: MonthlyPoint[];
   top_products: TopProductPoint[];
+  recent_orders: RecentOrder[];
 }
 
 function formatBRL(cents: number): string {
@@ -205,6 +216,122 @@ export function ClientDashboard() {
           <p className="mt-2 text-xs text-slate-400">Pedidos com registro de economia</p>
         </div>
       </div>
+
+      {/* Acompanhamento de Pedidos Recentes */}
+      {data.recent_orders && data.recent_orders.length > 0 && (
+        <div className="rounded-2xl border border-[#DBEAFE] bg-white p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-display font-bold text-[#0F172A]">Acompanhamento de Pedidos Recentes</h3>
+            <Link href="/historico" className="text-xs text-[#2563EB] hover:underline font-bold">
+              Ver histórico completo →
+            </Link>
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            {data.recent_orders.map((order) => {
+              const statusLabels = {
+                sent: "Aguardando",
+                viewed: "Em preparação",
+                approved: "Em rota de entrega",
+                rejected: "Recusado",
+                delivered: "Entregue",
+              };
+              
+              const statusColors = {
+                sent: "yellow",
+                viewed: "blue",
+                approved: "indigo",
+                rejected: "red",
+                delivered: "green",
+              } as const;
+
+              const badgeColors = {
+                yellow: "bg-amber-50 text-amber-800 border-amber-200",
+                blue: "bg-blue-50 text-blue-800 border-blue-200",
+                indigo: "bg-indigo-50 text-indigo-800 border-indigo-200",
+                red: "bg-red-50 text-red-800 border-red-200",
+                green: "bg-green-50 text-green-800 border-green-200",
+              };
+
+              const color = statusColors[order.status] || "gray";
+              
+              return (
+                <div key={order.id} className="py-4 first:pt-0 last:pb-0 flex flex-col gap-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-bold text-[#0F172A]">{order.distributor_name}</p>
+                      <p className="text-[11px] text-slate-400 font-medium">
+                        Enviado em {new Date(order.sent_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-sm font-bold text-[#0F172A]">
+                        {formatBRL(order.total_cents)}
+                      </span>
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${badgeColors[color]}`}>
+                        {statusLabels[order.status] || order.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Stepper Progress Line */}
+                  {order.status !== "rejected" ? (
+                    <div className="mt-1 px-2 py-4">
+                      {/* Visual Stepper dots and labels */}
+                      <div className="relative flex items-center justify-between w-full">
+                        {/* Background line */}
+                        <div className="absolute left-0 right-0 top-1/2 h-1 bg-slate-100 -translate-y-1/2 rounded-full z-0" />
+                        
+                        {/* Progress line */}
+                        <div 
+                          className="absolute left-0 top-1/2 h-1 bg-[#22C55E] -translate-y-1/2 rounded-full z-0 transition-all duration-500" 
+                          style={{
+                            width: order.status === "sent" ? "0%" 
+                              : order.status === "viewed" ? "33%" 
+                              : order.status === "approved" ? "66%" 
+                              : order.status === "delivered" ? "100%" : "0%"
+                          }}
+                        />
+
+                        {/* Step Dots */}
+                        {[
+                          { key: "sent", label: "Enviado", active: true },
+                          { key: "viewed", label: "Preparo", active: ["viewed", "approved", "delivered"].includes(order.status) },
+                          { key: "approved", label: "Em rota", active: ["approved", "delivered"].includes(order.status) },
+                          { key: "delivered", label: "Entregue", active: ["delivered"].includes(order.status) },
+                        ].map((step, idx) => (
+                          <div key={idx} className="relative z-10 flex flex-col items-center">
+                            <div 
+                              className={`h-5 w-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold transition-all duration-300 ${
+                                step.active 
+                                  ? "bg-[#22C55E] border-[#22C55E] text-white shadow-sm" 
+                                  : "bg-white border-slate-200 text-slate-400"
+                              }`}
+                            >
+                              {step.active ? "✓" : idx + 1}
+                            </div>
+                            <span 
+                              className={`text-[10px] mt-1.5 font-bold transition-colors ${
+                                step.active ? "text-[#0F172A]" : "text-slate-400"
+                              }`}
+                            >
+                              {step.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl bg-red-50/50 border border-red-100 p-2.5 text-xs font-semibold text-red-700">
+                      Este pedido foi recusado pela distribuidora. Entre em contato pelo chat para negociar.
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Savings Chart */}
       <div className="rounded-2xl border border-[#DBEAFE] bg-white p-5 shadow-sm">

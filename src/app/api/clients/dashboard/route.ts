@@ -162,6 +162,33 @@ export const GET = withAuth(
       ? Math.round((Math.max(0, totalSavedCents) / totalMarketValue) * 100) 
       : 0;
 
+    const recentOrders = await prisma.order.findMany({
+      where: { client_id: client.id },
+      take: 5,
+      orderBy: { sent_at: "desc" },
+      select: {
+        id: true,
+        group_id: true,
+        total_cents: true,
+        status: true,
+        sent_at: true,
+        estimated_delivery_date: true,
+        distributor: {
+          select: { company_name: true },
+        },
+      },
+    });
+
+    const recent_orders = recentOrders.map(o => ({
+      id: o.id,
+      group_id: o.group_id,
+      total_cents: o.total_cents,
+      status: o.status,
+      sent_at: o.sent_at,
+      estimated_delivery_date: o.estimated_delivery_date,
+      distributor_name: o.distributor.company_name,
+    }));
+
     return Response.json({
       total_spent_cents: totalSpentCents,
       total_saved_cents: Math.max(0, totalSavedCents), // Garante que não apareça negativo
@@ -169,6 +196,7 @@ export const GET = withAuth(
       order_count: orders.length,
       monthly_data,
       top_products,
+      recent_orders,
     });
   },
   { roles: ["client"] }

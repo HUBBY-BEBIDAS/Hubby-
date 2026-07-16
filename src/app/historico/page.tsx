@@ -161,7 +161,7 @@ type OrderSummary = {
   id: string;
   distributor_id: string;
   distributor_name: string;
-  status: "sent" | "viewed" | "approved" | "rejected";
+  status: "sent" | "viewed" | "approved" | "rejected" | "delivered";
   total_cents: number;
   estimated_delivery_date: string | null;
   updated_at: string;
@@ -178,17 +178,19 @@ type OrderGroup = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  sent:     "Enviado",
-  viewed:   "Visualizado",
-  approved: "Aprovado",
-  rejected: "Recusado",
+  sent:      "Aguardando",
+  viewed:    "Em preparação",
+  approved:  "Em rota de entrega",
+  rejected:  "Recusado",
+  delivered: "Entregue",
 };
 
-const STATUS_BADGE: Record<string, "gray" | "blue" | "green" | "red"> = {
-  sent:     "gray",
-  viewed:   "blue",
-  approved: "green",
-  rejected: "red",
+const STATUS_BADGE: Record<string, "yellow" | "blue" | "indigo" | "red" | "green"> = {
+  sent:      "yellow",
+  viewed:    "blue",
+  approved:  "indigo",
+  rejected:  "red",
+  delivered: "green",
 };
 
 function formatBRL(cents: number) {
@@ -297,7 +299,7 @@ export default function HistoricoPage() {
 
   function canReview(order: OrderSummary, sentAt: string): boolean {
     if (reviewedOrders.has(order.id)) return false;
-    if (["viewed", "approved", "rejected"].includes(order.status)) return true;
+    if (["viewed", "approved", "rejected", "delivered"].includes(order.status)) return true;
     // Após 24h do envio
     const elapsed = Date.now() - new Date(sentAt).getTime();
     return elapsed > 24 * 60 * 60 * 1000;
@@ -382,52 +384,77 @@ export default function HistoricoPage() {
             {/* Pedidos do grupo */}
             <ul className="divide-y divide-[#DBEAFE]">
               {group.orders.map((order) => (
-                <li key={order.id} className="flex items-center justify-between gap-3 px-6 py-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-sm font-medium text-[#0F172A]">{order.distributor_name}</p>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleStartChat(order.distributor_id); }}
-                        disabled={chattingDistId === order.distributor_id}
-                        className="text-slate-400 hover:text-[#22C55E] hover:scale-110 transition-all p-0.5 shrink-0"
-                        title="Conversar no Chat interno"
-                      >
-                        {chattingDistId === order.distributor_id ? (
-                          <div className="h-3 w-3 animate-spin rounded-full border border-[#22C55E] border-t-transparent" />
-                        ) : (
-                          <MessageSquare size={13} />
-                        )}
-                      </button>
+                <li key={order.id} className="flex flex-col gap-2 px-6 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium text-[#0F172A]">{order.distributor_name}</p>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleStartChat(order.distributor_id); }}
+                          disabled={chattingDistId === order.distributor_id}
+                          className="text-slate-400 hover:text-[#22C55E] hover:scale-110 transition-all p-0.5 shrink-0"
+                          title="Conversar no Chat interno"
+                        >
+                          {chattingDistId === order.distributor_id ? (
+                            <div className="h-3 w-3 animate-spin rounded-full border border-[#22C55E] border-t-transparent" />
+                          ) : (
+                            <MessageSquare size={13} />
+                          )}
+                        </button>
+                      </div>
+                      {order.estimated_delivery_date && (
+                        <p className="text-xs text-slate-500">
+                          Entrega: {formatDate(order.estimated_delivery_date)}
+                        </p>
+                      )}
                     </div>
-                    {order.estimated_delivery_date && (
-                      <p className="text-xs text-slate-500">
-                        Entrega: {formatDate(order.estimated_delivery_date)}
-                      </p>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-[#0F172A]">
+                        {formatBRL(order.total_cents)}
+                      </span>
+                      <Badge variant={STATUS_BADGE[order.status] ?? "gray"}>
+                        {STATUS_LABEL[order.status] ?? order.status}
+                      </Badge>
+                      {canReview(order, group.sent_at) && (
+                        <button
+                          onClick={() => setReviewTarget({
+                            order_id: order.id,
+                            distributor_id: order.distributor_id,
+                            distributor_name: order.distributor_name,
+                          })}
+                          className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 transition hover:bg-amber-100"
+                        >
+                          Avaliar
+                        </button>
+                      )}
+                      {reviewedOrders.has(order.id) && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#22C55E]"><Check size={11} />Avaliado</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-[#0F172A]">
-                      {formatBRL(order.total_cents)}
-                    </span>
-                    <Badge variant={STATUS_BADGE[order.status] ?? "gray"}>
-                      {STATUS_LABEL[order.status] ?? order.status}
-                    </Badge>
-                    {canReview(order, group.sent_at) && (
-                      <button
-                        onClick={() => setReviewTarget({
-                          order_id: order.id,
-                          distributor_id: order.distributor_id,
-                          distributor_name: order.distributor_name,
-                        })}
-                        className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 transition hover:bg-amber-100"
-                      >
-                        Avaliar
-                      </button>
-                    )}
-                    {reviewedOrders.has(order.id) && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#22C55E]"><Check size={11} />Avaliado</span>
-                    )}
-                  </div>
+
+                  {/* Stepper Progress Bar */}
+                  {order.status !== "rejected" ? (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1 text-[9px] font-bold text-slate-400">
+                      <span className={`px-1.5 py-0.5 rounded-md ${["sent", "viewed", "approved", "delivered"].includes(order.status) ? "bg-[#EFF6FF] text-[#2563EB]" : "bg-slate-50"}`}>
+                        Enviado
+                      </span>
+                      <span className="text-slate-300">→</span>
+                      <span className={`px-1.5 py-0.5 rounded-md ${["viewed", "approved", "delivered"].includes(order.status) ? "bg-[#EFF6FF] text-[#2563EB]" : "bg-slate-50"}`}>
+                        Em preparo
+                      </span>
+                      <span className="text-slate-300">→</span>
+                      <span className={`px-1.5 py-0.5 rounded-md ${["approved", "delivered"].includes(order.status) ? "bg-[#EFF6FF] text-[#2563EB]" : "bg-slate-50"}`}>
+                        Em rota
+                      </span>
+                      <span className="text-slate-300">→</span>
+                      <span className={`px-1.5 py-0.5 rounded-md ${["delivered"].includes(order.status) ? "bg-[#EFF6FF] text-[#2563EB]" : "bg-slate-50"}`}>
+                        Entregue
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] font-bold text-red-500 mt-1">Pedido recusado pela distribuidora</p>
+                  )}
                 </li>
               ))}
             </ul>

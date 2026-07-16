@@ -640,15 +640,20 @@ export default function RankingPage() {
     fetchRanking();
   }, [fetchRanking]);
 
-  // ── Todas as entradas (flat, sem ordenação) ───────────────────────────────
+  // ── Todas as entradas (flat, sem ordenação, deduplicadas por distribuidora) ──
 
-  const allEntries = useMemo(
-    () => [
+  const allEntries = useMemo(() => {
+    const list = [
       ...(ranking?.within_deadline ?? []),
       ...(ranking?.out_of_deadline ?? []),
-    ],
-    [ranking]
-  );
+    ];
+    const seen = new Set<string>();
+    return list.filter((e) => {
+      if (seen.has(e.distributor_id)) return false;
+      seen.add(e.distributor_id);
+      return true;
+    });
+  }, [ranking]);
 
   // ── Grupos por produto, com ofertas ordenadas pelo filtro ativo ───────────
 
