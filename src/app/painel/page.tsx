@@ -57,6 +57,8 @@ interface OrderItemSnapshot {
   total_price_cents?: number;
 }
 
+type Period = "7d" | "30d" | "90d" | "12m";
+
 type OrderItem = {
   id: string;
   group_id: string;
@@ -105,6 +107,266 @@ function formatDateTime(iso: string | null) {
   });
 }
 
+type ReportData = {
+  limited: boolean;
+  period: string;
+  summary: {
+    total_orders: number;
+    approved_orders: number;
+    rejected_orders: number;
+    pending_orders: number;
+    revenue_cents: number;
+    avg_ticket_cents: number;
+    active_clients_count: number;
+  };
+  by_day: Array<{
+    date: string;
+    total: number;
+    approved: number;
+    revenue_cents: number;
+  }>;
+  feedback: {
+    ok: number;
+    problem: number;
+    auto_ok: number;
+    pending: number;
+  };
+};
+
+function SalesChart({ data, period }: { data: ReportData["by_day"]; period: Period }) {
+  const entries = data.map(d => ({
+    label: period === "12m" ? formatMonthLabel(d.date) : formatDateLabel(d.date),
+    value: d.revenue_cents ? d.revenue_cents / 100 : 0, // value in BRL
+    rawDate: d.date
+  }));
+
+  const values = entries.map(e => e.value);
+  const maxVal = Math.max(...values, 100); // minimum max of R$100 to scale nicely
+
+  // SVG dimensions
+  const width = 600;
+  const height = 240;
+  const paddingLeft = 60;
+  const paddingRight = 20;
+  const paddingTop = 20;
+  const paddingBottom = 40;
+
+  const chartWidth = width - paddingLeft - paddingRight;
+  const chartHeight = height - paddingTop - paddingBottom;
+
+  // Generate points
+  const points = entries.map((e, idx) => {
+    const x = paddingLeft + (idx / Math.max(entries.length - 1, 1)) * chartWidth;
+    const y = paddingTop + chartHeight - (e.value / maxVal) * chartHeight;
+    return { x, y, label: e.label, value: e.value, rawDate: e.rawDate };
+  });
+
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(" ");
+  const areaPath = points.length > 0
+    ? `${linePath} L${points[points.length - 1].x},${paddingTop + chartHeight} L${points[0].x},${paddingTop + chartHeight} Z`
+    : "";
+
+  // Hover state
+  const [hoveredPoint, setHoveredPoint] = useState<typeof points[0] | null>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
+    if (points.length === 0) return;
+    const svg = e.currentTarget;
+    const rect = svg.getBoundingClientRect();
+    const mouseX = ((e.clientX - rect.left) / rect.width) * width;
+
+    // Find closest point by X coordinate
+    let closest = points[0];
+    let minDist = Math.abs(points[0].x - mouseX);
+    for (let i = 1; i < points.length; i++) {
+      const dist = Math.abs(points[i].x - mouseX);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = points[i];
+      }
+    }
+    setHoveredPoint(closest);
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredPoint(null);
+  };
+
+  // Helper formats
+  function formatDateLabel(dateStr: string) {
+    const parts = dateStr.split("-");
+    if (parts.length < 3) return dateStr;
+    return `${parts[2]}/${parts[1]}`;
+  }
+
+  function formatMonthLabel(dateStr: string) {
+    const parts = dateStr.split("-"); // YYYY-MM
+    if (parts.length < 2) return dateStr;
+    const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    const mIdx = parseInt(parts[1], 10) - 1;
+    return `${months[mIdx]}/${parts[0].slice(2)}`;
+  }
+
+  // Y-axis gridlines & ticks
+  const yTicks = 4;
+  const yGridLines = Array.from({ length: yTicks + 1 }).map((_, idx) => {
+    const val = (maxVal / yTicks) * idx;
+    const y = paddingTop + chartHeight - (val / maxVal) * chartHeight;
+    return { y, val };
+  });
+
+  // X-axis ticks (limit labels to avoid overlapping)
+  const maxLabels = period === "7d" ? 7 : period === "30d" ? 10 : period === "90d" ? 9 : 12;
+  const labelStep = Math.max(Math.ceil(entries.length / maxLabels), 1);
+  const xTicks = points.filter((_, idx) => idx % labelStep === 0);
+
+  return (
+    <div className="rounded-3xl border border-[#DBEAFE] bg-white p-6 shadow-sm relative">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Faturamento por dia/mês
+          </p>
+          {hoveredPoint ? (
+            <p className="text-lg font-bold text-[#0F172A] mt-0.5">
+              {formatBRL(Math.round(hoveredPoint.value * 100))}
+              <span className="text-xs text-slate-400 font-normal ml-1.5">em {hoveredPoint.label}</span>
+            </p>
+          ) : (
+            <p className="text-sm font-bold text-slate-400 mt-0.5">
+              Passe o mouse no gráfico para ver valores
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="relative">
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="w-full h-auto overflow-visible select-none"
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        >
+          <defs>
+            <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#22C55E" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#22C55E" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {/* Gridlines & Y-axis labels */}
+          {yGridLines.map((g, idx) => (
+            <g key={idx}>
+              <line
+                x1={paddingLeft}
+                y1={g.y}
+                x2={width - paddingRight}
+                y2={g.y}
+                stroke="#E2E8F0"
+                strokeWidth={1}
+                strokeDasharray="4 4"
+              />
+              <text
+                x={paddingLeft - 10}
+                y={g.y + 4}
+                textAnchor="end"
+                className="font-mono text-[9px] fill-slate-400 font-medium"
+              >
+                {new Intl.NumberFormat("pt-BR", {
+                  notation: "compact",
+                  compactDisplay: "short",
+                  style: "currency",
+                  currency: "BRL"
+                }).format(g.val)}
+              </text>
+            </g>
+          ))}
+
+          {/* Area Path */}
+          {areaPath && (
+            <path d={areaPath} fill="url(#chartGradient)" />
+          )}
+
+          {/* Line Path */}
+          {linePath && (
+            <path
+              d={linePath}
+              fill="none"
+              stroke="#22C55E"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
+
+          {/* Points */}
+          {points.length <= 31 && points.map((p, idx) => (
+            <circle
+              key={idx}
+              cx={p.x}
+              cy={p.y}
+              r={hoveredPoint?.rawDate === p.rawDate ? 5.5 : 3.5}
+              fill={hoveredPoint?.rawDate === p.rawDate ? "#22C55E" : "#FFFFFF"}
+              stroke="#22C55E"
+              strokeWidth={hoveredPoint?.rawDate === p.rawDate ? 3 : 2}
+              className="transition-all duration-150 cursor-pointer"
+            />
+          ))}
+
+          {/* Hover indicator line & dot */}
+          {hoveredPoint && (
+            <g>
+              <line
+                x1={hoveredPoint.x}
+                y1={paddingTop}
+                x2={hoveredPoint.x}
+                y2={paddingTop + chartHeight}
+                stroke="#22C55E"
+                strokeWidth={1.5}
+                strokeDasharray="2 2"
+                opacity={0.6}
+              />
+              {points.length > 31 && (
+                <circle
+                  cx={hoveredPoint.x}
+                  cy={hoveredPoint.y}
+                  r={5.5}
+                  fill="#22C55E"
+                  stroke="#FFFFFF"
+                  strokeWidth={2}
+                />
+              )}
+            </g>
+          )}
+
+          {/* X-axis line */}
+          <line
+            x1={paddingLeft}
+            y1={paddingTop + chartHeight}
+            x2={width - paddingRight}
+            y2={paddingTop + chartHeight}
+            stroke="#CBD5E1"
+            strokeWidth={1}
+          />
+
+          {/* X-axis labels */}
+          {xTicks.map((p, idx) => (
+            <text
+              key={idx}
+              x={p.x}
+              y={paddingTop + chartHeight + 18}
+              textAnchor="middle"
+              className="text-[9px] fill-slate-400 font-semibold"
+            >
+              {p.label}
+            </text>
+          ))}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 function MetricCard({ label, value, sub, accent }: {
   label: string; value: string | number; sub?: string; accent?: boolean;
 }) {
@@ -147,8 +409,32 @@ export default function PainelPage() {
   const [deliverNotes, setDeliverNotes] = useState("");
   const [submittingDeliver, setSubmittingDeliver] = useState(false);
   const [viewOrderId, setViewOrderId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"visao-geral" | "desempenho">("visao-geral");
+  const [salesPeriod, setSalesPeriod] = useState<Period>("30d");
+  const [reportsData, setReportsData] = useState<ReportData | null>(null);
+  const [loadingReports, setLoadingReports] = useState(false);
 
   const selectedOrder = orders.find((o) => o.id === viewOrderId);
+
+  useEffect(() => {
+    if (!token || activeTab !== "desempenho") return;
+
+    setLoadingReports(true);
+    apiFetch(`/api/distributor/reports?period=${salesPeriod}`, { method: "GET", token })
+      .then(async (res) => {
+        if (res.ok) {
+          const d = await res.json() as ReportData;
+          setReportsData(d);
+        }
+      })
+      .catch((err) => {
+        console.error("Erro ao carregar relatórios de desempenho:", err);
+      })
+      .finally(() => {
+        setViewOrderId(null); // Clean modal state if any
+        setLoadingReports(false);
+      });
+  }, [token, activeTab, salesPeriod]);
 
   useEffect(() => {
     if (!token) return;
@@ -353,8 +639,34 @@ export default function PainelPage() {
           </div>
         </div>
 
-        {/* Métricas */}
-        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {/* Abas do Painel */}
+        <div className="mb-6 flex border-b border-slate-200">
+          <button
+            onClick={() => setActiveTab("visao-geral")}
+            className={`border-b-2 px-4 py-2.5 text-sm font-bold transition-all duration-205 -mb-px ${
+              activeTab === "visao-geral"
+                ? "border-[#22C55E] text-[#22C55E]"
+                : "border-transparent text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Visão Geral
+          </button>
+          <button
+            onClick={() => setActiveTab("desempenho")}
+            className={`border-b-2 px-4 py-2.5 text-sm font-bold transition-all duration-205 -mb-px ${
+              activeTab === "desempenho"
+                ? "border-[#22C55E] text-[#22C55E]"
+                : "border-transparent text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Desempenho de Vendas
+          </button>
+        </div>
+
+        {activeTab === "visao-geral" && (
+          <>
+            {/* Métricas */}
+            <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <MetricCard
             label="Pedidos hoje"
             value={dash?.new_orders_today ?? 0}
@@ -900,6 +1212,237 @@ export default function PainelPage() {
             </ul>
           )}
         </div>
+        </>
+        )}
+
+        {/* Aba Desempenho de Vendas */}
+        {activeTab === "desempenho" && (
+          <div className="space-y-6">
+            {/* Filtro de Período */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Métricas de Período
+              </h3>
+              <div className="flex rounded-xl border border-[#DBEAFE] bg-white overflow-hidden shadow-sm">
+                {([
+                  { value: "7d", label: "7 dias" },
+                  { value: "30d", label: "30 dias" },
+                  { value: "90d", label: "90 dias" },
+                  { value: "12m", label: "12 meses" }
+                ] as const).map((p) => (
+                  <button
+                    key={p.value}
+                    onClick={() => setSalesPeriod(p.value)}
+                    className={`px-4 py-2 text-xs font-semibold transition-colors ${
+                      salesPeriod === p.value
+                        ? "bg-[#2563EB] text-white"
+                        : "text-slate-500 hover:bg-[#F5F7FB]"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {loadingReports ? (
+              <div className="flex items-center justify-center py-24 bg-white border border-[#DBEAFE] rounded-3xl shadow-sm">
+                <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" />
+              </div>
+            ) : !reportsData ? (
+              <div className="text-center py-20 bg-white border border-[#DBEAFE] rounded-3xl shadow-sm">
+                <p className="text-sm text-slate-400">Não foi possível carregar os relatórios de desempenho.</p>
+              </div>
+            ) : (
+              <>
+                {/* Grid de Métricas Principais */}
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+                  <div className="rounded-3xl border border-[#DBEAFE] bg-white p-5 shadow-sm">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Faturamento total</p>
+                    <p className="mt-2 text-xl font-extrabold text-[#2563EB] font-mono leading-tight">
+                      {formatBRL(reportsData.summary.revenue_cents)}
+                    </p>
+                    <p className="mt-1 text-[10px] font-medium text-slate-400">pedidos aprovados/entregues</p>
+                  </div>
+
+                  <div className="rounded-3xl border border-[#DBEAFE] bg-white p-5 shadow-sm">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ticket médio</p>
+                    <p className="mt-2 text-xl font-extrabold text-[#0F172A] font-mono leading-tight">
+                      {reportsData.summary.avg_ticket_cents > 0 ? formatBRL(reportsData.summary.avg_ticket_cents) : "—"}
+                    </p>
+                    <p className="mt-1 text-[10px] font-medium text-slate-400">por pedido aprovado</p>
+                  </div>
+
+                  <div className="rounded-3xl border border-[#DBEAFE] bg-white p-5 shadow-sm">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Taxa de aprovação</p>
+                    <p className="mt-2 text-xl font-extrabold text-[#22C55E] font-mono leading-tight">
+                      {reportsData.summary.total_orders > 0 
+                        ? `${Math.round((reportsData.summary.approved_orders / reportsData.summary.total_orders) * 100)}%` 
+                        : "0%"}
+                      </p>
+                      <p className="mt-1 text-[10px] font-medium text-slate-400">
+                        {reportsData.summary.approved_orders} de {reportsData.summary.total_orders} pedidos
+                      </p>
+                    </div>
+
+                    <div className="rounded-3xl border border-[#DBEAFE] bg-white p-5 shadow-sm">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Clientes ativos</p>
+                      <p className="mt-2 text-xl font-extrabold text-[#0F172A] font-mono leading-tight">
+                        {reportsData.summary.active_clients_count}
+                      </p>
+                      <p className="mt-1 text-[10px] font-medium text-slate-400">compras no período</p>
+                    </div>
+
+                    <div className="rounded-3xl border border-[#DBEAFE] bg-white p-5 shadow-sm col-span-2 sm:col-span-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ticket por cliente</p>
+                      <p className="mt-2 text-xl font-extrabold text-[#0F172A] font-mono leading-tight">
+                        {reportsData.summary.active_clients_count > 0 
+                          ? formatBRL(Math.round(reportsData.summary.revenue_cents / reportsData.summary.active_clients_count)) 
+                          : "—"}
+                      </p>
+                      <p className="mt-1 text-[10px] font-medium text-slate-400">gasto médio por cliente</p>
+                    </div>
+                  </div>
+
+                  {/* Gráfico principal */}
+                  <SalesChart data={reportsData.by_day} period={salesPeriod} />
+
+                  {/* Detalhes de status & Top listagem */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Distribuição de Status */}
+                    <div className="rounded-3xl border border-[#DBEAFE] bg-white p-5 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+                          Distribuição de Pedidos
+                        </h4>
+                        <div className="space-y-3">
+                          {[
+                            { 
+                              label: "Aprovados/Entregues", 
+                              count: reportsData.summary.approved_orders, 
+                              color: "bg-[#22C55E]", 
+                              percent: reportsData.summary.total_orders > 0 
+                                ? (reportsData.summary.approved_orders / reportsData.summary.total_orders) * 100 
+                                : 0 
+                            },
+                            { 
+                              label: "Aguardando aprovação", 
+                              count: reportsData.summary.pending_orders, 
+                              color: "bg-amber-500", 
+                              percent: reportsData.summary.total_orders > 0 
+                                ? (reportsData.summary.pending_orders / reportsData.summary.total_orders) * 100 
+                                : 0 
+                            },
+                            { 
+                              label: "Recusados", 
+                              count: reportsData.summary.rejected_orders, 
+                              color: "bg-red-500", 
+                              percent: reportsData.summary.total_orders > 0 
+                                ? (reportsData.summary.rejected_orders / reportsData.summary.total_orders) * 100 
+                                : 0 
+                            }
+                          ].map((item, idx) => (
+                            <div key={idx} className="space-y-1">
+                              <div className="flex items-center justify-between text-xs font-semibold text-[#0F172A]">
+                                <span>{item.label}</span>
+                                <span className="font-mono">{item.count} ({Math.round(item.percent)}%)</span>
+                              </div>
+                              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full rounded-full ${item.color} transition-all duration-500`}
+                                  style={{ width: `${item.percent}%` }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between text-xs font-semibold text-slate-500">
+                        <span>Total recebido</span>
+                        <span className="font-mono text-[#0F172A]">{reportsData.summary.total_orders} pedidos</span>
+                      </div>
+                    </div>
+
+                    {/* Distribuição de Feedback */}
+                    <div className="rounded-3xl border border-[#DBEAFE] bg-white p-5 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+                          Qualidade do Pagamento
+                        </h4>
+                        <div className="space-y-3">
+                          {[
+                            { 
+                              label: "Pagamento OK", 
+                              count: reportsData.feedback.ok + reportsData.feedback.auto_ok, 
+                              color: "bg-[#22C55E]", 
+                              percent: (reportsData.feedback.ok + reportsData.feedback.auto_ok + reportsData.feedback.problem) > 0
+                                ? ((reportsData.feedback.ok + reportsData.feedback.auto_ok) / (reportsData.feedback.ok + reportsData.feedback.auto_ok + reportsData.feedback.problem)) * 100
+                                : 0 
+                            },
+                            { 
+                              label: "Com Problemas", 
+                              count: reportsData.feedback.problem, 
+                              color: "bg-red-500", 
+                              percent: (reportsData.feedback.ok + reportsData.feedback.auto_ok + reportsData.feedback.problem) > 0
+                                ? (reportsData.feedback.problem / (reportsData.feedback.ok + reportsData.feedback.auto_ok + reportsData.feedback.problem)) * 100
+                                : 0 
+                            }
+                          ].map((item, idx) => (
+                            <div key={idx} className="space-y-1">
+                              <div className="flex items-center justify-between text-xs font-semibold text-[#0F172A]">
+                                <span>{item.label}</span>
+                                <span className="font-mono">{item.count} {idx === 0 && `(${Math.round(item.percent)}%)`}</span>
+                              </div>
+                              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full rounded-full ${item.color} transition-all duration-500`}
+                                  style={{ width: `${item.percent}%` }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between text-xs font-semibold text-slate-500">
+                        <span>Aguardando feedback</span>
+                        <span className="font-mono text-amber-500">{reportsData.feedback.pending} pendentes</span>
+                      </div>
+                    </div>
+
+                    {/* Faturamento e Planos */}
+                    <div className="rounded-3xl border border-[#DBEAFE] bg-white p-5 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                          Status do Plano
+                        </h4>
+                        <div className="bg-[#EFF6FF] border border-[#DBEAFE] rounded-2xl p-4 mt-2">
+                          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Seu plano atual</p>
+                          <p className="text-lg font-extrabold text-[#2563EB] mt-1 capitalize leading-none font-sans">
+                            {dash?.plan ?? "Carregando..."}
+                          </p>
+                          <p className="text-[10px] text-slate-500 mt-2 font-medium">
+                            {reportsData.limited 
+                              ? "Métricas limitadas a 7 dias no plano atual." 
+                              : "Métricas completas disponíveis em tempo real."}
+                          </p>
+                        </div>
+                      </div>
+                      {reportsData.limited && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="w-full mt-4"
+                          onClick={() => router.push("/meu-plano")}
+                        >
+                          Fazer Upgrade
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+              </>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );
