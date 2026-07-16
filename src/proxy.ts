@@ -16,6 +16,9 @@ const PUBLIC_PATHS = [
   "/api/cnpj/validate", // validação pública de CNPJ no cadastro
   "/api/referrals/track", // validação pública de código de indicação
   "/sobre",
+  "/planos",
+  "/termos",
+  "/privacidade",
 ];
 
 // Roles que obrigam 2FA e são redirecionados para /auth/2fa se não verificado
@@ -32,10 +35,10 @@ function isPublicPath(pathname: string): boolean {
 }
 
 const CORS_HEADERS = {
-  "Access-Control-Allow-Origin":  "*",
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Max-Age":       "86400",
+  "Access-Control-Max-Age": "86400",
 };
 
 export async function proxy(req: NextRequest) {

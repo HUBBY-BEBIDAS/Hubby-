@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 const navLinks: { label: string; id: string; href?: string }[] = [
   { label: "Como funciona", id: "como-funciona" },
   { label: "Benefícios",    id: "beneficios"    },
-  { label: "Planos",        id: "planos",        href: "/planos" },
+  { label: "Planos",        id: "planos"        },
   { label: "Indicação",     id: "indicacao"     },
   { label: "FAQ",           id: "faq"           },
   { label: "Sobre nós",     id: "sobre-nos",    href: "/sobre" },
@@ -64,7 +64,7 @@ export default function SiteNavbar({ trackSections = false }: { trackSections?: 
               {navLinks.map(({ label, id, href }) => (
                 <a
                   key={id}
-                  href={href ?? `#${id}`}
+                  href={href ?? (trackSections ? `#${id}` : `/#${id}`)}
                   className={`rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200 ${
                     !href && activeSection === id
                       ? "bg-white/15 text-white"
@@ -120,7 +120,7 @@ export default function SiteNavbar({ trackSections = false }: { trackSections?: 
               {navLinks.map(({ label, id, href }) => (
                 <a
                   key={id}
-                  href={href ?? `#${id}`}
+                  href={href ?? (trackSections ? `#${id}` : `/#${id}`)}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`rounded-xl px-4 py-3 text-base font-medium transition ${
                     !href && activeSection === id

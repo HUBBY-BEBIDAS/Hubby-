@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import SiteNavbar from "@/components/SiteNavbar";
 import SiteFooter from "@/components/SiteFooter";
-import { Check, Star, Calendar, Sparkles } from "lucide-react";
+import { Check, Star, Calendar, Sparkles, MessageSquare, X } from "lucide-react";
 // ─── Tabela de preços ─────────────────────────────────────────────────────────
 
 type PeriodKey = "monthly" | "quarterly" | "semiannual" | "annual";
@@ -43,6 +43,9 @@ const testimonials = [
   { name: "Carlos M.",    role: "Gerente de Compras", company: "Bar & Grill SP",          stars: 5, text: "Antes eu gastava meia manhã no telefone pedindo cotação. Agora mando uma vez e recebo tudo comparado automaticamente. Economizei mais de R$ 800 no primeiro mês." },
   { name: "Ana Paula R.", role: "Proprietária",        company: "Adega do Centro",         stars: 5, text: "Consegui fechar com uma distribuidora que nem conhecia. O ranking mostrou um preço 18% menor no gin importado. Nunca mais volto ao modelo antigo." },
   { name: "Roberto S.",   role: "Sócio-Gerente",       company: "Restaurante Mediterrâneo",stars: 5, text: "O processo de credenciamento foi rápido e transparente. Em menos de 48 horas eu já estava comprando de 3 distribuidoras novas com condições muito melhores." },
+  { name: "Marcos T.",    role: "Comprador",           company: "Emporium Bebidas",        stars: 5, text: "Facilitou muito o nosso controle de estoque. Mandamos a cotação no final do dia e logo cedo já temos o retorno das distribuidoras parceiras. O chat integrado ajuda a resolver tudo rápido." },
+  { name: "Camila F.",    role: "Gerente",             company: "Club 88",                 stars: 5, text: "Adorei a facilidade de ver a cotação com o ranking de preços ordenado pelo menor valor total. Economizamos tempo e dinheiro em cada pedido de reposição." },
+  { name: "Julio C.",     role: "Proprietário",        company: "Conveniência 24h",        stars: 5, text: "Conseguir acompanhar o status de preparo e rota direto pelo painel dá uma segurança muito grande. Excelente ferramenta para quem trabalha com alto giro de bebidas." },
 ];
 
 const faqsCompradores = [
@@ -185,15 +188,7 @@ function FaqSection() {
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function Home() {
-  const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [period, setPeriod] = useState<PeriodKey>("monthly");
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="overflow-hidden">
@@ -201,6 +196,13 @@ export default function Home() {
         @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         .marquee-track { display: flex; width: max-content; animation: marquee 26s linear infinite; will-change: transform; }
         .marquee-track:hover { animation-play-state: paused; }
+        @keyframes marquee-testimonials { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        .testimonials-track { display: flex; width: max-content; animation: marquee-testimonials 45s linear infinite; will-change: transform; }
+        .testimonials-track:hover { animation-play-state: paused; }
+        .mask-gradient-x {
+          mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+          -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
         @keyframes hero-orb { 0%, 100% { opacity: 0.12; transform: scale(1); } 50% { opacity: 0.20; transform: scale(1.06); } }
         .hero-orb-green { animation: hero-orb 7s ease-in-out infinite; }
         .hero-orb-blue  { animation: hero-orb 9s ease-in-out infinite 2.5s; }
@@ -210,7 +212,7 @@ export default function Home() {
 
       <div className="bg-[#0D1117]">
 
-        {/* ══ HERO ══════════════════════════════════════════════════════════════ */}
+        {/* -- HERO -- */}
         <section className="relative bg-[#0D1117] text-white">
           <div className="pointer-events-none absolute inset-0">
             <div className="hero-orb-green absolute -top-40 right-[-10%] h-[640px] w-[640px] rounded-full bg-[#22C55E]" style={{ filter: "blur(130px)" }} />
@@ -235,9 +237,9 @@ export default function Home() {
                 <span className="text-white/50">em segundos.</span>
               </h1>
 
-              <p className="mt-6 max-w-xl text-base leading-[1.65] text-slate-400 md:text-lg">
+              {/* <p className="mt-6 max-w-xl text-base leading-[1.65] text-slate-400 md:text-lg">
                 Distribuidoras cadastram preços uma vez. Compradores enviam cotação para múltiplas distribuidoras e veem o ranking automático com prazo real de entrega calculado pela rota.
-              </p>
+              </p> */}
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <a href="/auth/register" className="inline-flex items-center justify-center rounded-lg bg-[#22C55E] px-7 py-3.5 text-base font-bold text-black transition hover:opacity-90">
@@ -353,7 +355,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ══ 01 — Monte e cote ════════════════════════════════════════════════ */}
+        {/* --------------------------------------------------------------------- */}
         <section className="bg-[#F8FAFC] pb-16 pt-0 lg:pb-20 lg:pt-0">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid items-start gap-10 lg:grid-cols-[1fr_1.4fr] lg:gap-12">
@@ -364,9 +366,9 @@ export default function Home() {
                 Produtos, prazos e preços de{" "}
                 <span className="text-[#22C55E]">todas as distribuidoras lado a lado.</span>
               </h2>
-              <p className="mt-4 text-[15px] leading-[1.65] text-slate-600 md:text-base">
+              {/* <p className="mt-4 text-[15px] leading-[1.65] text-slate-600 md:text-base">
                 Você adiciona os produtos e o prazo desejado. A plataforma busca todas as distribuidoras da sua região que têm os itens disponíveis e monta a comparação automaticamente.
-              </p>
+              </p> */}
               <ul className="mt-6 space-y-3">
                 {[
                   "Busque por produto: Heineken, Jack Daniel's, Absolut…",
@@ -467,7 +469,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ══ 02 — Ranking automático ══════════════════════════════════════════ */}
+        {/* --------------------------------------------------------------------- */}
         <section className="bg-[#111827] py-16 text-white lg:py-20">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
@@ -516,9 +518,9 @@ export default function Home() {
                   Compare preços e prazos{" "}
                   <span className="text-[#22C55E]">lado a lado.</span>
                 </h2>
-                <p className="mt-4 text-[15px] leading-[1.65] text-slate-400 md:text-base">
+                {/* <p className="mt-4 text-[15px] leading-[1.65] text-slate-400 md:text-base">
                   O ranking é gerado automaticamente com as distribuidoras que atendem sua região, têm o produto disponível e entregam no prazo desejado. Ordenado por menor preço total.
-                </p>
+                </p> */}
                 <ul className="mt-6 space-y-3">
                   {[
                     "Filtragem automática por região e disponibilidade",
@@ -548,7 +550,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ══ 03 — Envie a cotação ═════════════════════════════════════════════ */}
+        {/* --------------------------------------------------------------------- */}
         <section className="bg-[#F8FAFC] py-16 lg:py-20">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
@@ -558,14 +560,14 @@ export default function Home() {
               <h2 className="mt-3 font-display text-[40px] font-bold leading-tight text-[#0F172A]">
                 Um clique.{" "}
                 <span className="text-[#22C55E]">Distribuidora notificada</span>{" "}
-                por WhatsApp e E-mail.
+                por Chat e E-mail.
               </h2>
               <p className="mt-4 text-[15px] leading-[1.65] text-slate-600 md:text-base">
-                Ao confirmar, você escolhe enviar por WhatsApp, por e-mail ou pelos dois ao mesmo tempo. Cada distribuidora recebe os itens, quantidades e prazo na hora.
+                Ao confirmar, você escolhe enviar por Chat, por e-mail ou pelos dois ao mesmo tempo. Cada distribuidora recebe os itens, quantidades e prazo na hora.
               </p>
               <ul className="mt-6 space-y-3">
                 {[
-                  "Envio por WhatsApp e/ou E-mail, você escolhe",
+                  "Envio por Chat e/ou E-mail, você escolhe",
                   "Cada distribuidora recebe a cotação completa",
                   "A negociação acontece diretamente com a distribuidora",
                   "Sem comissão da plataforma por venda",
@@ -579,71 +581,72 @@ export default function Home() {
             </div>
 
             {/* Mockup envio */}
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-100">
-              <div className="border-b border-slate-100 bg-white px-5 py-3">
-                <div className="text-xs font-bold uppercase tracking-widest text-[#0F172A]">Enviar cotação</div>
-                <div className="mt-0.5 text-[10px] text-slate-500">2 distribuidoras selecionadas · 4 produtos</div>
-              </div>
-
-              <div className="p-5 space-y-3">
-                {[
-                  { initials: "DS", name: "Dist. Silva & Cia",     email: "comercial@silva.com.br",  phone: "(11) 98xxx-xxxx", suggested: true  },
-                  { initials: "BN", name: "Bebidas Norte Atacado", email: "pedidos@bebidasnorte.com", phone: "(11) 97xxx-xxxx", suggested: false },
-                ].map((d) => (
-                  <div key={d.name} className={`rounded-2xl border p-3.5 ${d.suggested ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-[#F8FAFC]"}`}>
-                    <div className="flex items-center gap-2.5">
-                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${d.suggested ? "bg-amber-500" : "bg-slate-600"}`}>
-                        {d.initials}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-[#0F172A]">{d.name}</span>
-                          {d.suggested && <span className="text-[9px] font-bold text-amber-600">Sugerida</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-2.5 flex gap-2">
-                      <div className="flex flex-1 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5">
-                        <svg className="h-3 w-3 shrink-0 text-[#3B82F6]" viewBox="0 0 16 12" fill="none">
-                          <rect x="1" y="1" width="14" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
-                          <path d="M1.5 2L8 7.5 14.5 2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                        </svg>
-                        <span className="text-[10px] font-medium text-slate-600 truncate">{d.email}</span>
-                      </div>
-                      <div className="flex flex-1 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5">
-                        <svg className="h-3 w-3 shrink-0 text-[#22C55E]" viewBox="0 0 16 16" fill="currentColor">
-                          <path d="M8 1a7 7 0 00-6.07 10.47L1 15l3.67-.9A7 7 0 108 1zm0 1.4a5.6 5.6 0 110 11.2 5.6 5.6 0 010-11.2zm-2.1 2.8c-.15 0-.38.06-.58.28-.2.23-.76.75-.76 1.82s.78 2.11.89 2.26c.11.14 1.53 2.34 3.7 3.19.52.2.92.32 1.23.41.52.15.99.13 1.36.08.42-.06 1.28-.52 1.46-1.03.18-.5.18-.93.13-1.02-.05-.09-.19-.14-.4-.24-.2-.1-1.2-.59-1.39-.66-.18-.07-.32-.1-.45.1-.14.2-.52.66-.64.8-.12.14-.24.16-.44.05-.2-.1-.86-.32-1.63-1-.6-.54-1.01-1.2-1.13-1.4-.12-.21-.01-.32.09-.42.09-.09.2-.24.3-.36.1-.12.13-.2.2-.34.06-.14.03-.26-.02-.36-.05-.1-.45-1.09-.62-1.49-.16-.38-.33-.33-.45-.33h-.39z"/>
-                        </svg>
-                        <span className="text-[10px] font-medium text-slate-600">{d.phone}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="space-y-2">
-                  <button className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#22C55E] py-3 text-sm font-bold text-black">
-                    <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
-                      <path d="M8 1a7 7 0 00-6.07 10.47L1 15l3.67-.9A7 7 0 108 1zm0 1.4a5.6 5.6 0 110 11.2 5.6 5.6 0 010-11.2zm-2.1 2.8c-.15 0-.38.06-.58.28-.2.23-.76.75-.76 1.82s.78 2.11.89 2.26c.11.14 1.53 2.34 3.7 3.19.52.2.92.32 1.23.41.52.15.99.13 1.36.08.42-.06 1.28-.52 1.46-1.03.18-.5.18-.93.13-1.02-.05-.09-.19-.14-.4-.24-.2-.1-1.2-.59-1.39-.66-.18-.07-.32-.1-.45.1-.14.2-.52.66-.64.8-.12.14-.24.16-.44.05-.2-.1-.86-.32-1.63-1-.6-.54-1.01-1.2-1.13-1.4-.12-.21-.01-.32.09-.42.09-.09.2-.24.3-.36.1-.12.13-.2.2-.34.06-.14.03-.26-.02-.36-.05-.1-.45-1.09-.62-1.49-.16-.38-.33-.33-.45-.33h-.39z"/>
-                    </svg>
-                    Enviar por WhatsApp e E-mail
-                  </button>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white py-2 text-xs font-bold text-slate-600 hover:text-[#0F172A] transition">
-                      <svg className="h-3.5 w-3.5 text-[#25D366]" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M8 1a7 7 0 00-6.07 10.47L1 15l3.67-.9A7 7 0 108 1zm0 1.4a5.6 5.6 0 110 11.2 5.6 5.6 0 010-11.2zm-2.1 2.8c-.15 0-.38.06-.58.28-.2.23-.76.75-.76 1.82s.78 2.11.89 2.26c.11.14 1.53 2.34 3.7 3.19.52.2.92.32 1.23.41.52.15.99.13 1.36.08.42-.06 1.28-.52 1.46-1.03.18-.5.18-.93.13-1.02-.05-.09-.19-.14-.4-.24-.2-.1-1.2-.59-1.39-.66-.18-.07-.32-.1-.45.1-.14.2-.52.66-.64.8-.12.14-.24.16-.44.05-.2-.1-.86-.32-1.63-1-.6-.54-1.01-1.2-1.13-1.4-.12-.21-.01-.32.09-.42.09-.09.2-.24.3-.36.1-.12.13-.2.2-.34.06-.14.03-.26-.02-.36-.05-.1-.45-1.09-.62-1.49-.16-.38-.33-.33-.45-.33h-.39z"/>
-                      </svg>
-                      Só WhatsApp
-                    </button>
-                    <button className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white py-2 text-xs font-bold text-slate-600 hover:text-[#0F172A] transition">
-                      <svg className="h-3.5 w-3.5 text-[#3B82F6]" viewBox="0 0 16 12" fill="none">
-                        <rect x="1" y="1" width="14" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
-                        <path d="M1.5 2L8 7.5 14.5 2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                      </svg>
-                      Só E-mail
-                    </button>
-                  </div>
+            <div className="relative w-full max-w-md rounded-[32px] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-100 text-left mx-auto">
+              
+              {/* Header */}
+              <div className="mb-5 flex items-start justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Enviar cotação para
+                  </p>
+                  <h3 className="mt-0.5 text-lg font-bold text-[#0F172A]">
+                    Distribuidora 1
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Entrega terça-feira, 21/07
+                  </p>
+                </div>
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-400 cursor-pointer">
+                  <X size={14} />
                 </div>
               </div>
+
+              {/* Items Box */}
+              <div className="mb-4 overflow-hidden rounded-2xl border border-[#DBEAFE]">
+                <div className="flex items-center justify-between border-b border-[#DBEAFE] px-4 py-3">
+                  <div>
+                    <p className="text-xs font-semibold text-[#0F172A] uppercase tracking-wide">
+                      CACHACA NAC ESPIRITO DE MINAS <span className="text-slate-400 lowercase">×</span>
+                    </p>
+                    <p className="text-xs font-bold text-slate-400 mt-0.5">
+                      200
+                    </p>
+                  </div>
+                  <span className="font-mono text-xs font-bold text-[#0F172A]">
+                    R$ 13.800,00
+                  </span>
+                </div>
+                <div className="flex items-center justify-between bg-[#F8FAFC] px-4 py-3">
+                  <span className="text-xs font-bold text-[#0F172A]">Total</span>
+                  <span className="font-mono text-xs font-bold text-[#22C55E]">R$ 13.800,00</span>
+                </div>
+              </div>
+
+              {/* Warning Banner */}
+              <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
+                <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-[11px] font-semibold leading-relaxed text-amber-800">
+                  Sua ficha cadastral será enviada junto com a cotação para análise de crédito desta distribuidora.
+                </p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex flex-col gap-2.5">
+                <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#22C55E] py-3.5 text-sm font-bold text-white transition hover:opacity-90">
+                  <MessageSquare size={16} />
+                  Enviar pedido por Chat
+                </button>
+                <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3.5 text-sm font-bold text-[#0F172A] transition hover:bg-slate-50">
+                  <svg className="h-4 w-4 text-slate-500" viewBox="0 0 24 18" fill="none">
+                    <rect x="1" y="1" width="22" height="16" rx="2.5" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M1.5 2L12 10.5 22.5 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  </svg>
+                  Enviar pedido por E-mail
+                </button>
+              </div>
+
             </div>
           </div>
           </div>
@@ -749,150 +752,58 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ══ APP MOBILE ════════════════════════════════════════════════════════ */}
-        <section className="bg-[#F8FAFC] py-16 lg:py-20">
+        {/* -- APP MOBILE (DESATIVADO) -- */}
+
+        {/* -- DEPOIMENTOS -- */}
+        <section className="bg-[#0B1220] py-20 overflow-hidden">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="grid items-center gap-10 lg:grid-cols-[1fr_220px] lg:gap-16">
-
-              <div>
-                <span className="inline-flex items-center gap-2 rounded-full border border-[#22C55E]/30 bg-[#22C55E]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#16A34A]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
-                  Disponível para iOS e Android
-                </span>
-                <h2 className="mt-4 font-display text-[40px] font-bold leading-tight text-[#0F172A]">
-                  Prefere cotar pelo celular?{" "}
-                  <span className="text-[#22C55E]">Tem app para isso.</span>
-                </h2>
-                <p className="mt-4 max-w-lg text-[15px] leading-[1.65] text-slate-600 md:text-base">
-                  Acesse o ranking de preços, monte pedidos e acompanhe o histórico direto do seu celular. Rápido, sem precisar abrir o computador.
-                </p>
-
-                <ul className="mt-5 space-y-2.5">
-                  {[
-                    "Cote de qualquer lugar: fila do fornecedor, estoque, em trânsito",
-                    "Notificações em tempo real quando distribuidora responder",
-                    "Recompra com 1 toque a partir do histórico",
-                  ].map((item) => (
-                    <li key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#22C55E]/15 text-[#22C55E]"><Check size={11} /></span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <a href="#" className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 transition hover:border-slate-300">
-                    <svg className="h-6 w-6 text-[#0F172A]" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-                    </svg>
-                    <div className="text-left">
-                      <p className="text-[10px] font-medium text-slate-400">Baixar na</p>
-                      <p className="text-sm font-bold text-[#0F172A]">App Store</p>
-                    </div>
-                  </a>
-                  <a href="#" className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 transition hover:border-slate-300">
-                    <svg className="h-6 w-6 text-[#0F172A]" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M3.18 23.76c.37.2.8.22 1.2.06l12.11-6.99-2.63-2.63-10.68 9.56zm-1.13-19.9a1.95 1.95 0 00-.05.47v19.34c0 .16.02.32.05.47l10.78-10.14L2.05 3.86zm18.8 8.47l-2.6-1.5L14.7 12l3.43 3.17 2.63-1.52c.75-.43.75-1.57 0-2zM4.38.22C3.98.06 3.55.08 3.18.28L13.93 11.1l2.63-2.63L4.38.22z"/>
-                    </svg>
-                    <div className="text-left">
-                      <p className="text-[10px] font-medium text-slate-400">Disponível no</p>
-                      <p className="text-sm font-bold text-[#0F172A]">Google Play</p>
-                    </div>
-                  </a>
-                </div>
-              </div>
-
-              {/* Mini mockup celular */}
-              <div className="hidden lg:block">
-                <div className="relative mx-auto w-[200px]">
-                  <div className="overflow-hidden rounded-[2.5rem] border-[6px] border-[#1a2332] bg-[#1a2332]" style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
-                    <div className="flex justify-center pt-2 pb-1">
-                      <div className="h-1.5 w-14 rounded-full bg-[#0D1117]" />
-                    </div>
-                    <div className="bg-[#0D1117] px-3 pb-4 pt-2">
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="text-[8px] font-bold text-slate-600">9:41</span>
-                        <div className="flex gap-1">
-                          <div className="h-1.5 w-3 rounded-sm bg-slate-700" />
-                          <div className="h-1.5 w-1.5 rounded-full bg-slate-700" />
-                        </div>
-                      </div>
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="logo-hubby text-[9px] text-white">HUBBY</span>
-                        <span className="rounded-full bg-[#22C55E]/15 px-1.5 py-0.5 text-[7px] font-bold text-[#22C55E]">3 novas</span>
-                      </div>
-                      {[
-                        { name: "Heineken LN 330ml", price: "R$ 4,00/un",  dist: "Beta Drinks", color: "bg-[#22C55E]" },
-                        { name: "Jack Daniel's 1L",  price: "R$ 69,90/un", dist: "Beta Drinks", color: "bg-[#2563EB]" },
-                        { name: "Absolut 1L",        price: "R$ 52,00/un", dist: "Alpha Beb.",  color: "bg-[#8B5CF6]" },
-                      ].map((item) => (
-                        <div key={item.name} className="mb-1.5 flex items-center gap-1.5 rounded-xl bg-[#1a2332] px-2 py-1.5">
-                          <div className={`h-5 w-1 shrink-0 rounded-full ${item.color}`} />
-                          <div className="flex-1 min-w-0">
-                            <p className="truncate text-[8px] font-bold text-white">{item.name}</p>
-                            <p className="text-[7px] text-slate-500">{item.dist}</p>
-                          </div>
-                          <span className="font-mono text-[8px] font-medium text-[#22C55E]">{item.price}</span>
-                        </div>
-                      ))}
-                      <div className="mt-2 rounded-xl bg-[#22C55E] py-1.5 text-center text-[9px] font-bold text-black">
-                        Confirmar cotação →
-                      </div>
-                    </div>
-                  </div>
-                  <div className="absolute -bottom-3 left-1/2 h-6 w-32 -translate-x-1/2 rounded-full bg-[#22C55E]/10 blur-xl" />
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </section>
-
-        {/* ══ DEPOIMENTOS ═══════════════════════════════════════════════════════ */}
-        <section className="bg-[#0B1220] py-16 lg:py-20">
-          <div className="mx-auto max-w-3xl px-6 lg:px-8">
-            <div className="text-center">
+            <div className="text-center mb-12">
               <span className="text-xs font-bold uppercase tracking-widest text-[#22C55E]">Depoimentos</span>
               <h2 className="mt-3 font-display text-[40px] font-bold text-white">Quem já usa, não volta atrás.</h2>
+              <p className="mt-4 text-slate-400 text-sm max-w-md mx-auto">
+                Veja o que os estabelecimentos e adegas dizem sobre negociar pela Hubby.
+              </p>
             </div>
 
-            <div className="mt-10">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-6 md:p-10">
-                <div className="mb-5 flex gap-1">
-                  {Array.from({ length: testimonials[activeTestimonial].stars }).map((_, i) => (
-                    <Star key={i} size={18} className="fill-[#22C55E] text-[#22C55E]" />
-                  ))}
-                </div>
-                <blockquote className="text-xl font-medium leading-[1.65] text-white md:text-2xl">
-                  &ldquo;{testimonials[activeTestimonial].text}&rdquo;
-                </blockquote>
-                <div className="mt-6 flex items-center gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#22C55E]/15 text-base font-bold text-[#22C55E]">
-                    {testimonials[activeTestimonial].name.charAt(0)}
-                  </div>
-                  <div>
-                    <div className="font-bold text-white">{testimonials[activeTestimonial].name}</div>
-                    <div className="text-sm text-white/70">
-                      {testimonials[activeTestimonial].role} · {testimonials[activeTestimonial].company}
+            {/* Testimonials Marquee Track */}
+            <div className="relative w-full overflow-hidden py-4 mask-gradient-x">
+              <div className="testimonials-track flex gap-6">
+                {/* Render cards twice for smooth continuous infinite scrolling loop */}
+                {[...testimonials, ...testimonials].map((item, idx) => (
+                  <div 
+                    key={idx} 
+                    className="w-[320px] md:w-[380px] shrink-0 rounded-2xl border border-white/10 bg-white/[0.04] p-6 hover:border-[#22C55E]/40 hover:bg-white/[0.06] transition-all flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="mb-4 flex gap-1">
+                        {Array.from({ length: item.stars }).map((_, i) => (
+                          <Star key={i} size={14} className="fill-[#22C55E] text-[#22C55E]" />
+                        ))}
+                      </div>
+                      <blockquote className="text-sm font-medium leading-[1.6] text-white/90">
+                        &ldquo;{item.text}&rdquo;
+                      </blockquote>
+                    </div>
+                    <div className="mt-6 flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#22C55E]/15 text-xs font-bold text-[#22C55E]">
+                        {item.name.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white">{item.name}</div>
+                        <div className="text-[11px] text-white/60">
+                          {item.role} · {item.company}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              <div className="mt-5 flex justify-center gap-2">
-                {testimonials.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveTestimonial(i)}
-                    className={`h-2 rounded-full transition-all duration-300 ${i === activeTestimonial ? "w-8 bg-[#22C55E]" : "w-2 bg-white/20"}`}
-                  />
                 ))}
               </div>
             </div>
+
           </div>
         </section>
 
-        {/* ══ PLANOS ════════════════════════════════════════════════════════════ */}
+        {/* -- PLANOS -- */}
         <section id="planos" className="bg-[#0D1117] py-16 lg:py-20">
           <div className="mx-auto max-w-5xl px-6 lg:px-8">
 
@@ -1114,7 +1025,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ══ INDICAÇÃO ════════════════════════════════════════════════════════ */}
+        {/* -- INDICACAO -- */}
         <section id="indicacao" className="bg-[#0B1220] py-16 lg:py-20">
           <div className="mx-auto max-w-5xl px-6 lg:px-8">
 
@@ -1195,7 +1106,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ══ FAQ ═══════════════════════════════════════════════════════════════ */}
+        {/* -- FAQ -- */}
         <FaqSection />
 
         <SiteFooter />
