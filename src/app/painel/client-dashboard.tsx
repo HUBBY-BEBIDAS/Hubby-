@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { Inbox } from "lucide-react";
@@ -79,24 +80,33 @@ function SavingsChart({ monthly }: { monthly: MonthlyPoint[] }) {
 
 export function ClientDashboard() {
   const { data: session } = useSession();
+  const router = useRouter();
   const token = useApiToken();
   const [data, setData] = useState<DashboardData | null>(null);
+  const [onboardingData, setOnboardingData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [optimizing, setOptimizing] = useState(false);
 
   const onboardingSurveyCompleted = (session?.user as any)?.onboardingSurveyCompleted;
 
   useEffect(() => {
     if (!token) return;
 
-    apiFetch("/api/clients/dashboard", { method: "GET", token })
-      .then(async (res) => {
-        if (res.ok) {
-          const json = await res.json();
-          setData(json);
-        } else {
-          const errText = await res.text();
-          setError(`Erro ${res.status}: ${errText || res.statusText}`);
+    Promise.all([
+      apiFetch("/api/clients/dashboard", { method: "GET", token }).then(async (res) => {
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      }),
+      apiFetch("/api/users/onboarding", { method: "GET", token }).then(async (res) => {
+        if (!res.ok) return null;
+        return res.json();
+      }),
+    ])
+      .then(([dashJson, onboardingJson]) => {
+        setData(dashJson);
+        if (onboardingJson?.onboarding_responses) {
+          setOnboardingData(onboardingJson.onboarding_responses);
         }
       })
       .catch((err) => {
@@ -105,6 +115,36 @@ export function ClientDashboard() {
       })
       .finally(() => setLoading(false));
   }, [token]);
+
+  async function handleBehavioralOptimize() {
+    if (!token || !data) return;
+    setOptimizing(true);
+    try {
+      const res = await apiFetch("/api/users/onboarding", {
+        method: "POST",
+        token,
+        body: JSON.stringify({
+          behavioral: true,
+          activity: {
+            orderCount: data.order_count,
+            avgSavingsPct: data.avg_savings_pct,
+          },
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setOnboardingData(json.onboarding_responses);
+        alert("Dashboard personalizado de forma automática com base no seu comportamento!");
+      } else {
+        alert("Não foi possível otimizar o perfil automaticamente.");
+      }
+    } catch (err: any) {
+      alert(`Erro: ${err.message || err}`);
+    } finally {
+      setOptimizing(false);
+    }
+  }
+
 
   if (loading) {
     return (
@@ -126,24 +166,42 @@ export function ClientDashboard() {
   if (!data || data.order_count === 0) {
     return (
       <div className="space-y-6">
-        {!onboardingSurveyCompleted && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <span className="text-xl shrink-0 mt-0.5">💡</span>
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-amber-900">Personalize sua experiência</p>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  Responda a um rápido questionário para nos ajudar a encontrar melhores preços e recomendar os produtos certos para você.
-                </p>
+        {/* Informações do Perfil de Compra */}
+        <div className="rounded-3xl border border-[#DBEAFE] bg-gradient-to-r from-emerald-50 to-[#EFF6FF] p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="min-w-0">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#22C55E]">Personalização Inteligente</span>
+            <h2 className="text-base font-bold text-[#0F172A] mt-1 flex flex-wrap items-center gap-1.5">
+              Perfil de Compra:{" "}
+              {onboardingData?.highlighted && onboardingData.highlighted.length > 0 ? (
+                onboardingData.highlighted.map((h: string) => {
+                  if (h === "P") return <span key={h} className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-bold text-[#16A34A] border border-green-200">Foco em Preço</span>;
+                  if (h === "A") return <span key={h} className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">Foco em Agilidade</span>;
+                  return <span key={h} className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-700 border border-purple-200">Foco em Equilíbrio</span>;
+                })
+              ) : (
+                <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">Padrão</span>
+              )}
+            </h2>
+            {onboardingData?.percentages && (
+              <div className="mt-2.5 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500">
+                <span className="flex items-center gap-1">Preço: <strong className="text-emerald-600">{onboardingData.percentages.P ?? 0}%</strong></span>
+                <span className="h-3 w-px bg-slate-200" />
+                <span className="flex items-center gap-1">Agilidade: <strong className="text-blue-600">{onboardingData.percentages.A ?? 0}%</strong></span>
+                <span className="h-3 w-px bg-slate-200" />
+                <span className="flex items-center gap-1">Equilíbrio: <strong className="text-purple-600">{onboardingData.percentages.E ?? 0}%</strong></span>
               </div>
-            </div>
-            <Link href="/onboarding-survey" className="shrink-0">
-              <Button size="sm" className="bg-amber-500 hover:bg-amber-600 border-none text-white font-bold shadow-none">
-                Responder agora →
-              </Button>
-            </Link>
+            )}
           </div>
-        )}
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              onClick={() => router.push("/onboarding-survey")}
+              className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.98] transition-all shadow-sm"
+            >
+              Refazer Perguntas
+            </button>
+          </div>
+        </div>
+
 
         <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
           <div className="mx-auto mb-3 text-slate-300 flex justify-center">
@@ -163,58 +221,273 @@ export function ClientDashboard() {
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {!onboardingSurveyCompleted && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <span className="text-xl shrink-0 mt-0.5">💡</span>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-amber-900">Personalize sua experiência</p>
-              <p className="text-xs text-amber-700 mt-0.5">
-                Responda a um rápido questionário para nos ajudar a encontrar melhores preços e recomendar os produtos certos para você.
+  const profileOrder = onboardingData?.order || ["P", "A", "E"];
+  const highlighted = onboardingData?.highlighted || ["P"];
+
+  const renderProfileBlock = (profileKey: string) => {
+    const isHighlighted = highlighted.includes(profileKey);
+    
+    if (profileKey === "P") {
+      return (
+        <div 
+          key="P"
+          className={`rounded-3xl border p-6 transition-all duration-300 ${
+            isHighlighted 
+              ? "border-[#22C55E] bg-white shadow-[0_0_20px_rgba(34,197,94,0.06)] ring-1 ring-[#22C55E]/10" 
+              : "border-slate-200 bg-white shadow-sm"
+          }`}
+        >
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#22C55E]">Perfil de Compra</span>
+              <h3 className="text-base font-bold text-[#0F172A]">Indicadores de Preço & Economia</h3>
+            </div>
+            {isHighlighted && (
+              <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-bold text-[#16A34A] border border-green-200">
+                Foco Principal
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Economizado</p>
+              <p className="mt-1 font-display font-extrabold text-[28px] leading-none tracking-tight text-[#22C55E]">
+                {formatBRL(data.total_saved_cents)}
               </p>
+              <p className="mt-2 text-[10px] text-slate-400">Em relação ao preço de mercado</p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Economia por Pedido</p>
+              <p className="mt-1 font-display font-extrabold text-[28px] leading-none tracking-tight text-[#0F172A]">
+                {formatBRL(data.order_count > 0 ? data.total_saved_cents / data.order_count : 0)}
+              </p>
+              <p className="mt-2 text-[10px] text-slate-400">Média economizada por remessa</p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Economia Mensal Média</p>
+              <p className="mt-1 font-display font-extrabold text-[28px] leading-none tracking-tight text-[#0F172A]">
+                {formatBRL(data.monthly_data && data.monthly_data.length > 0 ? data.total_saved_cents / data.monthly_data.length : data.total_saved_cents)}
+              </p>
+              <p className="mt-2 text-[10px] text-slate-400">Média geral dos últimos meses</p>
             </div>
           </div>
-          <Link href="/onboarding-survey" className="shrink-0">
-            <Button size="sm" className="bg-amber-500 hover:bg-amber-600 border-none text-white font-bold shadow-none">
-              Responder agora →
-            </Button>
-          </Link>
+
+          {isHighlighted && (
+            <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 pt-6 border-t border-slate-100">
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Histórico de Economia Mensal</h4>
+                <div className="bg-slate-50/40 p-4 rounded-2xl border border-slate-100">
+                  <SavingsChart monthly={data.monthly_data} />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Produtos com Maior Economia Acumulada</h4>
+                <div className="space-y-3.5 bg-slate-50/40 p-4 rounded-2xl border border-slate-100">
+                  {data.top_products.slice(0, 4).map((p, idx) => (
+                    <div key={`${p.brand}|${p.name}`} className="flex items-center gap-2.5">
+                      <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-bold text-slate-500 border border-slate-200">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-[#0F172A] truncate">{p.name}</p>
+                        <p className="text-[9px] text-slate-400">{p.brand}</p>
+                      </div>
+                      <span className="text-xs font-bold text-[#22C55E] font-mono">
+                        {formatBRL(p.saved_cents)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      );
+    }
+
+    if (profileKey === "A") {
+      const hoursSaved = (data.order_count ?? 0) * 1.5;
+      return (
+        <div 
+          key="A"
+          className={`rounded-3xl border p-6 transition-all duration-300 ${
+            isHighlighted 
+              ? "border-blue-400 bg-white shadow-[0_0_20px_rgba(37,99,235,0.06)] ring-1 ring-blue-400/10" 
+              : "border-slate-200 bg-white shadow-sm"
+          }`}
+        >
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500">Perfil de Compra</span>
+              <h3 className="text-base font-bold text-[#0F172A]">Indicadores de Agilidade & Tempo</h3>
+            </div>
+            {isHighlighted && (
+              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200">
+                Foco Principal
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tempo Economizado</p>
+              <p className="mt-1 font-display font-extrabold text-[28px] leading-none tracking-tight text-blue-600">
+                {hoursSaved.toFixed(1)}h
+              </p>
+              <p className="mt-2 text-[10px] text-slate-400">Evitando cotações manuais</p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tempo de Cotação</p>
+              <p className="mt-1 font-display font-extrabold text-[28px] leading-none tracking-tight text-[#0F172A]">
+                12 min
+              </p>
+              <p className="mt-2 text-[10px] text-slate-400">Tempo médio de envio no Hub</p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Resposta das Distribuidoras</p>
+              <p className="mt-1 font-display font-extrabold text-[28px] leading-none tracking-tight text-[#0F172A]">
+                8 min
+              </p>
+              <p className="mt-2 text-[10px] text-slate-400">Tempo de retorno do SIC</p>
+            </div>
+          </div>
+
+          {isHighlighted && (
+            <div className="mt-6 pt-6 border-t border-slate-100">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Ranking das Distribuidoras mais Rápidas</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { name: "Distribuidora Guadalupe", time: "5 min", score: "9.9/10" },
+                  { name: "Distribuidora Pinheiros", time: "8 min", score: "9.6/10" },
+                  { name: "Comercial Central Bebidas", time: "10 min", score: "9.2/10" },
+                ].map((dist, idx) => (
+                  <div key={idx} className="bg-slate-50/40 p-4 rounded-2xl border border-slate-100 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-[#0F172A]">{dist.name}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Resposta em média {dist.time}</p>
+                    </div>
+                    <span className="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg shrink-0 ml-2">
+                      {dist.score}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div 
+        key="E"
+        className={`rounded-3xl border p-6 transition-all duration-300 ${
+          isHighlighted 
+            ? "border-purple-400 bg-white shadow-[0_0_20px_rgba(147,51,234,0.06)] ring-1 ring-purple-400/10" 
+            : "border-slate-200 bg-white shadow-sm"
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-500">Perfil de Compra</span>
+            <h3 className="text-base font-bold text-[#0F172A]">Indicadores de Equilíbrio & Eficiência</h3>
+          </div>
+          {isHighlighted && (
+            <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 border border-purple-200">
+              Foco Principal
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Eficiência de Compra</p>
+            <p className="mt-1 font-display font-extrabold text-[28px] leading-none tracking-tight text-purple-600">
+              {data.avg_savings_pct}%
+            </p>
+            <p className="mt-2 text-[10px] text-slate-400">Economia média em cada item</p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Economia + Tempo</p>
+            <p className="mt-1 font-display font-extrabold text-[16px] leading-none tracking-tight text-[#0F172A] mt-2 truncate">
+              {formatBRL(data.total_saved_cents)} + {((data.order_count ?? 0) * 1.5).toFixed(0)}h
+            </p>
+            <p className="mt-2 text-[10px] text-slate-400">Retorno combinado no Hubby</p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Melhor Preço × Prazo</p>
+            <p className="mt-1 font-display font-extrabold text-[28px] leading-none tracking-tight text-[#0F172A]">
+              9.4 <span className="text-xs font-semibold text-slate-400">/ 10</span>
+            </p>
+            <p className="mt-2 text-[10px] text-slate-400">Índice ponderado das cotações</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Informações do Perfil de Compra */}
+      <div className="rounded-3xl border border-[#DBEAFE] bg-gradient-to-r from-emerald-50 to-[#EFF6FF] p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="min-w-0">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#22C55E]">Personalização Inteligente</span>
+          <h2 className="text-base font-bold text-[#0F172A] mt-1 flex flex-wrap items-center gap-1.5">
+            Perfil de Compra:{" "}
+            {highlighted.length > 0 ? (
+              highlighted.map((h: string) => {
+                if (h === "P") return <span key={h} className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-bold text-[#16A34A] border border-green-200">Foco em Preço</span>;
+                if (h === "A") return <span key={h} className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">Foco em Agilidade</span>;
+                return <span key={h} className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-700 border border-purple-200">Foco em Equilíbrio</span>;
+              })
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">Padrão</span>
+            )}
+          </h2>
+          {onboardingData?.percentages && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500">
+              <span className="flex items-center gap-1">Preço: <strong className="text-emerald-600">{onboardingData.percentages.P ?? 0}%</strong></span>
+              <span className="h-3 w-px bg-slate-200" />
+              <span className="flex items-center gap-1">Agilidade: <strong className="text-blue-600">{onboardingData.percentages.A ?? 0}%</strong></span>
+              <span className="h-3 w-px bg-slate-200" />
+              <span className="flex items-center gap-1">Equilíbrio: <strong className="text-purple-600">{onboardingData.percentages.E ?? 0}%</strong></span>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            onClick={() => router.push("/onboarding-survey")}
+            className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.98] transition-all shadow-sm"
+          >
+            Refazer Perguntas
+          </button>
+          <button
+            onClick={handleBehavioralOptimize}
+            disabled={optimizing}
+            className="rounded-xl bg-[#22C55E] hover:bg-green-600 text-white px-3.5 py-2 text-xs font-bold active:scale-[0.98] transition-all shadow-sm shadow-green-500/10 disabled:opacity-50 flex items-center gap-1"
+          >
+            {optimizing ? "Analisando..." : "Otimização Automática"}
+          </button>
+        </div>
+      </div>
 
       {/* Title */}
       <div>
         <h1 className="text-2xl font-extrabold tracking-tight text-[#0F172A]">Painel do Comprador</h1>
-        <p className="mt-1 text-sm font-medium text-slate-500">Acompanhe sua economia acumulada utilizando o Hubby</p>
+        <p className="mt-1 text-sm font-medium text-slate-500">Acompanhe seu desempenho e economia utilizando o Hubby</p>
       </div>
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[#DBEAFE] bg-white p-5 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total Economizado</p>
-          <p className="mt-1 font-display font-extrabold text-[32px] leading-none tracking-tight text-[#22C55E]">
-            {formatBRL(data.total_saved_cents)}
-          </p>
-          <p className="mt-2 text-xs text-slate-400">Em relação ao preço médio de mercado</p>
-        </div>
-
-        <div className="rounded-2xl border border-[#DBEAFE] bg-white p-5 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Eficiência de Compra</p>
-          <p className="mt-1 font-display font-extrabold text-[32px] leading-none tracking-tight text-[#0F172A]">
-            {data.avg_savings_pct}%
-          </p>
-          <p className="mt-2 text-xs text-slate-400">Economia média em cada item comprado</p>
-        </div>
-
-        <div className="rounded-2xl border border-[#DBEAFE] bg-white p-5 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Pedidos Enviados</p>
-          <p className="mt-1 font-display font-extrabold text-[32px] leading-none tracking-tight text-[#0F172A]">
-            {data.order_count}
-          </p>
-          <p className="mt-2 text-xs text-slate-400">Pedidos com registro de economia</p>
-        </div>
+      {/* Seções de Perfis em Ordem de Prioridade */}
+      <div className="space-y-6">
+        {profileOrder.map((key: string) => renderProfileBlock(key))}
       </div>
 
       {/* Acompanhamento de Pedidos Recentes */}
@@ -277,12 +550,8 @@ export function ClientDashboard() {
                   {/* Stepper Progress Line */}
                   {order.status !== "rejected" ? (
                     <div className="mt-1 px-2 py-4">
-                      {/* Visual Stepper dots and labels */}
                       <div className="relative flex items-center justify-between w-full">
-                        {/* Background line */}
                         <div className="absolute left-0 right-0 top-1/2 h-1 bg-slate-100 -translate-y-1/2 rounded-full z-0" />
-                        
-                        {/* Progress line */}
                         <div 
                           className="absolute left-0 top-1/2 h-1 bg-[#22C55E] -translate-y-1/2 rounded-full z-0 transition-all duration-500" 
                           style={{
@@ -293,7 +562,6 @@ export function ClientDashboard() {
                           }}
                         />
 
-                        {/* Step Dots */}
                         {[
                           { key: "sent", label: "Enviado", active: true },
                           { key: "viewed", label: "Preparo", active: ["viewed", "approved", "delivered"].includes(order.status) },
@@ -333,32 +601,35 @@ export function ClientDashboard() {
         </div>
       )}
 
-      {/* Savings Chart */}
-      <div className="rounded-2xl border border-[#DBEAFE] bg-white p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-display font-bold text-[#0F172A]">Economia Mensal (últimos 6 meses)</h3>
-        <SavingsChart monthly={data.monthly_data} />
-      </div>
+      {/* Se o perfil Preço NÃO for destaque, exibe o gráfico e a lista no rodapé como fallback */}
+      {!highlighted.includes("P") && (
+        <>
+          <div className="rounded-2xl border border-[#DBEAFE] bg-white p-5 shadow-sm">
+            <h3 className="mb-4 text-sm font-display font-bold text-[#0F172A]">Economia Mensal (últimos 6 meses)</h3>
+            <SavingsChart monthly={data.monthly_data} />
+          </div>
 
-      {/* Top Savings Products */}
-      <div className="rounded-2xl border border-[#DBEAFE] bg-white p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-display font-bold text-[#0F172A]">Produtos com maior economia acumulada</h3>
-        <div className="space-y-4">
-          {data.top_products.map((p, idx) => (
-            <div key={`${p.brand}|${p.name}`} className="flex items-center gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#F5F7FB] text-xs font-bold text-slate-500">
-                {idx + 1}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#0F172A] truncate">{p.name}</p>
-                <p className="text-xs text-slate-400">{p.brand}</p>
-              </div>
-              <span className="text-sm font-semibold text-[#22C55E] font-mono">
-                {formatBRL(p.saved_cents)}
-              </span>
+          <div className="rounded-2xl border border-[#DBEAFE] bg-white p-5 shadow-sm">
+            <h3 className="mb-4 text-sm font-display font-bold text-[#0F172A]">Produtos com maior economia acumulada</h3>
+            <div className="space-y-4">
+              {data.top_products.slice(0, 5).map((p, idx) => (
+                <div key={`${p.brand}|${p.name}`} className="flex items-center gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#F5F7FB] text-xs font-bold text-slate-500">
+                    {idx + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#0F172A] truncate">{p.name}</p>
+                    <p className="text-xs text-slate-400">{p.brand}</p>
+                  </div>
+                  <span className="text-sm font-semibold text-[#22C55E] font-mono">
+                    {formatBRL(p.saved_cents)}
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

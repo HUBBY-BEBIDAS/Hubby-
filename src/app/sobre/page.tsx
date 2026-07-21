@@ -39,47 +39,31 @@ export default function SobrePage() {
             {/* Texto */}
             <div className="space-y-7 text-[17px] leading-[1.85] text-slate-600">
               <p className="font-medium">
-                A <strong className="text-[#0F172A]">HUBBY</strong> nasceu de uma observação
-                simples: comprar bebidas para um bar, restaurante ou adega ainda é um processo
-                manual, fragmentado e pouco eficiente.
+                A <strong className="text-[#0F172A]">Hubby</strong> nasceu para resolver um problema simples:
+                comprar e vender bebidas ainda é um processo lento, descentralizado e pouco eficiente.
               </p>
               <p className="font-medium">
-                Cada comprador ligava para uma distribuidora, mandava mensagem no WhatsApp para
-                outra, anotava o preço numa planilha e torcia para não esquecer nenhum
-                fornecedor. Do outro lado, as distribuidoras perdiam vendas por demora no
-                atendimento e gastavam horas da equipe respondendo cotações repetitivas.
+                Compradores precisam solicitar cotações para diversos fornecedores e comparar informações manualmente.
+                Ao mesmo tempo, distribuidoras investem horas respondendo solicitações repetitivas e acabam perdendo oportunidades.
               </p>
               <p className="font-medium">
-                Vimos nesse problema uma oportunidade:{" "}
-                <strong className="text-[#0F172A]">
-                  criar a infraestrutura que esse mercado nunca teve.
-                </strong>
+                A Hubby centraliza esse processo em uma única plataforma. Com uma única solicitação,
+                compradores recebem diferentes cotações de forma rápida e organizada, enquanto distribuidoras
+                ganham eficiência, ampliam sua visibilidade e atendem mais clientes com menos esforço.
               </p>
               <p className="font-medium">
-                A HUBBY foi construída para ser a camada de inteligência comercial entre
-                compradores e distribuidoras, organizando o fluxo de cotação, trazendo
-                visibilidade real para a decisão de compra e tornando cada transação mais
-                rápida, mais transparente e mais confiável.
+                Não somos um marketplace e não participamos da negociação ou do pagamento.
+                Somos a infraestrutura que conecta compradores e distribuidoras, tornando a distribuição de bebidas
+                mais inteligente, transparente e eficiente.
               </p>
-              <p className="font-medium">
-                Não somos um marketplace. Não cobramos comissão. Não interferimos na
-                negociação ou no pagamento.
-              </p>
-              <p className="font-medium">
-                Somos a ponte. A tecnologia que conecta quem precisa comprar com quem tem
-                para vender, de forma inteligente, escalável e justa para os dois lados.
-              </p>
-              <p className="font-medium">
-                Nosso objetivo de longo prazo é ser a infraestrutura de distribuição de
-                bebidas do Brasil. Começamos por São Paulo, expandimos para o país inteiro
-                e, no futuro, seremos a plataforma que qualquer distribuidora usa para gerir
-                seus canais de venda e qualquer comprador usa para tomar decisões de compra
-                com dados reais.
-              </p>
-              <p className="font-semibold text-[#0F172A]">
-                Estamos no início. E é exatamente por isso que cada distribuidora e cada
-                comprador que entra agora faz parte da construção de algo maior.
-              </p>
+              <div className="pt-4 border-t border-slate-100">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#2563EB]">Nossos Princípios</span>
+                <div className="mt-2.5 flex flex-wrap gap-4 text-sm font-semibold text-[#0F172A]">
+                  <span className="inline-flex items-center gap-1">✓ Transparência</span>
+                  <span className="inline-flex items-center gap-1">✓ Eficiência</span>
+                  <span className="inline-flex items-center gap-1">✓ Confiança</span>
+                </div>
+              </div>
             </div>
 
             {/* Card escuro */}

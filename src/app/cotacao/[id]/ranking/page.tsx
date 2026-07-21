@@ -541,6 +541,7 @@ export default function RankingPage() {
   const [cityIsCovered, setCityIsCovered] = useState<boolean | null>(null);
   const [sortBy, setSortBy] = useState<SortBy>("cheapest");
   const [lockedModal, setLockedModal] = useState<RestrictedDistributor | null>(null);
+  const [showMinOrderModal, setShowMinOrderModal] = useState(false);
 
   // Favoritos
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
@@ -2252,9 +2253,74 @@ export default function RankingPage() {
                 {selectedByDistributor.size} distribuidora(s) · {formatBRL(totalSelectedCents)}
               </p>
             </div>
-            <Button size="lg" onClick={() => setConfirmPhase(true)}>
+            <Button
+              size="lg"
+              onClick={() => {
+                if (hasSelectedViolations) {
+                  setShowMinOrderModal(true);
+                } else {
+                  setConfirmPhase(true);
+                }
+              }}
+            >
               Concluir pedido →
             </Button>
+          </div>
+        </div>
+      )}
+
+      {showMinOrderModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-[#DBEAFE] bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            
+            <h3 className="text-lg font-bold text-[#0F172A]">Valor mínimo não atingido</h3>
+            <p className="mt-2 text-sm text-slate-500 leading-relaxed">
+              Algumas das distribuidoras selecionadas exigem um valor mínimo de compra que ainda não foi alcançado com os produtos escolhidos:
+            </p>
+
+            <div className="mt-4 space-y-3 rounded-2xl bg-slate-50 p-4 border border-slate-100">
+              {[...selectedByDistributor.values()]
+                .filter(group => group.entry.minimum_order_cents > 0 && group.totalCents < group.entry.minimum_order_cents)
+                .map(group => {
+                  const remaining = group.entry.minimum_order_cents - group.totalCents;
+                  return (
+                    <div key={group.entry.distributor_id} className="flex flex-col gap-1 text-xs">
+                      <p className="font-bold text-slate-700">{group.entry.company_name}</p>
+                      <div className="flex justify-between text-slate-500">
+                        <span>Selecionado: {formatBRL(group.totalCents)}</span>
+                        <span>Mínimo: {formatBRL(group.entry.minimum_order_cents)}</span>
+                      </div>
+                      <p className="font-semibold text-amber-600 mt-0.5">Falta {formatBRL(remaining)} para atingir o mínimo</p>
+                    </div>
+                  );
+                })}
+            </div>
+
+            <p className="mt-4 text-xs text-slate-400">
+              Você pode adicionar mais unidades dos produtos atuais ou incluir novos itens na sua cotação para atingir o valor mínimo.
+            </p>
+
+            <div className="mt-6 flex flex-col gap-2.5">
+              <Button
+                fullWidth
+                onClick={() => router.push(`/cotacao/${quotationId}`)}
+                className="bg-[#22C55E] hover:bg-[#16A34A] font-bold"
+              >
+                Adicionar mais produtos
+              </Button>
+              <button
+                type="button"
+                onClick={() => setShowMinOrderModal(false)}
+                className="w-full rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+              >
+                Ajustar seleção atual
+              </button>
+            </div>
           </div>
         </div>
       )}

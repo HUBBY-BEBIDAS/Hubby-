@@ -132,6 +132,17 @@ export function Navbar() {
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
+  // Redireciona para o questionário de onboarding caso não tenha sido preenchido
+  const onboardingSurveyCompleted = (session?.user as any)?.onboardingSurveyCompleted;
+  useEffect(() => {
+    if (session?.user && onboardingSurveyCompleted === false) {
+      const allowedRoles = ["client", "distributor_admin", "distributor_collaborator"];
+      if (allowedRoles.includes(role)) {
+        router.replace("/onboarding-survey");
+      }
+    }
+  }, [session, onboardingSurveyCompleted, role, router]);
+
   async function markAllRead() {
     if (!token || markingAll) return;
     setMarkingAll(true);

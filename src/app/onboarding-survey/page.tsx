@@ -5,145 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { ChevronLeft, ChevronRight, Check } from "lucide-react";
-interface SurveyStep {
-  key: string;
-  title: string;
-  subtitle: string;
-  type: string;
-  maxChoices?: number;
-  options: string[];
-}
-
-// --- Configurações das perguntas de Clientes (Bares) ---
-const CLIENT_STEPS: SurveyStep[] = [
-  {
-    key: "goals",
-    title: "Qual é seu principal objetivo utilizando o Hub?",
-    subtitle: "Selecione até 3 opções que melhor descrevem suas necessidades.",
-    type: "multiple",
-    maxChoices: 3,
-    options: [
-      "Economizar tempo nos pedidos",
-      "Encontrar melhores preços",
-      "Descobrir novas distribuidoras",
-      "Comprar com mais praticidade",
-      "Encontrar produtos específicos",
-      "Reduzir custos",
-      "Melhorar o controle das compras"
-    ]
-  },
-  {
-    key: "frequency",
-    title: "Com que frequência você compra bebidas?",
-    subtitle: "Selecione uma das opções abaixo.",
-    type: "single",
-    options: [
-      "Todos os dias",
-      "Algumas vezes por semana",
-      "Semanalmente",
-      "Quinzenalmente",
-      "Mensalmente"
-    ]
-  },
-  {
-    key: "pain_points",
-    title: "O que mais dificulta suas compras hoje?",
-    subtitle: "Selecione todas as opções que se aplicam.",
-    type: "multiple",
-    options: [
-      "Encontrar fornecedores",
-      "Comparar preços",
-      "Fazer pedidos",
-      "Acompanhar entregas",
-      "Comunicação com distribuidores",
-      "Controle dos pedidos"
-    ]
-  },
-  {
-    key: "categories",
-    title: "Quais categorias você compra com maior frequência?",
-    subtitle: "Selecione todas as opções que se aplicam.",
-    type: "multiple",
-    options: [
-      "Cervejas",
-      "Refrigerantes",
-      "Água",
-      "Energéticos",
-      "Destilados",
-      "Vinhos",
-      "Sucos",
-      "Outros"
-    ]
-  },
-  {
-    key: "size",
-    title: "Qual é o tamanho do seu estabelecimento?",
-    subtitle: "Selecione uma das opções abaixo.",
-    type: "single",
-    options: [
-      "Pequeno",
-      "Médio",
-      "Grande"
-    ]
-  }
-];
-
-// --- Configurações das perguntas de Distribuidoras ---
-const DISTRIBUTOR_STEPS: SurveyStep[] = [
-  {
-    key: "goals",
-    title: "O que você espera alcançar utilizando o Hub?",
-    subtitle: "Selecione todas as opções que se aplicam.",
-    type: "multiple",
-    options: [
-      "Aumentar as vendas",
-      "Conquistar novos clientes",
-      "Fidelizar clientes atuais",
-      "Divulgar meu catálogo",
-      "Automatizar pedidos",
-      "Melhorar o relacionamento com clientes"
-    ]
-  },
-  {
-    key: "challenges",
-    title: "Qual seu maior desafio atualmente?",
-    subtitle: "Selecione todas as opções que se aplicam.",
-    type: "multiple",
-    options: [
-      "Conseguir novos clientes",
-      "Receber pedidos",
-      "Organizar catálogo",
-      "Controle comercial",
-      "Comunicação com clientes"
-    ]
-  },
-  {
-    key: "size",
-    title: "Qual o porte da distribuidora?",
-    subtitle: "Selecione uma das opções abaixo.",
-    type: "single",
-    options: [
-      "Pequena",
-      "Média",
-      "Grande"
-    ]
-  },
-  {
-    key: "categories",
-    title: "Quais categorias você vende?",
-    subtitle: "Selecione todas as opções que se aplicam.",
-    type: "multiple",
-    options: [
-      "Cervejas",
-      "Refrigerantes",
-      "Água",
-      "Energéticos",
-      "Vinhos",
-      "Destilados",
-      "Outros"
-    ]
-  }
-];
+import { CLIENT_ONBOARDING_QUESTIONS, DISTRIBUTOR_ONBOARDING_QUESTIONS } from "@/lib/onboarding";
 
 export default function OnboardingSurveyPage() {
   const { data: session, update } = useSession({ required: true });
@@ -151,9 +13,9 @@ export default function OnboardingSurveyPage() {
   const token = useApiToken();
 
   const role = (session?.user as any)?.role ?? "client";
-  const steps = ["distributor_admin", "distributor_collaborator"].includes(role)
-    ? DISTRIBUTOR_STEPS
-    : CLIENT_STEPS;
+  const steps: any[] = ["distributor_admin", "distributor_collaborator"].includes(role)
+    ? DISTRIBUTOR_ONBOARDING_QUESTIONS
+    : CLIENT_ONBOARDING_QUESTIONS;
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
@@ -272,13 +134,6 @@ export default function OnboardingSurveyPage() {
               >
                 Começar
               </button>
-              <button
-                type="button"
-                onClick={() => router.push("/painel")}
-                className="text-xs font-semibold text-slate-400 hover:text-slate-600 py-1"
-              >
-                Responder mais tarde (ir para o painel)
-              </button>
             </div>
           </div>
         </div>
@@ -328,7 +183,8 @@ export default function OnboardingSurveyPage() {
 
           {/* Opções de Respostas */}
           <div className="mt-4 flex flex-col gap-2">
-            {currentStep.options.map((opt) => {
+            {currentStep.options.map((optOption: any) => {
+              const opt = typeof optOption === "string" ? optOption : optOption.text;
               const val = answers[currentStep.key];
               const isSelected = Array.isArray(val) ? val.includes(opt) : val === opt;
 

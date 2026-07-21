@@ -73,198 +73,7 @@ function Confetti() {
   );
 }
 
-type SurveyData = {
-  orders_per_month:    string;
-  monthly_spend_range: string;
-  distributors_count:  string;
-  referral_source:     string;
-  main_pain:           string;
-  beverage_types:      string[];
-};
 
-const SURVEY_QUESTIONS = [
-  {
-    key: "orders_per_month" as const,
-    label: "Quantos pedidos de bebida você faz por mês?",
-    options: ["1-2 pedidos", "3-5 pedidos", "6-10 pedidos", "Mais de 10 pedidos"],
-  },
-  {
-    key: "monthly_spend_range" as const,
-    label: "Qual o seu gasto mensal aproximado em bebidas?",
-    options: ["Até R$500", "R$500 a R$2.000", "R$2.000 a R$5.000", "Acima de R$5.000"],
-  },
-  {
-    key: "distributors_count" as const,
-    label: "Quantas distribuidoras diferentes você usa hoje?",
-    options: ["Apenas 1", "2-3 distribuidoras", "4-6 distribuidoras", "Mais de 6"],
-  },
-  {
-    key: "referral_source" as const,
-    label: "Como ficou sabendo da Hubby?",
-    options: ["Instagram", "Google", "Indicação de amigo", "WhatsApp", "Outro"],
-  },
-  {
-    key: "main_pain" as const,
-    label: "Qual sua maior dificuldade hoje ao comprar bebidas?",
-    options: [
-      "Perco muito tempo cotando",
-      "Não sei se estou pagando o melhor preço",
-      "Difícil comparar distribuidoras",
-      "Falta de organização nos pedidos",
-      "Outro",
-    ],
-  },
-];
-
-const BEVERAGE_TYPES = ["Cervejas", "Destilados (whisky, vodka, gin)", "Vinhos", "Energéticos", "Não alcoólicos", "Todos"];
-
-function SurveyStep({ token, onDone }: { token: string | null; onDone: () => void }) {
-  const [data, setData] = useState<SurveyData>({
-    orders_per_month: "", monthly_spend_range: "", distributors_count: "",
-    referral_source: "", main_pain: "", beverage_types: [],
-  });
-  const [submitting, setSubmitting] = useState(false);
-
-  function toggleBeverage(v: string) {
-    setData((prev) => ({
-      ...prev,
-      beverage_types: prev.beverage_types.includes(v)
-        ? prev.beverage_types.filter((b) => b !== v)
-        : [...prev.beverage_types, v],
-    }));
-  }
-
-  async function submit(skipped: boolean) {
-    setSubmitting(true);
-    try {
-      if (token) {
-        await apiFetch("/api/onboarding-survey", {
-          method: "POST",
-          token,
-          body: JSON.stringify(skipped ? { skipped: true } : { ...data, skipped: false }),
-        });
-      }
-    } catch { /* non-blocking */ }
-    finally { setSubmitting(false); }
-    onDone();
-  }
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F5F7FB] px-4 py-12">
-      <div className="w-full max-w-lg">
-        <div className="mb-6 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#22C55E]">Passo 3 de 3 — Quase lá!</p>
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#0F172A]">Ajude a Hubby a ser melhor para você</h1>
-          <p className="mt-1 text-sm font-medium text-slate-500">Leva menos de 1 minuto e nos ajuda a personalizar sua experiência</p>
-        </div>
-
-        <div className="rounded-3xl border border-[#DBEAFE] bg-white p-8 shadow-sm space-y-6">
-          {SURVEY_QUESTIONS.map((q) => (
-            <div key={q.key}>
-              <p className="mb-2 text-sm font-semibold text-[#0F172A]">{q.label}</p>
-              <div className="flex flex-wrap gap-2">
-                {q.options.map((opt) => {
-                  const selected = data[q.key] === opt;
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setData((p) => ({ ...p, [q.key]: selected ? "" : opt }))}
-                      className={[
-                        "rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all",
-                        selected
-                          ? "border-[#22C55E] bg-[#22C55E]/10 text-[#16A34A]"
-                          : "border-slate-200 text-slate-600 hover:border-slate-300",
-                      ].join(" ")}
-                    >
-                      {opt}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-
-          {/* Bebidas — múltipla seleção */}
-          <div>
-            <p className="mb-2 text-sm font-semibold text-[#0F172A]">Quais tipos de bebida você mais compra? <span className="text-slate-400 font-normal">(múltipla seleção)</span></p>
-            <div className="flex flex-wrap gap-2">
-              {BEVERAGE_TYPES.map((b) => {
-                const selected = data.beverage_types.includes(b);
-                return (
-                  <button
-                    key={b}
-                    type="button"
-                    onClick={() => toggleBeverage(b)}
-                    className={[
-                      "rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all",
-                      selected
-                        ? "border-[#22C55E] bg-[#22C55E]/10 text-[#16A34A]"
-                        : "border-slate-200 text-slate-600 hover:border-slate-300",
-                    ].join(" ")}
-                  >
-                    {selected ? <><Check size={12} className="inline mr-1" /></> : ""}{b}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3 pt-2">
-            <Button fullWidth size="lg" loading={submitting} onClick={() => submit(false)} className="bg-[#22C55E] hover:bg-[#16A34A] font-bold">
-              Enviar respostas
-            </Button>
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={() => submit(true)}
-              className="text-sm font-medium text-slate-400 hover:text-slate-600"
-            >
-              Pular esta etapa
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Done step
-function DoneStep({ coverageWarning, city, onGo }: { coverageWarning: boolean; city: string; onGo: () => void }) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    timerRef.current = setTimeout(onGo, 3500);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [onGo]);
-
-  return (
-    <>
-      <Confetti />
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F7FB] px-4">
-        <div className="w-full max-w-md text-center">
-          <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-[#22C55E]/15">
-            <svg className="h-10 w-10 text-[#22C55E]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-[#0F172A]">Tudo pronto!</h1>
-          <p className="mt-2 text-base font-medium text-slate-600">Bem-vindo à Hubby.</p>
-
-          {coverageWarning && (
-            <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-800">
-              Ainda não temos cobertura em <strong>{city}</strong>. Você já está na lista de espera — avisaremos quando chegar!
-            </div>
-          )}
-
-          <p className="mt-4 text-xs text-slate-400">Redirecionando em instantes…</p>
-          <button onClick={onGo} className="mt-3 text-sm font-semibold text-[#22C55E] hover:underline">
-            Ir agora →
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
 
 function formatWhatsapp(v: string) {
   const d = v.replace(/\D/g, "").slice(0, 11);
@@ -294,7 +103,7 @@ export default function RegisterClient() {
     }
   }, [status, session, router]);
 
-  const [step, setStep] = useState<"role" | "form" | "survey" | "done">("role");
+  const [step, setStep] = useState<"role" | "form">("role");
   const [role, setRole] = useState<Role>("client");
   const [roleSelected, setRoleSelected] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -475,13 +284,7 @@ export default function RegisterClient() {
     router.push("/onboarding-survey");
   }
 
-  if (step === "survey") {
-    return <SurveyStep token={token} onDone={() => setStep("done")} />;
-  }
 
-  if (step === "done") {
-    return <DoneStep coverageWarning={coverageWarning} city={city} onGo={() => router.push("/cotacao")} />;
-  }
 
   if (step === "role") {
     const cards: Array<{
