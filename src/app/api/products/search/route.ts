@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
+import { buildPrismaProductSearchWhere } from "@/lib/search-engine";
 
 export type ProductSearchResult = {
   id: string;
@@ -20,6 +21,8 @@ export const GET = withAuth(
       return Response.json({ results: [] });
     }
 
+    const searchWhere = buildPrismaProductSearchWhere(q);
+
     const products = await prisma.product.findMany({
       where: {
         available: true,
@@ -27,10 +30,7 @@ export const GET = withAuth(
           approved_by_admin: true,
           plan_status: { in: ["active", "trial"] },
         },
-        OR: [
-          { name: { contains: q, mode: "insensitive" } },
-          { brand: { contains: q, mode: "insensitive" } },
-        ],
+        ...searchWhere,
       },
       select: {
         id: true,

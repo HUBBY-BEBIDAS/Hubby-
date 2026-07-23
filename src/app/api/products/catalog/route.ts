@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
+import { buildPrismaProductSearchWhere } from "@/lib/search-engine";
 
 // ─── GET /api/products/catalog?q=termo ───────────────────────────────────────
 // Busca no catálogo central por nome ou marca (autocomplete ao cadastrar produto)
@@ -15,12 +16,7 @@ export const GET = withAuth(
     }
 
     const catalog = await prisma.productCatalog.findMany({
-      where: {
-        OR: [
-          { name:  { contains: q, mode: "insensitive" } },
-          { brand: { contains: q, mode: "insensitive" } },
-        ],
-      },
+      where: buildPrismaProductSearchWhere(q),
       orderBy: [{ brand: "asc" }, { name: "asc" }],
       take: 12,
     });

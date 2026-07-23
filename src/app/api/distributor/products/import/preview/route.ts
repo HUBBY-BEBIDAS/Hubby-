@@ -13,6 +13,7 @@ import {
 } from "@/lib/excel-parser";
 import { previewKey, PREVIEW_TTL } from "@/lib/queue";
 import { detectarLayoutComGemini } from "@/lib/gemini-parser";
+import { categorizeProductHeuristic } from "@/lib/ai-categorizer";
 import type { ProductCategory, PackagingType } from "@prisma/client";
 
 // Chave de produto para lookup de upsert — mesma lógica do worker
@@ -147,6 +148,14 @@ export const POST = withAuth(
     let updateCount = 0;
 
     const classifiedRows = valid_rows.map((row) => {
+      // Auto-categoriza caso categoria seja "other" ou não definida
+      if (!row.category || row.category === ("other" as any)) {
+        const aiResult = categorizeProductHeuristic(row.name);
+        row.category = aiResult.category;
+        if (!row.brand || row.brand === "Outra" || row.brand === "Genérica") {
+          row.brand = aiResult.brand;
+        }
+      }
       const key = productLookupKey(row);
       const isUpdate = existingKeys.has(key);
       if (isUpdate) updateCount++;

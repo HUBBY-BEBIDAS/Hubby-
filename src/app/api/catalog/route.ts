@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
 import { normalizeCityName } from "@/lib/coverage";
+import { buildPrismaProductSearchWhere } from "@/lib/search-engine";
 
 // ─── Helper de patrocínio ─────────────────────────────────────────────────────
 
@@ -178,12 +179,7 @@ export const GET = withAuth(
         available: true,
         ...(category ? { category: category as never } : {}),
         ...(brand    ? { brand: { equals: brand, mode: "insensitive" } } : {}),
-        ...(q ? {
-          OR: [
-            { name:  { contains: q, mode: "insensitive" } },
-            { brand: { contains: q, mode: "insensitive" } },
-          ],
-        } : {}),
+        ...(q ? buildPrismaProductSearchWhere(q) : {}),
         ...(minPrice !== null || maxPrice !== null ? {
           price_cents: {
             ...(minPrice !== null ? { gte: minPrice } : {}),
