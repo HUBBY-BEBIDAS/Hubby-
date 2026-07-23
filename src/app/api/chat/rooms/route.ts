@@ -40,6 +40,16 @@ export const GET = withAuth(
             orderBy: { created_at: "desc" },
             take: 1,
           },
+          _count: {
+            select: {
+              messages: {
+                where: {
+                  sender_id: { not: user.userId },
+                  is_read: false,
+                },
+              },
+            },
+          },
         },
         orderBy: { updated_at: "desc" },
       });
@@ -51,6 +61,7 @@ export const GET = withAuth(
         other_party_logo_key: r.distributor.logo_key,
         last_message: r.messages[0]?.text ?? null,
         last_message_time: r.messages[0]?.created_at ?? null,
+        unread_count: r._count.messages,
         updated_at: r.updated_at,
       }));
     } else {
@@ -86,6 +97,16 @@ export const GET = withAuth(
             orderBy: { created_at: "desc" },
             take: 1,
           },
+          _count: {
+            select: {
+              messages: {
+                where: {
+                  sender_id: { not: user.userId },
+                  is_read: false,
+                },
+              },
+            },
+          },
         },
         orderBy: { updated_at: "desc" },
       });
@@ -97,6 +118,7 @@ export const GET = withAuth(
         other_party_logo_key: null,
         last_message: r.messages[0]?.text ?? null,
         last_message_time: r.messages[0]?.created_at ?? null,
+        unread_count: r._count.messages,
         updated_at: r.updated_at,
       }));
     }

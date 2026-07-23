@@ -62,6 +62,19 @@ export const GET = withAuth(
       }
     }
 
+    // Marca mensagens não lidas enviadas pela outra parte como lidas
+    await prisma.chatMessage.updateMany({
+      where: {
+        room_id: roomId,
+        sender_id: { not: user.userId },
+        is_read: false,
+      },
+      data: {
+        is_read: true,
+        read_at: new Date(),
+      },
+    });
+
     const messages = await prisma.chatMessage.findMany({
       where: { room_id: roomId },
       orderBy: { created_at: "asc" },

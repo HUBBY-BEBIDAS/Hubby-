@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { Navbar } from "@/components/Navbar";
-import { Send, Search, MessageSquare, ArrowLeft } from "lucide-react";
+import { Send, Search, MessageSquare, ArrowLeft, Check, CheckCheck } from "lucide-react";
 
 type ChatRoom = {
   id: string;
@@ -14,6 +14,7 @@ type ChatRoom = {
   other_party_logo_key: string | null;
   last_message: string | null;
   last_message_time: string | null;
+  unread_count?: number;
   updated_at: string;
 };
 
@@ -22,6 +23,8 @@ type ChatMessage = {
   room_id: string;
   sender_id: string;
   text: string;
+  is_read?: boolean;
+  read_at?: string | null;
   created_at: string;
 };
 
@@ -241,19 +244,26 @@ function ChatContent() {
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-1">
                           <p className="truncate text-sm font-bold text-[#0F172A]">
                             {room.other_party_name}
                           </p>
                           {room.last_message_time && (
-                            <span className="text-[10px] text-slate-400 font-medium">
+                            <span className="text-[10px] text-slate-400 font-medium shrink-0">
                               {formatTime(room.last_message_time)}
                             </span>
                           )}
                         </div>
-                        <p className="truncate text-xs text-slate-500 font-medium mt-0.5">
-                          {room.last_message || "Iniciar nova conversa"}
-                        </p>
+                        <div className="flex items-center justify-between gap-1 mt-0.5">
+                          <p className="truncate text-xs text-slate-500 font-medium">
+                            {room.last_message || "Iniciar nova conversa"}
+                          </p>
+                          {Boolean(room.unread_count && room.unread_count > 0) && (
+                            <span className="flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full bg-[#22C55E] px-1 text-[10px] font-extrabold text-white">
+                              {room.unread_count}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </button>
                   );
@@ -322,13 +332,24 @@ function ChatContent() {
                             <p className="break-words whitespace-pre-wrap leading-relaxed">
                               {msg.text}
                             </p>
-                            <span
-                              className={`block text-[9px] mt-1 text-right ${
-                                isMe ? "text-white/70" : "text-slate-400"
-                              }`}
-                            >
-                              {formatTime(msg.created_at)}
-                            </span>
+                            <div className="mt-1 flex items-center justify-end gap-1">
+                              <span
+                                className={`text-[9px] ${
+                                  isMe ? "text-white/80" : "text-slate-400"
+                                }`}
+                              >
+                                {formatTime(msg.created_at)}
+                              </span>
+                              {isMe && (
+                                <span title={msg.is_read ? "Lida" : "Enviada"}>
+                                  {msg.is_read ? (
+                                    <CheckCheck size={14} className="text-sky-200 inline-block" />
+                                  ) : (
+                                    <Check size={13} className="text-white/70 inline-block" />
+                                  )}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );

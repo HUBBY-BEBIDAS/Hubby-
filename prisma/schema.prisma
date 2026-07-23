@@ -781,6 +781,8 @@ model ChatMessage {
   room_id        String
   sender_id      String
   text           String
+  is_read        Boolean       @default(false)
+  read_at        DateTime?
   created_at     DateTime      @default(now())
 
   room           ChatRoom      @relation(fields: [room_id], references: [id], onDelete: Cascade)
