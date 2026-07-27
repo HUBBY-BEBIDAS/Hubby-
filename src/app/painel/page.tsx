@@ -950,9 +950,9 @@ export default function PainelPage() {
 
         {activeTab === "visao-geral" && (
           <>
-            {/* Indicadores de Perfil Ordenados */}
+            {/* Indicador do Perfil Vencedor */}
             <div className="mb-8 space-y-6">
-              {distributorProfileOrder.map((key: string) => renderDistributorProfileBlock(key))}
+              {(distributorHighlighted.length > 0 ? distributorHighlighted : [distributorProfileOrder[0] || "R"]).map((key: string) => renderDistributorProfileBlock(key))}
             </div>
 
             {/* Métricas do Dia */}
