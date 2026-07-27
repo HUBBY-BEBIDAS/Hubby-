@@ -485,9 +485,9 @@ export function ClientDashboard() {
         <p className="mt-1 text-sm font-medium text-slate-500">Acompanhe seu desempenho e economia utilizando o Hubby</p>
       </div>
 
-      {/* Seções de Perfis em Ordem de Prioridade */}
+      {/* Seção do Perfil Vencedor */}
       <div className="space-y-6">
-        {profileOrder.map((key: string) => renderProfileBlock(key))}
+        {(highlighted.length > 0 ? highlighted : [profileOrder[0] || "P"]).map((key: string) => renderProfileBlock(key))}
       </div>
 
       {/* Acompanhamento de Pedidos Recentes */}
