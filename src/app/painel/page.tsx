@@ -622,6 +622,7 @@ export default function PainelPage() {
 
   const distributorProfileOrder = onboardingData?.order || ["R", "EF", "C"];
   const distributorHighlighted = onboardingData?.highlighted || ["R"];
+  const winningDistributorKey = (distributorHighlighted && distributorHighlighted.length > 0) ? distributorHighlighted[0] : (distributorProfileOrder[0] || "R");
 
   const renderDistributorProfileBlock = (profileKey: string) => {
     const isHighlighted = distributorHighlighted.includes(profileKey);
@@ -864,15 +865,9 @@ export default function PainelPage() {
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#22C55E]">Personalização de Vendas</span>
             <h2 className="text-base font-bold text-[#0F172A] mt-1 flex flex-wrap items-center gap-1.5">
               Perfil da Distribuidora:{" "}
-              {distributorHighlighted.length > 0 ? (
-                distributorHighlighted.map((h: string) => {
-                  if (h === "R") return <span key={h} className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-bold text-[#16A34A] border border-green-200">Foco em Receita</span>;
-                  if (h === "EF") return <span key={h} className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">Foco em Eficiência</span>;
-                  return <span key={h} className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-700 border border-purple-200">Redução de Custos</span>;
-                })
-              ) : (
-                <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">Padrão</span>
-              )}
+              {winningDistributorKey === "R" && <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-bold text-[#16A34A] border border-green-200">Foco em Receita</span>}
+              {winningDistributorKey === "EF" && <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">Foco em Eficiência</span>}
+              {winningDistributorKey === "C" && <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-700 border border-purple-200">Redução de Custos</span>}
             </h2>
             {onboardingData?.percentages && (
               <div className="mt-2.5 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500">
@@ -952,7 +947,7 @@ export default function PainelPage() {
           <>
             {/* Indicador do Perfil Vencedor */}
             <div className="mb-8 space-y-6">
-              {(distributorHighlighted.length > 0 ? distributorHighlighted : [distributorProfileOrder[0] || "R"]).map((key: string) => renderDistributorProfileBlock(key))}
+              {renderDistributorProfileBlock(winningDistributorKey)}
             </div>
 
             {/* Métricas do Dia */}

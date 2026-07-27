@@ -223,6 +223,7 @@ export function ClientDashboard() {
 
   const profileOrder = onboardingData?.order || ["P", "A", "E"];
   const highlighted = onboardingData?.highlighted || ["P"];
+  const winningKey = (highlighted && highlighted.length > 0) ? highlighted[0] : (profileOrder[0] || "P");
 
   const renderProfileBlock = (profileKey: string) => {
     const isHighlighted = highlighted.includes(profileKey);
@@ -442,15 +443,9 @@ export function ClientDashboard() {
           <span className="text-[10px] font-bold uppercase tracking-wider text-[#22C55E]">Personalização Inteligente</span>
           <h2 className="text-base font-bold text-[#0F172A] mt-1 flex flex-wrap items-center gap-1.5">
             Perfil de Compra:{" "}
-            {highlighted.length > 0 ? (
-              highlighted.map((h: string) => {
-                if (h === "P") return <span key={h} className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-bold text-[#16A34A] border border-green-200">Foco em Preço</span>;
-                if (h === "A") return <span key={h} className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">Foco em Agilidade</span>;
-                return <span key={h} className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-700 border border-purple-200">Foco em Equilíbrio</span>;
-              })
-            ) : (
-              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">Padrão</span>
-            )}
+            {winningKey === "P" && <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-bold text-[#16A34A] border border-green-200">Foco em Preço</span>}
+            {winningKey === "A" && <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">Foco em Agilidade</span>}
+            {winningKey === "E" && <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-700 border border-purple-200">Foco em Equilíbrio</span>}
           </h2>
           {onboardingData?.percentages && (
             <div className="mt-2.5 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500">
@@ -485,9 +480,9 @@ export function ClientDashboard() {
         <p className="mt-1 text-sm font-medium text-slate-500">Acompanhe seu desempenho e economia utilizando o Hubby</p>
       </div>
 
-      {/* Seção do Perfil Vencedor */}
+      {/* Seção do Perfil Vencedor Único */}
       <div className="space-y-6">
-        {(highlighted.length > 0 ? highlighted : [profileOrder[0] || "P"]).map((key: string) => renderProfileBlock(key))}
+        {renderProfileBlock(winningKey)}
       </div>
 
       {/* Acompanhamento de Pedidos Recentes */}
