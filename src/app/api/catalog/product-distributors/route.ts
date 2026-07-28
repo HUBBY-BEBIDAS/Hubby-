@@ -44,7 +44,6 @@ export const GET = withAuth(
           include: {
             products: {
               where: {
-                name:               { equals: name,          mode: "insensitive" },
                 brand:              { equals: brand,         mode: "insensitive" },
                 packaging_type:     { equals: packaging_type as never },
                 packaging_volume_ml,

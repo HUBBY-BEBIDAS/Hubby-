@@ -36,6 +36,24 @@ type DistributorOffer = {
 
 type PricePoint = { price_cents: number; recorded_at: string };
 
+export type ProductVariantData = {
+  key: string;
+  variant_key: string;
+  name: string;
+  brand: string;
+  category: string;
+  packaging_type: string;
+  packaging_volume_ml: number;
+  label: string;
+  min_price_cents: number;
+  effective_price_cents: number;
+  image_url: string | null;
+  distributor_count: number;
+  cheapest_product_id: string;
+  cheapest_distributor_id: string;
+  promotion: Promotion | null;
+};
+
 export type ProductModalData = {
   name:               string;
   brand:              string;
@@ -46,6 +64,8 @@ export type ProductModalData = {
   cheapest_product_id:     string;
   cheapest_distributor_id: string;
   promotion:          Promotion | null;
+  variants?:          ProductVariantData[];
+  selected_variant_key?: string;
 };
 
 interface Props {
@@ -159,6 +179,24 @@ export function ProductDetailModal({ product, onClose }: Props) {
   const token   = useApiToken();
   const { addItem, quotation } = useQuotation();
 
+  const [activeVariantKey, setActiveVariantKey] = useState<string>(
+    product.selected_variant_key || `${product.packaging_type}|${product.packaging_volume_ml}`
+  );
+
+  const activeVariant = (product.variants && product.variants.length > 0)
+    ? product.variants.find((v) => v.variant_key === activeVariantKey) ?? product.variants[0]
+    : null;
+
+  const activeName = activeVariant?.name ?? product.name;
+  const activeBrand = activeVariant?.brand ?? product.brand;
+  const activeCategory = activeVariant?.category ?? product.category;
+  const activeType = activeVariant?.packaging_type ?? product.packaging_type;
+  const activeVolume = activeVariant?.packaging_volume_ml ?? product.packaging_volume_ml;
+  const activeImage = activeVariant?.image_url ?? product.image_url;
+  const activeCheapestProductId = activeVariant?.cheapest_product_id ?? product.cheapest_product_id;
+  const activeCheapestDistributorId = activeVariant?.cheapest_distributor_id ?? product.cheapest_distributor_id;
+  const activePromotion = activeVariant?.promotion ?? product.promotion;
+
   const [distributors, setDistributors] = useState<DistributorOffer[]>([]);
   const [loadingDist,  setLoadingDist]  = useState(true);
 
@@ -181,10 +219,10 @@ export function ProductDetailModal({ product, onClose }: Props) {
     setLoadingDist(true);
     try {
       const params = new URLSearchParams({
-        name:               product.name,
-        brand:              product.brand,
-        packaging_type:     product.packaging_type,
-        packaging_volume_ml: String(product.packaging_volume_ml),
+        name:               activeName,
+        brand:              activeBrand,
+        packaging_type:     activeType,
+        packaging_volume_ml: String(activeVolume),
       });
       const res  = await apiFetch(`/api/catalog/product-distributors?${params}`, { method: "GET", token });
       const data = await res.json() as { distributors: DistributorOffer[] };
@@ -194,13 +232,13 @@ export function ProductDetailModal({ product, onClose }: Props) {
     } finally {
       setLoadingDist(false);
     }
-  }, [token, product]);
+  }, [token, activeName, activeBrand, activeType, activeVolume]);
 
-  // Busca histórico de preço do produto mais barato
+  // Busca histórico de preço do produto mais barato da variante ativa
   useEffect(() => {
-    if (!token || !product.cheapest_product_id || !product.cheapest_distributor_id) return;
+    if (!token || !activeCheapestProductId || !activeCheapestDistributorId) return;
     apiFetch(
-      `/api/products/${product.cheapest_product_id}/price-history?distributor_id=${product.cheapest_distributor_id}`,
+      `/api/products/${activeCheapestProductId}/price-history?distributor_id=${activeCheapestDistributorId}`,
       { method: "GET", token }
     )
       .then((r) => r.json())
@@ -209,7 +247,7 @@ export function ProductDetailModal({ product, onClose }: Props) {
         setPriceHistory(sorted);
       })
       .catch(() => {});
-  }, [token, product.cheapest_product_id, product.cheapest_distributor_id]);
+  }, [token, activeCheapestProductId, activeCheapestDistributorId]);
 
   useEffect(() => { fetchDistributors(); }, [fetchDistributors]);
 
@@ -217,11 +255,11 @@ export function ProductDetailModal({ product, onClose }: Props) {
     if (!token || adding) return;
     setAdding(offer.distributor_id);
     try {
-      const packagingLabel = `${PACKAGING_LABEL[product.packaging_type] ?? product.packaging_type} ${product.packaging_volume_ml}ml`;
+      const packagingLabel = `${PACKAGING_LABEL[activeType] ?? activeType} ${activeVolume}ml`;
       await addItem({
-        product_name: product.name,
-        brand:        product.brand,
-        category:     product.category,
+        product_name: activeName,
+        brand:        activeBrand,
+        category:     activeCategory,
         packaging:    packagingLabel,
         quantity,
       });
@@ -247,8 +285,8 @@ export function ProductDetailModal({ product, onClose }: Props) {
         <div className="flex items-start gap-4 bg-white px-5 pb-4 pt-5 border-b border-[#DBEAFE]">
           {/* Foto */}
           <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-[#F5F7FB]">
-            {product.image_url ? (
-              <img src={product.image_url} alt={product.name} className="h-18 w-18 object-contain" />
+            {activeImage ? (
+              <img src={activeImage} alt={activeName} className="h-18 w-18 object-contain" />
             ) : (
               <Package size={32} className="text-slate-300" />
             )}
@@ -256,15 +294,15 @@ export function ProductDetailModal({ product, onClose }: Props) {
           {/* Info */}
           <div className="flex-1 min-w-0 pt-0.5">
             <span className="rounded-full bg-[#DBEAFE] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#2563EB]">
-              {CATEGORY_LABEL[product.category] ?? product.category}
+              {CATEGORY_LABEL[activeCategory] ?? activeCategory}
             </span>
-            <h2 className="mt-1 text-lg font-extrabold leading-tight text-[#0F172A]">{product.name}</h2>
+            <h2 className="mt-1 text-lg font-extrabold leading-tight text-[#0F172A]">{activeName}</h2>
             <p className="text-sm text-slate-500">
-              {product.brand} · {PACKAGING_LABEL[product.packaging_type] ?? product.packaging_type} {product.packaging_volume_ml}ml
+              {activeBrand} · {PACKAGING_LABEL[activeType] ?? activeType} {activeVolume}ml
             </p>
-            {product.promotion?.description && (
+            {activePromotion?.description && (
               <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-600">
-                <Tag size={10} />PROMO · {product.promotion.description}
+                <Tag size={10} />PROMO · {activePromotion.description}
               </span>
             )}
           </div>
@@ -273,6 +311,36 @@ export function ProductDetailModal({ product, onClose }: Props) {
             <X size={16} />
           </button>
         </div>
+
+        {/* Seletor de Variantes (Volume / Embalagem) */}
+        {product.variants && product.variants.length > 1 && (
+          <div className="bg-[#F5F7FB] px-5 py-2.5 border-b border-[#DBEAFE] flex flex-col gap-1.5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Opções de tamanho / embalagem ({product.variants.length})
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {product.variants.map((v) => {
+                const isSelected = v.variant_key === activeVariantKey;
+                return (
+                  <button
+                    key={v.variant_key}
+                    onClick={() => setActiveVariantKey(v.variant_key)}
+                    className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-extrabold transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-[#2563EB] text-white shadow-md shadow-blue-500/20 scale-[1.02]"
+                        : "bg-white text-slate-700 border border-[#DBEAFE] hover:border-blue-400 hover:text-blue-600"
+                    }`}
+                  >
+                    <span>{v.label}</span>
+                    <span className={`text-[10px] ${isSelected ? "text-blue-100" : "text-slate-400"}`}>
+                      ({formatBRL(v.effective_price_cents)})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Quantidade */}
         <div className="flex items-center gap-4 bg-white border-b border-[#DBEAFE] px-5 py-3">

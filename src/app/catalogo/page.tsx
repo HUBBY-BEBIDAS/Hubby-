@@ -20,6 +20,24 @@ type Promotion = {
   description: string | null;
 };
 
+type ProductVariant = {
+  key: string;
+  variant_key: string;
+  name: string;
+  brand: string;
+  category: string;
+  packaging_type: string;
+  packaging_volume_ml: number;
+  label: string;
+  min_price_cents: number;
+  effective_price_cents: number;
+  image_url: string | null;
+  distributor_count: number;
+  cheapest_product_id: string;
+  cheapest_distributor_id: string;
+  promotion: Promotion | null;
+};
+
 type CatalogProduct = {
   key: string;
   name: string;
@@ -38,6 +56,8 @@ type CatalogProduct = {
   price_change_pct: number | null;
   price_updated_at: string | null;
   promotion: Promotion | null;
+  has_multiple_variants?: boolean;
+  variants?: ProductVariant[];
 };
 
 type NearExpiryOffer = {
@@ -91,12 +111,36 @@ function promoLabel(p: Promotion) {
   return "PROMO";
 }
 
-function productToModalData(p: CatalogProduct): ProductModalData {
+function productToModalData(p: CatalogProduct, selectedVariantKey?: string): ProductModalData {
+  const selectedVariant = p.variants?.find((v) => v.variant_key === selectedVariantKey);
   return {
-    name: p.name, brand: p.brand, category: p.category,
-    packaging_type: p.packaging_type, packaging_volume_ml: p.packaging_volume_ml,
-    image_url: p.image_url, cheapest_product_id: p.cheapest_product_id,
-    cheapest_distributor_id: p.cheapest_distributor_id, promotion: p.promotion,
+    name: selectedVariant ? selectedVariant.name : p.name,
+    brand: p.brand,
+    category: p.category,
+    packaging_type: selectedVariant ? selectedVariant.packaging_type : p.packaging_type,
+    packaging_volume_ml: selectedVariant ? selectedVariant.packaging_volume_ml : p.packaging_volume_ml,
+    image_url: selectedVariant ? (selectedVariant.image_url ?? p.image_url) : p.image_url,
+    cheapest_product_id: selectedVariant ? selectedVariant.cheapest_product_id : p.cheapest_product_id,
+    cheapest_distributor_id: selectedVariant ? selectedVariant.cheapest_distributor_id : p.cheapest_distributor_id,
+    promotion: selectedVariant ? selectedVariant.promotion : p.promotion,
+    variants: p.variants ? p.variants.map((v) => ({
+      key: v.key,
+      variant_key: v.variant_key,
+      name: v.name,
+      brand: v.brand,
+      category: v.category,
+      packaging_type: v.packaging_type,
+      packaging_volume_ml: v.packaging_volume_ml,
+      label: v.label,
+      min_price_cents: v.min_price_cents,
+      effective_price_cents: v.effective_price_cents,
+      image_url: v.image_url,
+      distributor_count: v.distributor_count,
+      cheapest_product_id: v.cheapest_product_id,
+      cheapest_distributor_id: v.cheapest_distributor_id,
+      promotion: v.promotion,
+    })) : undefined,
+    selected_variant_key: selectedVariantKey,
   };
 }
 
@@ -128,33 +172,55 @@ function SkeletonCard({ list }: { list?: boolean }) {
 // ─── Card de produto ──────────────────────────────────────────────────────────
 
 function ProductCard({
-  product, onClick, wishlisted, onToggleWishlist,
+  product, onOpenDetail, wishlisted, onToggleWishlist,
   compareChecked, onToggleCompare, listView,
 }: {
   product: CatalogProduct;
-  onClick: () => void;
+  onOpenDetail: (p: CatalogProduct, variantKey?: string) => void;
   wishlisted: boolean;
   onToggleWishlist: (e: React.MouseEvent) => void;
   compareChecked: boolean;
   onToggleCompare: (e: React.MouseEvent) => void;
   listView: boolean;
 }) {
-  const hasPromo = product.promotion !== null;
-  const hasDiscount = hasPromo && product.effective_price_cents < product.min_price_cents;
+  const [selectedVariantKey, setSelectedVariantKey] = useState<string>(
+    product.variants && product.variants.length > 0
+      ? product.variants[0].variant_key
+      : `${product.packaging_type}|${product.packaging_volume_ml}`
+  );
+
+  const activeVariant = product.variants?.find((v) => v.variant_key === selectedVariantKey) ?? null;
+
+  const activeName = activeVariant?.name ?? product.name;
+  const activeType = activeVariant?.packaging_type ?? product.packaging_type;
+  const activeVolume = activeVariant?.packaging_volume_ml ?? product.packaging_volume_ml;
+  const activePriceCents = activeVariant?.effective_price_cents ?? product.effective_price_cents;
+  const activeMinPriceCents = activeVariant?.min_price_cents ?? product.min_price_cents;
+  const activeDistCount = activeVariant?.distributor_count ?? product.distributor_count;
+  const activeImage = activeVariant?.image_url ?? product.image_url;
+  const activePromo = activeVariant?.promotion ?? product.promotion;
+
+  const hasPromo = activePromo !== null;
+  const hasDiscount = hasPromo && activePriceCents < activeMinPriceCents;
+  const hasMultipleVariants = (product.variants?.length ?? 0) > 1;
+
+  const handleCardClick = () => {
+    onOpenDetail(product, selectedVariantKey);
+  };
 
   if (listView) {
     return (
       <div
         role="button"
         tabIndex={0}
-        onClick={onClick}
+        onClick={handleCardClick}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            onClick();
+            handleCardClick();
           }
         }}
-        className="group flex w-full items-center gap-4 rounded-2xl border border-[#DBEAFE] bg-white px-4 py-3 text-left shadow-sm transition-all hover:border-[#2563EB]/40 hover:shadow-md active:scale-[0.99] cursor-pointer"
+        className="group flex flex-wrap w-full items-center gap-4 rounded-2xl border border-[#DBEAFE] bg-white px-4 py-3 text-left shadow-sm transition-all hover:border-[#2563EB]/40 hover:shadow-md active:scale-[0.99] cursor-pointer"
       >
         {/* Checkbox comparar */}
         <div
@@ -166,26 +232,59 @@ function ProductCard({
 
         {/* Imagem */}
         <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#F5F7FB]">
-          {product.image_url
-            ? <img src={product.image_url} alt={product.name} className="h-12 w-12 object-contain" />
+          {activeImage
+            ? <img src={activeImage} alt={activeName} className="h-12 w-12 object-contain" />
             : <ShoppingCart size={20} className="text-slate-300" />}
         </div>
 
         {/* Info */}
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{product.brand}</p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{product.brand}</p>
+            {hasMultipleVariants && (
+              <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">
+                {product.variants!.length} tamanhos
+              </span>
+            )}
+          </div>
           <p className="truncate text-sm font-semibold text-[#0F172A]">{product.name}</p>
           <p className="text-[11px] text-slate-400">
-            {PACKAGING_LABEL[product.packaging_type] ?? product.packaging_type} · {product.packaging_volume_ml}ml
-            {" · "}{product.distributor_count} distribuidora{product.distributor_count !== 1 ? "s" : ""}
+            {PACKAGING_LABEL[activeType] ?? activeType} · {activeVolume}ml
+            {" · "}{activeDistCount} distribuidora{activeDistCount !== 1 ? "s" : ""}
           </p>
+
+          {/* Seletores de variantes */}
+          {hasMultipleVariants && (
+            <div className="mt-1 flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
+              {product.variants!.map((v) => {
+                const isSelected = v.variant_key === selectedVariantKey;
+                return (
+                  <button
+                    key={v.variant_key}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedVariantKey(v.variant_key);
+                    }}
+                    className={`rounded-lg px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-[#2563EB] text-white shadow-sm"
+                        : "bg-[#F5F7FB] text-slate-600 hover:bg-blue-50 hover:text-[#2563EB] border border-slate-200"
+                    }`}
+                  >
+                    {v.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Preço + tendência */}
         <div className="shrink-0 text-right">
-          {hasDiscount && <p className="text-[11px] text-slate-400 line-through">{formatBRL(product.min_price_cents)}</p>}
+          {hasDiscount && <p className="text-[11px] text-slate-400 line-through">{formatBRL(activeMinPriceCents)}</p>}
           <p className={`text-base font-black ${hasDiscount ? "text-red-600" : "text-[#2563EB]"}`}>
-            {formatBRL(product.effective_price_cents)}
+            {formatBRL(activePriceCents)}
           </p>
           {product.price_trend && product.price_change_pct && (
             <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold ${product.price_trend === "down" ? "text-green-600" : "text-red-500"}`}>
@@ -199,7 +298,7 @@ function ProductCard({
         <div className="flex shrink-0 flex-col items-end gap-1">
           {hasPromo && (
             <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-black text-white">
-              {promoLabel(product.promotion!)}
+              {promoLabel(activePromo!)}
             </span>
           )}
           {product.is_sponsored && !hasPromo && (
@@ -224,7 +323,7 @@ function ProductCard({
       {/* Badges absolutas */}
       {hasPromo && (
         <div className="absolute left-2 top-2 z-10 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow">
-          <Tag size={10} className="mr-0.5 inline" />{promoLabel(product.promotion!)}
+          <Tag size={10} className="mr-0.5 inline" />{promoLabel(activePromo!)}
         </div>
       )}
       {product.is_sponsored && !hasPromo && (
@@ -250,30 +349,62 @@ function ProductCard({
       </button>
 
       {/* Imagem — clicável */}
-      <button onClick={onClick} className="flex h-36 items-center justify-center bg-[#F5F7FB]">
-        {product.image_url
-          ? <img src={product.image_url} alt={product.name} className="h-32 w-32 object-contain" loading="lazy" />
+      <button onClick={handleCardClick} className="flex h-36 items-center justify-center bg-[#F5F7FB] cursor-pointer">
+        {activeImage
+          ? <img src={activeImage} alt={activeName} className="h-32 w-32 object-contain" loading="lazy" />
           : <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-200 text-slate-400"><ShoppingCart size={28} /></div>}
       </button>
 
       {/* Info */}
-      <button onClick={onClick} className="flex flex-1 flex-col gap-1.5 p-4 text-left">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{product.brand}</p>
+      <div className="flex flex-1 flex-col gap-1.5 p-4 text-left">
+        <button onClick={handleCardClick} className="text-left w-full cursor-pointer">
+          <div className="flex items-center justify-between gap-1">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{product.brand}</p>
+            {hasMultipleVariants && (
+              <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">
+                {product.variants!.length} tamanhos
+              </span>
+            )}
+          </div>
           <p className="mt-0.5 text-sm font-semibold leading-tight text-[#0F172A]">{product.name}</p>
           <p className="mt-0.5 text-[11px] text-slate-400">
-            {PACKAGING_LABEL[product.packaging_type] ?? product.packaging_type} · {product.packaging_volume_ml}ml
+            {PACKAGING_LABEL[activeType] ?? activeType} · {activeVolume}ml
           </p>
-        </div>
+        </button>
+
+        {/* Seletores de variantes (Pills no Card) */}
+        {hasMultipleVariants && (
+          <div className="mt-1 flex flex-wrap gap-1 border-t border-[#DBEAFE]/60 pt-1.5" onClick={(e) => e.stopPropagation()}>
+            {product.variants!.map((v) => {
+              const isSelected = v.variant_key === selectedVariantKey;
+              return (
+                <button
+                  key={v.variant_key}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedVariantKey(v.variant_key);
+                  }}
+                  className={`rounded-lg px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer ${
+                    isSelected
+                      ? "bg-[#2563EB] text-white shadow-sm"
+                      : "bg-[#F5F7FB] text-slate-600 hover:bg-blue-50 hover:text-[#2563EB] border border-slate-200"
+                  }`}
+                >
+                  {v.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         <div className="mt-auto pt-1">
           <p className="text-[10px] text-slate-400">A partir de</p>
           <div className="flex items-baseline gap-1">
-            {hasDiscount && <span className="text-xs text-slate-400 line-through">{formatBRL(product.min_price_cents)}</span>}
+            {hasDiscount && <span className="text-xs text-slate-400 line-through">{formatBRL(activeMinPriceCents)}</span>}
             <span className={`text-base font-black ${hasDiscount ? "text-red-600" : "text-[#2563EB]"}`}>
-              {formatBRL(product.effective_price_cents)}
+              {formatBRL(activePriceCents)}
             </span>
-            {/* Tendência de preço */}
             {product.price_trend && product.price_change_pct && (
               <span className={`flex items-center gap-0.5 text-[10px] font-bold ${product.price_trend === "down" ? "text-green-600" : "text-red-500"}`}>
                 {product.price_trend === "down" ? <TrendingDown size={10} /> : <TrendingUp size={10} />}
@@ -282,14 +413,17 @@ function ProductCard({
             )}
           </div>
           <p className="text-[10px] text-slate-400">
-            {product.distributor_count} distribuidora{product.distributor_count !== 1 ? "s" : ""}
+            {activeDistCount} distribuidora{activeDistCount !== 1 ? "s" : ""}
           </p>
         </div>
 
-        <div className="mt-2 flex items-center justify-center gap-1 rounded-xl border border-[#DBEAFE] bg-[#F5F7FB] py-1.5 text-[11px] font-semibold text-slate-400 transition-colors group-hover:border-[#2563EB]/30 group-hover:bg-[#EFF6FF] group-hover:text-[#2563EB]">
+        <button
+          onClick={handleCardClick}
+          className="mt-2 flex items-center justify-center gap-1 rounded-xl border border-[#DBEAFE] bg-[#F5F7FB] py-1.5 text-[11px] font-semibold text-slate-500 transition-colors group-hover:border-[#2563EB]/30 group-hover:bg-[#EFF6FF] group-hover:text-[#2563EB] cursor-pointer"
+        >
           <ShoppingCart size={11} />Ver preços e cotar
-        </div>
-      </button>
+        </button>
+      </div>
     </div>
   );
 }
@@ -936,7 +1070,7 @@ export default function CatalogoPage() {
                   <ProductCard
                     key={p.key}
                     product={p}
-                    onClick={() => setModalProduct(productToModalData(p))}
+                    onOpenDetail={(prod, vKey) => setModalProduct(productToModalData(prod, vKey))}
                     wishlisted={wishlisted.has(p.key)}
                     onToggleWishlist={(e) => toggleWishlist(e, p)}
                     compareChecked={compareList.some((c) => c.key === p.key)}
