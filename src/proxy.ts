@@ -7,7 +7,11 @@ const PUBLIC_PATHS = [
   "/auth/login",
   "/auth/register",
   "/auth/forgot-password",
+  "/auth/esqueci-senha",
   "/auth/reset-password",
+  "/auth/redefinir-senha",
+  "/auth/verify-email",
+  "/auth/verificar-email",
   "/auth/error",
   "/api/auth/login",    // login mobile — retorna JWT no body
   "/api/auth",          // NextAuth (signin, callback, csrf, session…)
@@ -140,8 +144,8 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL(dest, req.url));
   }
 
-  // Usuários já autenticados não devem acessar páginas de auth
-  if (pathname.startsWith("/auth/")) {
+  // Usuários já autenticados não devem acessar páginas de auth (exceto verificação de e-mail)
+  if (pathname.startsWith("/auth/") && !pathname.startsWith("/auth/verify-email") && !pathname.startsWith("/auth/verificar-email")) {
     const dest = role === "client" ? "/cotacao" : "/painel";
     return NextResponse.redirect(new URL(dest, req.url));
   }

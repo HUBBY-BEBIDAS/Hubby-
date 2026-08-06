@@ -324,25 +324,141 @@ async function main() {
       update: { image_url: p.image_url },
     }).catch(() => null); // Ignora conflito de id artificial
   }
-  // Garante catálogo via upsert por (brand+name+volume) de forma mais robusta
-  for (const p of PRODUCT_CATALOG) {
-    await prisma.productCatalog.findFirst({
-      where: { brand: p.brand, name: p.name, packaging_volume_ml: p.packaging_volume_ml },
-    }).then(async (existing) => {
-      if (!existing) {
-        await prisma.productCatalog.create({
-          data: {
-            name: p.name, brand: p.brand,
-            category: p.category as never,
-            packaging_type: p.packaging_type as never,
-            packaging_volume_ml: p.packaging_volume_ml,
-            image_url: p.image_url,
+  // ── 1.5. Popula Catálogo Oficial (MasterProduct) ───────────────────────────
+  await prisma.unmatchedSuggestion.deleteMany({});
+  await prisma.unmatchedImportItem.deleteMany({});
+  await prisma.masterProductAlias.deleteMany({});
+  await prisma.productImage.deleteMany({});
+  await prisma.masterProduct.deleteMany({});
+
+  const masterCatalogData = [
+    {
+      ean_code: "7891991000833",
+      brand: "Heineken",
+      name: "Heineken Long Neck 330ml",
+      category: "beer",
+      package_type: "garrafa",
+      unit_volume_ml: 330,
+      units_per_package: 1,
+      image_url: "https://images.unsplash.com/photo-1608270586620-248524c67de9?w=400&h=400&fit=crop&q=80",
+      aliases: ["heineken ln 330", "hein long neck", "hein 330", "heineken vidro 330ml"],
+    },
+    {
+      ean_code: "7891991000840",
+      brand: "Heineken",
+      name: "Heineken Lata 350ml",
+      category: "beer",
+      package_type: "lata",
+      unit_volume_ml: 350,
+      units_per_package: 1,
+      image_url: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=400&fit=crop&q=80",
+      aliases: ["hein lata 350", "heineken 350ml lata", "hein lt 350"],
+    },
+    {
+      ean_code: "7891991000857",
+      brand: "Heineken",
+      name: "Heineken Latão 473ml",
+      category: "beer",
+      package_type: "lata",
+      unit_volume_ml: 473,
+      units_per_package: 1,
+      image_url: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=400&fit=crop&q=80",
+      aliases: ["hein latao 473", "heineken 473ml lata"],
+    },
+    {
+      ean_code: "7891991001007",
+      brand: "Corona",
+      name: "Corona Extra Long Neck 330ml",
+      category: "beer",
+      package_type: "garrafa",
+      unit_volume_ml: 330,
+      units_per_package: 1,
+      image_url: "https://images.unsplash.com/photo-1561247226-cf2e57d7d13d?w=400&h=400&fit=crop&q=80",
+      aliases: ["corona extra ln", "corona 330", "corona vidro"],
+    },
+    {
+      ean_code: "7891991001106",
+      brand: "Budweiser",
+      name: "Budweiser Long Neck 330ml",
+      category: "beer",
+      package_type: "garrafa",
+      unit_volume_ml: 330,
+      units_per_package: 1,
+      image_url: "https://images.unsplash.com/photo-1567696911980-2eed69a46f4a?w=400&h=400&fit=crop&q=80",
+      aliases: ["bud long neck", "budweiser 330", "bud ln"],
+    },
+    {
+      ean_code: "7891991002011",
+      brand: "Skol",
+      name: "Skol Pilsen Lata 350ml",
+      category: "beer",
+      package_type: "lata",
+      unit_volume_ml: 350,
+      units_per_package: 1,
+      image_url: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=400&fit=crop&q=80",
+      aliases: ["skol 350", "skol pilsen lata"],
+    },
+    {
+      ean_code: "7891991003018",
+      brand: "Brahma",
+      name: "Brahma Chopp Lata 350ml",
+      category: "beer",
+      package_type: "lata",
+      unit_volume_ml: 350,
+      units_per_package: 1,
+      image_url: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=400&fit=crop&q=80",
+      aliases: ["brahma 350", "brahma chopp lata"],
+    },
+    {
+      ean_code: "9002490100070",
+      brand: "Red Bull",
+      name: "Red Bull Energy Drink 250ml",
+      category: "energy",
+      package_type: "lata",
+      unit_volume_ml: 250,
+      units_per_package: 1,
+      image_url: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=400&fit=crop&q=80",
+      aliases: ["red bull 250", "redbull lata 250ml"],
+    },
+  ];
+
+  for (const item of masterCatalogData) {
+    const created = await prisma.masterProduct.create({
+      data: {
+        ean_code: item.ean_code,
+        brand: item.brand,
+        name: item.name,
+        category: item.category as never,
+        package_type: item.package_type as never,
+        unit_volume_ml: item.unit_volume_ml,
+        units_per_package: item.units_per_package,
+        status: "active",
+        images: {
+          create: {
+            url: item.image_url,
+            format: "webp",
+            image_type: "frontal",
+            is_primary: true,
           },
-        });
-      }
+        },
+      },
     });
+
+    for (const alias of item.aliases) {
+      const cleanAlias = alias.toLowerCase().trim();
+      await prisma.masterProductAlias.create({
+        data: {
+          master_product_id: created.id,
+          raw_name: alias,
+          normalized_name: cleanAlias,
+          created_by: "system_seed",
+          approved_count: 5,
+        },
+      });
+    }
   }
-  console.log(`  📸 Catálogo de ${PRODUCT_CATALOG.length} produtos atualizado.`);
+
+  console.log(`  📸 Catálogo de ${PRODUCT_CATALOG.length} produtos legados e ${masterCatalogData.length} MasterProducts oficiais atualizados.`);
 
   // ── 2. Cria distribuidoras ────────────────────────────────────────────────
   const distributorMap = new Map<string, { id: string; userId: string; products: { id: string; name: string; brand: string; category: string; price_cents: number; packaging_volume_ml: number }[] }>();

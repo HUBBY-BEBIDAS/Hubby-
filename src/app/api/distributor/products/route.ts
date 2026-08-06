@@ -4,6 +4,7 @@ import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
 import { markDistributorProductsUpdated } from "@/lib/ranking-cache";
 import { ProductCategory, PackagingType } from "@prisma/client";
+import { processProductMatchingPipeline } from "@/lib/matching-engine";
 
 // ─── GET /api/distributor/products ───────────────────────────────────────────
 
@@ -81,24 +82,27 @@ export const POST = withAuth(
       return Response.json({ error: "Perfil não encontrado" }, { status: 404 });
     }
 
-    // Tenta associar imagem do catálogo central pela primeiras palavras do nome + marca + volume
-    const nameTokens = parsed.data.name.split(" ").slice(0, 3).join(" ");
-    const catalogMatch = await prisma.productCatalog.findFirst({
-      where: {
-        brand: { equals: parsed.data.brand, mode: "insensitive" },
-        name:  { contains: nameTokens, mode: "insensitive" },
-        packaging_volume_ml: parsed.data.packaging_volume_ml,
-      },
-      select: { image_url: true },
+    // Executa o pipeline de matching inteligente
+    const matchResult = await processProductMatchingPipeline({
+      rawName: parsed.data.name,
+      brand: parsed.data.brand,
+      packageType: parsed.data.packaging_type as PackagingType,
+      unitVolumeMl: parsed.data.packaging_volume_ml,
+      distributorId: distributor.id,
     });
+
+    const primaryImageUrl = matchResult.isMatched
+      ? matchResult.masterProduct.images?.find((i) => i.is_primary)?.url ?? matchResult.masterProduct.images?.[0]?.url ?? null
+      : null;
 
     const product = await prisma.product.create({
       data: {
         distributor_id: distributor.id,
         ...parsed.data,
         price_updated_at: new Date(),
-        image_url:    catalogMatch?.image_url ?? null,
-        image_source: catalogMatch ? "hubby_catalog" : "none",
+        master_product_id: matchResult.isMatched ? matchResult.masterProduct.id : null,
+        image_url: primaryImageUrl,
+        image_source: matchResult.isMatched && primaryImageUrl ? "hubby_catalog" : "none",
       },
     });
 

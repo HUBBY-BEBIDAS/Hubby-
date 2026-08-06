@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -8,6 +9,8 @@ import { validateCnpjReceita } from "@/lib/cnpj";
 import { isCovered, normalizeCityName } from "@/lib/coverage";
 import { ensureUniqueCode } from "@/lib/referral";
 import { checkLoginRateLimit } from "@/lib/rate-limit";
+import { storeEmailVerificationToken } from "@/lib/redis";
+import { sendEmailVerificationEmail } from "@/lib/email";
 
 const cnpjField = z
   .string()
@@ -139,6 +142,7 @@ export async function POST(req: NextRequest) {
     }
 
     const password_hash = await bcrypt.hash(d.password, 12);
+    let createdUserId: string | undefined;
 
     if (d.role === "client") {
       // Valida CNPJ na Receita Federal via ReceitaWS
@@ -174,6 +178,7 @@ export async function POST(req: NextRequest) {
             role: "client",
           },
         });
+        createdUserId = user.id;
 
         await tx.client.create({
           data: {
@@ -215,6 +220,7 @@ export async function POST(req: NextRequest) {
             role: "distributor_admin",
           },
         });
+        createdUserId = user.id;
 
         const dist = await tx.distributor.create({
           data: {
@@ -253,6 +259,17 @@ export async function POST(req: NextRequest) {
           update: {},
         }).catch(() => {}); // ignore if already on waitlist
       }
+    }
+
+    // Dispara e-mail de verificação em background
+    if (createdUserId) {
+      const verifyToken = crypto.randomBytes(32).toString("hex");
+      await storeEmailVerificationToken(verifyToken, createdUserId).catch((err) => {
+        console.error("[register] erro ao salvar token de verificação:", err);
+      });
+      sendEmailVerificationEmail(d.email, verifyToken).catch((err) => {
+        console.error("[register] erro ao enviar e-mail de verificação:", err);
+      });
     }
 
     return Response.json({ ok: true, coverage_warning }, { status: 201 });

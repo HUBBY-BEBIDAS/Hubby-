@@ -12,6 +12,12 @@ function sanitizeEmail(email: string): string {
   return email.replace(/[\r\n\t]/g, "");
 }
 
+function getFromAddress(): string {
+  const from = process.env.EMAIL_FROM ?? "contato@hubby.com.br";
+  if (from.includes("<")) return from;
+  return `"HUBBY" <${from}>`;
+}
+
 function createTransporter() {
   return nodemailer.createTransport({
     host: process.env.EMAIL_SMTP_HOST,
@@ -149,7 +155,7 @@ Acesse o painel para responder: ${panelUrl}
 
   const transporter = createTransporter();
   await transporter.sendMail({
-    from: `"HUBBY" <${process.env.EMAIL_FROM ?? "contato@hubby.com.br"}>`,
+    from: getFromAddress(),
     to: safeEmail,
     subject,
     text,
@@ -239,7 +245,7 @@ Se não houver resposta em 7 dias, o sistema registrará automaticamente como "s
 
   const transporter = createTransporter();
   await transporter.sendMail({
-    from: `"HUBBY" <${process.env.EMAIL_FROM ?? "contato@hubby.com.br"}>`,
+    from: getFromAddress(),
     to: safeEmail,
     subject: `Feedback de pagamento — pedido de ${clientName}`,
     text,
@@ -253,25 +259,155 @@ export async function sendPasswordResetEmail(
   to: string,
   resetToken: string
 ): Promise<void> {
+  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`;
+
+  if (!process.env.EMAIL_SMTP_HOST) {
+    console.log(`[email] Redefinição de senha para ${to} | link: ${resetUrl}`);
+    return;
+  }
+
   const safeEmail = sanitizeEmail(to);
-  const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${resetToken}`;
+
+  const text = `
+HUBBY — Redefinição de Senha
+
+Você solicitou a redefinição de senha da sua conta no HUBBY.
+
+Clique no link abaixo para cadastrar uma nova senha (válido por 30 minutos):
+${resetUrl}
+
+Se você não solicitou essa alteração, nenhuma ação é necessária. Sua senha continuará a mesma.
+`.trim();
+
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F5F7FB;font-family:system-ui,sans-serif;">
+  <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:16px;border:1px solid #DBEAFE;overflow:hidden;">
+    <div style="background:#2563EB;padding:24px 32px;">
+      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#93C5FD;">HUBBY</p>
+      <h1 style="margin:8px 0 0;font-size:22px;font-weight:900;color:#fff;">Redefinição de Senha</h1>
+    </div>
+    <div style="padding:24px 32px;">
+      <p style="margin:0 0 16px;color:#0F172A;font-size:15px;">
+        Recebemos uma solicitação para redefinir a senha da sua conta no <strong>HUBBY</strong>.
+      </p>
+      <p style="margin:0 0 24px;color:#475569;font-size:14px;">
+        Clique no botão abaixo para escolher uma nova senha. Este link é válido por <strong>30 minutos</strong>.
+      </p>
+
+      <div style="margin-bottom:24px;">
+        <a href="${resetUrl}" style="display:inline-block;background:#2563EB;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">
+          Redefinir minha senha →
+        </a>
+      </div>
+
+      <p style="margin:0 0 8px;font-size:12px;color:#94A3B8;">
+        Ou copie e cole o link no seu navegador:
+      </p>
+      <p style="margin:0 0 20px;font-size:12px;word-break:break-all;color:#2563EB;">
+        ${resetUrl}
+      </p>
+
+      <p style="margin:0;font-size:12px;color:#94A3B8;">
+        Se você não solicitou esta redefinição, pode ignorar este e-mail em segurança. Sua senha não sofrerá nenhuma alteração.
+      </p>
+    </div>
+    <div style="padding:16px 32px;border-top:1px solid #DBEAFE;font-size:12px;color:#94A3B8;">
+      HUBBY — Plataforma B2B de cotação de bebidas
+    </div>
+  </div>
+</body>
+</html>`.trim();
 
   const transporter = createTransporter();
-
   await transporter.sendMail({
-    from: `"HUBBY" <${process.env.EMAIL_FROM ?? "contato@hubby.com.br"}>`,
+    from: getFromAddress(),
     to: safeEmail,
-    subject: "Redefinição de senha — SIC",
-    text: `Clique no link para redefinir sua senha (válido por 30 minutos):\n\n${resetUrl}\n\nSe você não solicitou isso, ignore este email.`,
-    html: `
-      <p>Você solicitou a redefinição de senha na plataforma <strong>SIC</strong>.</p>
-      <p>
-        <a href="${resetUrl}" style="background:#1d4ed8;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block;">
-          Redefinir senha
-        </a>
-      </p>
-      <p>Este link expira em <strong>30 minutos</strong>.</p>
-      <p>Se você não solicitou isso, ignore este email — sua senha não será alterada.</p>
-    `,
+    subject: "Redefinição de senha — HUBBY",
+    text,
+    html,
   });
 }
+
+// ─── Email de verificação de conta ────────────────────────────────────────────
+
+export async function sendEmailVerificationEmail(
+  to: string,
+  verificationToken: string
+): Promise<void> {
+  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const verifyUrl = `${baseUrl}/auth/verify-email?token=${verificationToken}`;
+
+  if (!process.env.EMAIL_SMTP_HOST) {
+    console.log(`[email] Verificação de e-mail para ${to} | link: ${verifyUrl}`);
+    return;
+  }
+
+  const safeEmail = sanitizeEmail(to);
+
+  const text = `
+HUBBY — Confirmação de E-mail
+
+Obrigado por se cadastrar no HUBBY!
+
+Para ativar totalmente sua conta e garantir seu acesso, confirme seu e-mail clicando no link abaixo (válido por 24 horas):
+${verifyUrl}
+
+Se você não criou esta conta, nenhuma ação é necessária.
+`.trim();
+
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F5F7FB;font-family:system-ui,sans-serif;">
+  <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:16px;border:1px solid #DBEAFE;overflow:hidden;">
+    <div style="background:#2563EB;padding:24px 32px;">
+      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#93C5FD;">HUBBY</p>
+      <h1 style="margin:8px 0 0;font-size:22px;font-weight:900;color:#fff;">Confirme seu e-mail</h1>
+    </div>
+    <div style="padding:24px 32px;">
+      <p style="margin:0 0 16px;color:#0F172A;font-size:15px;">
+        Bem-vindo ao <strong>HUBBY</strong>!
+      </p>
+      <p style="margin:0 0 24px;color:#475569;font-size:14px;">
+        Para garantir a segurança da sua conta e ter acesso completo à plataforma B2B de cotação de bebidas, confirme seu endereço de e-mail clicando no botão abaixo:
+      </p>
+
+      <div style="margin-bottom:24px;">
+        <a href="${verifyUrl}" style="display:inline-block;background:#2563EB;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">
+          Confirmar meu e-mail →
+        </a>
+      </div>
+
+      <p style="margin:0 0 8px;font-size:12px;color:#94A3B8;">
+        Ou copie e cole o link no seu navegador:
+      </p>
+      <p style="margin:0 0 20px;font-size:12px;word-break:break-all;color:#2563EB;">
+        ${verifyUrl}
+      </p>
+
+      <p style="margin:0;font-size:12px;color:#94A3B8;">
+        Este link expira em 24 horas. Se você não criou uma conta no HUBBY, ignore esta mensagem.
+      </p>
+    </div>
+    <div style="padding:16px 32px;border-top:1px solid #DBEAFE;font-size:12px;color:#94A3B8;">
+      HUBBY — Plataforma B2B de cotação de bebidas
+    </div>
+  </div>
+</body>
+</html>`.trim();
+
+  const transporter = createTransporter();
+  await transporter.sendMail({
+    from: getFromAddress(),
+    to: safeEmail,
+    subject: "Confirme seu e-mail — HUBBY",
+    text,
+    html,
+  });
+}
+

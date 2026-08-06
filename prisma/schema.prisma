@@ -119,6 +119,27 @@ enum ImageSource {
   none
 }
 
+enum MasterProductStatus {
+  active
+  draft
+  archived
+}
+
+enum UnmatchedStatus {
+  pending
+  matched
+  ignored
+}
+
+enum MatchingSource {
+  ean
+  alias
+  attributes
+  similarity
+  ai
+  admin_manual
+}
+
 enum ProductCategory {
   beer
   whisky
@@ -143,6 +164,8 @@ model User {
   role               Role
   two_factor_enabled Boolean   @default(false)
   two_factor_secret  String?
+  email_verified     Boolean   @default(false)
+  email_verified_at  DateTime?
   created_at         DateTime  @default(now())
   last_login_at      DateTime?
 
@@ -315,6 +338,7 @@ model Distributor {
   team_members        DistributorTeamMember[]
   referral            Referral?
   chat_rooms          ChatRoom[]
+  unmatched_import_items UnmatchedImportItem[]
 
   @@map("distributors")
 }
@@ -360,6 +384,8 @@ model Product {
   urgency_notified_at  DateTime? // quando compradores foram notificados (≤7 dias)
 
   distributor        Distributor      @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+  master_product_id  String?
+  master_product     MasterProduct?   @relation(fields: [master_product_id], references: [id], onDelete: SetNull)
   promotions         Promotion[]
   near_expiry_offers NearExpiryOffer[]
   cart_items         CartItem[]
@@ -790,4 +816,117 @@ model ChatMessage {
 
   @@index([room_id])
   @@map("chat_messages")
+}
+
+model MasterProduct {
+  id                 String              @id @default(uuid())
+  ean_code           String?             @unique
+  brand              String
+  manufacturer       String?
+  name               String
+  category           ProductCategory
+  subcategory        String?
+  unit_volume_ml     Int
+  units_per_package  Int                 @default(1)
+  package_type       PackagingType
+  alcohol_percentage Float?
+  status             MasterProductStatus @default(active)
+  created_at         DateTime            @default(now())
+  updated_at         DateTime            @updatedAt
+
+  images             ProductImage[]
+  aliases            MasterProductAlias[]
+  matched_products   Product[]
+  suggestions        UnmatchedSuggestion[]
+  matching_histories MatchingHistory[]
+
+  @@index([brand, name])
+  @@index([ean_code])
+  @@map("master_products")
+}
+
+model ProductImage {
+  id                String        @id @default(uuid())
+  master_product_id String
+  url               String
+  width             Int?
+  height            Int?
+  format            String?       // "webp", "png", "jpg"
+  image_type        String        @default("frontal") // "frontal", "lateral", "pack"
+  is_primary        Boolean       @default(false)
+  created_at        DateTime      @default(now())
+
+  master_product MasterProduct @relation(fields: [master_product_id], references: [id], onDelete: Cascade)
+
+  @@index([master_product_id])
+  @@map("product_images")
+}
+
+model MasterProductAlias {
+  id                String        @id @default(uuid())
+  master_product_id String
+  raw_name          String
+  normalized_name   String
+  created_by        String        @default("system_auto") // "system_auto" ou userId do admin
+  approved_count    Int           @default(1)
+  last_used_at      DateTime      @default(now())
+  created_at        DateTime      @default(now())
+
+  master_product MasterProduct @relation(fields: [master_product_id], references: [id], onDelete: Cascade)
+
+  @@unique([master_product_id, normalized_name])
+  @@index([normalized_name])
+  @@map("master_product_aliases")
+}
+
+model UnmatchedImportItem {
+  id                  String              @id @default(uuid())
+  distributor_id      String
+  raw_name            String
+  ean_code            String?
+  brand_extracted     String?
+  packaging_extracted String?
+  volume_extracted_ml Int?
+  status              UnmatchedStatus     @default(pending)
+  created_at          DateTime            @default(now())
+
+  distributor Distributor           @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+  suggestions UnmatchedSuggestion[]
+
+  @@index([distributor_id])
+  @@index([status])
+  @@map("unmatched_import_items")
+}
+
+model UnmatchedSuggestion {
+  id                  String   @id @default(uuid())
+  unmatched_import_id String
+  master_product_id   String
+  confidence          Float    // ex: 0.98 para 98%
+  rank                Int      // 1, 2, 3
+  created_at          DateTime @default(now())
+
+  unmatched_import UnmatchedImportItem @relation(fields: [unmatched_import_id], references: [id], onDelete: Cascade)
+  master_product   MasterProduct       @relation(fields: [master_product_id], references: [id], onDelete: Cascade)
+
+  @@unique([unmatched_import_id, master_product_id])
+  @@index([unmatched_import_id])
+  @@map("unmatched_suggestions")
+}
+
+model MatchingHistory {
+  id                String         @id @default(uuid())
+  distributor_id    String?
+  raw_name          String
+  matched_by        MatchingSource
+  master_product_id String
+  confidence        Float
+  duration_ms       Int
+  created_at        DateTime       @default(now())
+
+  master_product MasterProduct @relation(fields: [master_product_id], references: [id], onDelete: Cascade)
+
+  @@index([master_product_id])
+  @@index([matched_by])
+  @@map("matching_histories")
 }

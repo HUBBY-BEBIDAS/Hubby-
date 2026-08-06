@@ -197,3 +197,24 @@ export async function consumePasswordResetToken(token: string): Promise<string |
   }
   return userId;
 }
+
+// ---------------------------------------------------------------------------
+// Tokens de verificação de e-mail
+// ---------------------------------------------------------------------------
+
+const VERIFY_TOKEN_PREFIX = "verify:token:";
+const VERIFY_TTL = 86400; // 24 horas
+
+export async function storeEmailVerificationToken(token: string, userId: string): Promise<void> {
+  await redis.setex(`${VERIFY_TOKEN_PREFIX}${token}`, VERIFY_TTL, userId);
+}
+
+export async function consumeEmailVerificationToken(token: string): Promise<string | null> {
+  const key = `${VERIFY_TOKEN_PREFIX}${token}`;
+  const userId = await redis.get(key);
+  if (userId) {
+    await redis.del(key);
+  }
+  return userId;
+}
+
