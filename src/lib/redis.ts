@@ -6,8 +6,22 @@ import IORedis from "ioredis";
 
 type MemEntry = { value: string; expiresAt: number | null };
 
-class MemoryStore {
-  private store = new Map<string, MemEntry>();
+const globalStore = globalThis as unknown as {
+  activeRedis: RedisLike | undefined;
+  memMap: Map<string, MemEntry> | undefined;
+};
+
+if (!globalStore.memMap) {
+  globalStore.memMap = new Map<string, MemEntry>();
+}
+
+class MemoryStore implements RedisLike {
+  private get store(): Map<string, MemEntry> {
+    if (!globalStore.memMap) {
+      globalStore.memMap = new Map<string, MemEntry>();
+    }
+    return globalStore.memMap;
+  }
 
   private isExpired(entry: MemEntry): boolean {
     return entry.expiresAt !== null && entry.expiresAt <= Date.now();
@@ -60,9 +74,20 @@ export interface RedisLike {
 // Singleton — tenta Redis real; cai para MemoryStore quando indisponível
 // ---------------------------------------------------------------------------
 
-const globalStore = globalThis as unknown as {
-  activeRedis: RedisLike | undefined;
-};
+const fallbackStore = new MemoryStore();
+
+async function safeExec<T>(op: (client: RedisLike) => Promise<T>): Promise<T> {
+  try {
+    const client = getActiveClient();
+    return await op(client);
+  } catch {
+    if (globalStore.activeRedis !== fallbackStore) {
+      console.warn("[redis] Falha na chamada Redis — alternando para MemoryStore em fallback.");
+      globalStore.activeRedis = fallbackStore;
+    }
+    return await op(fallbackStore);
+  }
+}
 
 /**
  * Proxy que sempre delega ao cliente ativo em `globalStore.activeRedis`.
@@ -71,11 +96,11 @@ const globalStore = globalThis as unknown as {
  * e todas as operações subsequentes passam a usar o store em memória.
  */
 const redisProxy: RedisLike = {
-  get:    (key)           => getActiveClient().get(key),
-  set:    (key, value)    => getActiveClient().set(key, value),
-  setex:  (key, ttl, val) => getActiveClient().setex(key, ttl, val),
-  del:    (key)           => getActiveClient().del(key),
-  exists: (key)           => getActiveClient().exists(key),
+  get:    (key)           => safeExec((c) => c.get(key)),
+  set:    (key, value)    => safeExec((c) => c.set(key, value)),
+  setex:  (key, ttl, val) => safeExec((c) => c.setex(key, ttl, val)),
+  del:    (key)           => safeExec((c) => c.del(key)),
+  exists: (key)           => safeExec((c) => c.exists(key)),
 };
 
 function getActiveClient(): RedisLike {
@@ -189,6 +214,16 @@ export async function storePasswordResetToken(token: string, userId: string): Pr
   await redis.setex(`${RESET_TOKEN_PREFIX}${token}`, RESET_TTL, userId);
 }
 
+export async function getPasswordResetToken(token: string): Promise<string | null> {
+  const key = `${RESET_TOKEN_PREFIX}${token}`;
+  return await redis.get(key);
+}
+
+export async function deletePasswordResetToken(token: string): Promise<void> {
+  const key = `${RESET_TOKEN_PREFIX}${token}`;
+  await redis.del(key);
+}
+
 export async function consumePasswordResetToken(token: string): Promise<string | null> {
   const key = `${RESET_TOKEN_PREFIX}${token}`;
   const userId = await redis.get(key);
@@ -207,6 +242,16 @@ const VERIFY_TTL = 86400; // 24 horas
 
 export async function storeEmailVerificationToken(token: string, userId: string): Promise<void> {
   await redis.setex(`${VERIFY_TOKEN_PREFIX}${token}`, VERIFY_TTL, userId);
+}
+
+export async function getEmailVerificationToken(token: string): Promise<string | null> {
+  const key = `${VERIFY_TOKEN_PREFIX}${token}`;
+  return await redis.get(key);
+}
+
+export async function deleteEmailVerificationToken(token: string): Promise<void> {
+  const key = `${VERIFY_TOKEN_PREFIX}${token}`;
+  await redis.del(key);
 }
 
 export async function consumeEmailVerificationToken(token: string): Promise<string | null> {
