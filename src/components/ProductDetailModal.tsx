@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { useQuotation } from "@/contexts/QuotationContext";
+import { DistributorRatingBadge } from "@/components/DistributorRatingBadge";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,8 @@ type DistributorOffer = {
   freight_value_cents:      number | null;
   free_freight_above_cents: number | null;
   freight_notes:            string | null;
+  average_rating?:          number | null;
+  review_count?:            number;
 };
 
 type PricePoint = { price_cents: number; recorded_at: string };
@@ -405,6 +408,10 @@ export function ProductDetailModal({ product, onClose }: Props) {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-sm font-bold text-[#0F172A]">{offer.company_name}</p>
+                            <DistributorRatingBadge
+                              rating={offer.average_rating}
+                              reviewCount={offer.review_count}
+                            />
                             {isCheapest && (
                               <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
                                 Mais barato

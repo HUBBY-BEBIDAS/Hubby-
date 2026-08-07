@@ -11,6 +11,7 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { Heart, Star, MapPin, Check, X, Sparkles, ShoppingCart, MessageSquare } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useQuotation } from "@/contexts/QuotationContext";
+import { DistributorRatingBadge } from "@/components/DistributorRatingBadge";
 
 // ─── Tipos da API ─────────────────────────────────────────────────────────────
 
@@ -533,7 +534,7 @@ export default function RankingPage() {
   const router = useRouter();
   const token = useApiToken();
   const { addItem: addToCart, isInCart, openDrawer: openCartDrawer } = useCart();
-  const { refetch: refetchQuotation } = useQuotation();
+  const { refetch: refetchQuotation, clearQuotation } = useQuotation();
 
   const [ranking, setRanking] = useState<RankingResult | null>(null);
   const [loadingRanking, setLoadingRanking] = useState(true);
@@ -1017,6 +1018,7 @@ export default function RankingPage() {
         }
       }
 
+      clearQuotation();
       refetchQuotation().catch(() => {});
 
       if (channel === "chat") {
@@ -1107,6 +1109,9 @@ export default function RankingPage() {
       }
 
       setDistState((prev) => new Map(prev).set(distId, "sent"));
+      
+      // Limpa cotação ativa e rascunho
+      clearQuotation();
 
       // Atualiza mapa de credenciais aprovadas
       const orderResult = data.orders?.[0];
@@ -1254,7 +1259,13 @@ export default function RankingPage() {
                 <div className={["border-b px-5 py-3 flex items-center justify-between", isSent ? "border-green-200" : "border-[#DBEAFE]"].join(" ")}>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Distribuidora</p>
-                    <p className="font-semibold text-[#0F172A]">{group.entry.company_name}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold text-[#0F172A]">{group.entry.company_name}</p>
+                      <DistributorRatingBadge
+                        rating={group.entry.average_rating}
+                        reviewCount={group.entry.review_count}
+                      />
+                    </div>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleStartChat(distId); }}
@@ -1993,12 +2004,10 @@ export default function RankingPage() {
                               Mais próxima
                             </span>
                           )}
-                          {offer.average_rating !== null && offer.review_count > 0 && (
-                            <span className="inline-flex items-center gap-0.5 text-[11px] text-slate-500">
-                              <Star size={11} className="fill-amber-400 text-amber-400" />
-                              {offer.average_rating.toFixed(1)} ({offer.review_count})
-                            </span>
-                          )}
+                          <DistributorRatingBadge
+                            rating={offer.average_rating}
+                            reviewCount={offer.review_count}
+                          />
                         </div>
                         <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                           <p className="text-xs text-slate-400">{offer.estimated_delivery_date}</p>

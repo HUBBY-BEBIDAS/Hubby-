@@ -45,6 +45,7 @@ interface QuotationContextValue {
   dismissToast: () => void;
   addItem:      (params: AddItemParams) => Promise<void>;
   refetch:      () => Promise<void>;
+  clearQuotation: () => void;
 }
 
 const QuotationContext = createContext<QuotationContextValue | null>(null);
@@ -88,6 +89,13 @@ export function QuotationProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     fetchOpenQuotation();
   }, [fetchOpenQuotation]);
+
+  const clearQuotation = useCallback(() => {
+    setQuotation(null);
+    try {
+      localStorage.removeItem("hubby_draft_quotation_items");
+    } catch {}
+  }, []);
 
   function showToast(message: string, quotation_id: string) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -153,6 +161,7 @@ export function QuotationProvider({ children }: { children: React.ReactNode }) {
         dismissToast: () => setToast(null),
         addItem,
         refetch: fetchOpenQuotation,
+        clearQuotation,
       }}
     >
       {children}
