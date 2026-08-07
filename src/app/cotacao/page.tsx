@@ -9,7 +9,7 @@ import { Navbar } from "@/components/Navbar";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { ProductAutocomplete, formatPackaging } from "@/components/ui/ProductAutocomplete";
 import type { ProductSearchResult } from "@/app/api/products/search/route";
-import { MapPin, ChevronDown, Plus, Check } from "lucide-react";
+import { MapPin, ChevronDown, Plus, Check, Search } from "lucide-react";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -40,6 +40,7 @@ type ClientProfile = {
   delivery_city: string;
   delivery_state: string;
   delivery_zip_code: string | null;
+  delivery_address_full?: string;
   client_plan: string;
   last_used_address_id: string | null;
   delivery_addresses: DeliveryAddress[];
@@ -79,6 +80,8 @@ function AddressSection({
   const [mode, setMode] = useState<"idle" | "editing" | "selecting">("idle");
   const [cepInput, setCepInput] = useState("");
   const [cepLookup, setCepLookup] = useState<CepResult | null>(null);
+  const [streetNumber, setStreetNumber] = useState("");
+  const [complement, setComplement] = useState("");
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -111,9 +114,16 @@ function AddressSection({
   const displayState = activeAddress?.state ?? profile?.delivery_state ?? "";
 
   // ── Lookup de CEP ────────────────────────────────────────────────────────
-  const lookupCep = useCallback(async (raw: string) => {
+  const lookupCep = useCallback(async (raw: string, isManualTrigger = false) => {
     const digits = raw.replace(/\D/g, "");
-    if (digits.length !== 8 || !token) return;
+    if (!token) return;
+    if (digits.length !== 8) {
+      if (isManualTrigger) {
+        setCepError(`O CEP deve conter 8 dígitos (ex: 09580-900). Você digitou apenas ${digits.length} dígito(s).`);
+        setCepLookup(null);
+      }
+      return;
+    }
     setCepLoading(true);
     setCepError("");
     setCepLookup(null);
@@ -130,8 +140,7 @@ function AddressSection({
       if (profileCity && normalizeName(data.city) !== normalizeName(profileCity)) {
         setCepError(
           `Este CEP pertence a "${data.city}", mas o seu endereço de entrega está cadastrado como "${profileCity}". ` +
-          `O CEP deve pertencer à mesma cidade do seu cadastro. ` +
-          `Você pode atualizar sua cidade em Perfil → Meu Perfil.`
+          `O CEP deve pertencer à mesma cidade do seu cadastro.`
         );
         setCepLookup(null);
         return;
@@ -139,7 +148,7 @@ function AddressSection({
 
       setCepLookup(data);
     } catch {
-      setCepError("Erro ao consultar CEP");
+      setCepError("Erro ao consultar CEP. Tente novamente.");
     } finally {
       setCepLoading(false);
     }
@@ -147,15 +156,26 @@ function AddressSection({
 
   useEffect(() => {
     const digits = cepInput.replace(/\D/g, "");
-    if (digits.length === 8) { lookupCep(digits); }
+    if (digits.length === 8) { lookupCep(digits, false); }
     else { setCepLookup(null); setCepError(""); }
   }, [cepInput, lookupCep]);
 
   // ── Salvar CEP no perfil ──────────────────────────────────────────────────
   async function saveCepToProfile(result: CepResult) {
     if (!token) return;
+    if (!streetNumber.trim()) {
+      setCepError("Por favor, informe o número do estabelecimento (ou S/N).");
+      return;
+    }
     setSaving(true);
     try {
+      const num = streetNumber.trim();
+      const comp = complement.trim() ? ` (${complement.trim()})` : "";
+      const formattedStreet = result.street
+        ? `${result.street}, nº ${num}${comp}${result.district ? `, Bairro ${result.district}` : ""}`
+        : `nº ${num}${comp}`;
+      const fullAddress = `${formattedStreet} - ${result.city}/${result.state} - CEP ${result.zip_code}`;
+
       await apiFetch("/api/profile", {
         method: "PATCH",
         token,
@@ -163,19 +183,20 @@ function AddressSection({
           delivery_zip_code:    result.zip_code,
           delivery_city:        result.city,
           delivery_state:       result.state,
-          delivery_address_full: result.street
-            ? `${result.street}${result.district ? ", " + result.district : ""}`
-            : profile?.delivery_city ?? "",
+          delivery_address_full: fullAddress,
         }),
       });
       onProfileUpdate({
-        delivery_zip_code: result.zip_code,
-        delivery_city:     result.city,
-        delivery_state:    result.state,
+        delivery_zip_code:     result.zip_code,
+        delivery_city:         result.city,
+        delivery_state:        result.state,
+        delivery_address_full: fullAddress,
       });
       setShowCepPrompt(false);
       setMode("idle");
       setCepInput("");
+      setStreetNumber("");
+      setComplement("");
       setCepLookup(null);
     } catch {
       setCepError("Erro ao salvar. Tente novamente.");
@@ -272,32 +293,83 @@ function AddressSection({
               inputMode="numeric"
               placeholder="00000-000"
               value={cepInput}
-              onChange={(e) => setCepInput(formatZip(e.target.value))}
+              onChange={(e) => {
+                setCepInput(formatZip(e.target.value));
+                setCepError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  lookupCep(cepInput, true);
+                }
+              }}
               maxLength={9}
               className="flex-1 rounded-xl border border-[#DBEAFE] bg-[#F5F7FB] px-3 py-2.5 text-sm text-[#0F172A] placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none"
             />
-            {cepLoading && (
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" />
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => lookupCep(cepInput, true)}
+              disabled={cepLoading || !cepInput.trim()}
+              className="flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#1D4ED8] disabled:opacity-50 shrink-0"
+            >
+              {cepLoading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <>
+                  <Search size={13} /> Buscar CEP
+                </>
+              )}
+            </button>
           </div>
-          {cepError && <p className="mt-1.5 text-xs text-red-600">{cepError}</p>}
+          <p className="mt-1.5 text-[11px] text-slate-400">
+            Digite os 8 dígitos do CEP (ex: 09580-900). A busca ocorre automaticamente ao completar os 8 números ou clicando em Buscar.
+          </p>
+          {cepError && <p className="mt-1.5 text-xs text-red-600 font-medium">{cepError}</p>}
           {cepLookup && (
-            <div className="mt-2 rounded-xl bg-[#EFF6FF] px-3 py-2.5">
-              <p className="text-xs font-semibold text-[#0F172A]">{cepLookup.city}, {cepLookup.state}</p>
-              {cepLookup.street && <p className="text-[11px] text-slate-500">{cepLookup.street}{cepLookup.district ? ", " + cepLookup.district : ""}</p>}
+            <div className="mt-3 rounded-2xl bg-[#EFF6FF] p-3.5 border border-blue-100 space-y-3">
+              <div>
+                <p className="text-xs font-bold text-[#0F172A]">{cepLookup.city}, {cepLookup.state}</p>
+                {cepLookup.street && <p className="text-[11px] font-medium text-slate-600">{cepLookup.street}{cepLookup.district ? `, Bairro ${cepLookup.district}` : ""}</p>}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">
+                    Número do Estabelecimento <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: 1000 ou S/N"
+                    value={streetNumber}
+                    onChange={(e) => { setStreetNumber(e.target.value); setCepError(""); }}
+                    className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3 py-2 text-xs text-[#0F172A] placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">
+                    Complemento (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Sala 12, Galpão B"
+                    value={complement}
+                    onChange={(e) => setComplement(e.target.value)}
+                    className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3 py-2 text-xs text-[#0F172A] placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none font-medium"
+                  />
+                </div>
+              </div>
+
               <button
                 onClick={() => saveCepToProfile(cepLookup)}
-                disabled={saving}
-                className="mt-2 flex items-center gap-1.5 rounded-lg bg-[#2563EB] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#1D4ED8] disabled:opacity-60"
+                disabled={saving || !streetNumber.trim()}
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#2563EB] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#1D4ED8] disabled:opacity-60 shadow-xs"
               >
-                {saving ? "Salvando…" : <><Check size={11} />Usar este endereço</>}
+                {saving ? "Salvando…" : <><Check size={13} /> Confirmar Endereço e Número</>}
               </button>
             </div>
           )}
           <button
-            onClick={() => { setMode("idle"); setCepInput(""); setCepLookup(null); setCepError(""); }}
+            onClick={() => { setMode("idle"); setCepInput(""); setCepLookup(null); setStreetNumber(""); setComplement(""); setCepError(""); }}
             className="mt-2 text-xs text-slate-400 hover:text-slate-600"
           >
             Cancelar
@@ -310,31 +382,51 @@ function AddressSection({
         <div className="mt-2 flex items-start gap-2.5 rounded-2xl border border-[#DBEAFE] bg-[#EFF6FF] px-4 py-3">
           <Plus size={14} className="shrink-0 mt-0.5 text-[#2563EB]" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-[#0F172A]">Qual o CEP do seu estabelecimento?</p>
-            <p className="text-[11px] text-slate-500">Melhora a precisão das distribuidoras encontradas</p>
-            <div className="mt-2 flex gap-2">
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="00000-000"
-                value={cepInput}
-                onChange={(e) => setCepInput(formatZip(e.target.value))}
-                maxLength={9}
-                className="w-32 rounded-xl border border-[#DBEAFE] bg-white px-3 py-2 text-sm text-[#0F172A] placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none"
-              />
-              {cepLoading && (
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" />
-                </div>
-              )}
+            <p className="text-xs font-semibold text-[#0F172A]">Qual o CEP e número do seu estabelecimento?</p>
+            <p className="text-[11px] text-slate-500">Obrigatório para entrega das bebidas pelas distribuidoras</p>
+            <div className="mt-2 flex flex-col gap-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="00000-000"
+                  value={cepInput}
+                  onChange={(e) => setCepInput(formatZip(e.target.value))}
+                  maxLength={9}
+                  className="w-36 rounded-xl border border-[#DBEAFE] bg-white px-3 py-2 text-sm text-[#0F172A] placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none"
+                />
+                {cepLoading && (
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" />
+                  </div>
+                )}
+              </div>
               {cepLookup && (
-                <button
-                  onClick={() => saveCepToProfile(cepLookup)}
-                  disabled={saving}
-                  className="flex items-center gap-1 rounded-xl bg-[#2563EB] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#1D4ED8] disabled:opacity-60"
-                >
-                  {saving ? "…" : <><Check size={11} />Salvar</>}
-                </button>
+                <div className="rounded-xl bg-white p-3 border border-blue-100 space-y-2">
+                  <p className="text-xs font-bold text-[#0F172A]">{cepLookup.city}, {cepLookup.state}</p>
+                  {cepLookup.street && <p className="text-[11px] text-slate-500">{cepLookup.street}{cepLookup.district ? `, Bairro ${cepLookup.district}` : ""}</p>}
+                  
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">
+                      Número do Estabelecimento <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: 1000 ou S/N"
+                      value={streetNumber}
+                      onChange={(e) => { setStreetNumber(e.target.value); setCepError(""); }}
+                      className="w-full rounded-xl border border-[#DBEAFE] bg-slate-50 px-3 py-2 text-xs text-[#0F172A] placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none font-semibold"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => saveCepToProfile(cepLookup)}
+                    disabled={saving || !streetNumber.trim()}
+                    className="flex w-full items-center justify-center gap-1 rounded-xl bg-[#2563EB] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#1D4ED8] disabled:opacity-60"
+                  >
+                    {saving ? "Salvando…" : <><Check size={12} /> Salvar Endereço</>}
+                  </button>
+                </div>
               )}
               <button
                 onClick={() => { setShowCepPrompt(false); setCepInput(""); setCepLookup(null); }}
@@ -343,12 +435,6 @@ function AddressSection({
                 Agora não
               </button>
             </div>
-            {cepError && <p className="mt-1 text-xs text-red-600">{cepError}</p>}
-            {cepLookup && (
-              <p className="mt-1 text-[11px] text-green-600 font-medium">
-                <Check size={10} className="inline mr-0.5" />{cepLookup.city}, {cepLookup.state}
-              </p>
-            )}
           </div>
         </div>
       )}

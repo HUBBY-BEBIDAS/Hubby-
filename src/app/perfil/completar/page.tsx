@@ -50,6 +50,8 @@ export default function CompletarPerfilPage() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [address, setAddress] = useState("");
+  const [streetNumber, setStreetNumber] = useState("");
+  const [complement, setComplement] = useState("");
 
   const [cnpjValidating, setCnpjValidating] = useState(false);
   const [cnpjValid, setCnpjValid] = useState<boolean | null>(null);
@@ -115,12 +117,19 @@ export default function CompletarPerfilPage() {
       return;
     }
 
+    if (!streetNumber.trim()) {
+      setError("Por favor, informe o número do estabelecimento que receberá a bebida.");
+      return;
+    }
+
     if (!token) {
       setError("Sessão expirada. Recarregue a página.");
       return;
     }
 
     setLoading(true);
+
+    const fullAddress = `${address.trim()}, nº ${streetNumber.trim()}${complement.trim() ? ` (${complement.trim()})` : ""} - ${city}/${state}`;
 
     const res = await apiFetch("/api/profile/complete", {
       method: "POST",
@@ -133,7 +142,7 @@ export default function CompletarPerfilPage() {
         whatsapp: whatsapp.replace(/\D/g, ""),
         delivery_city: city,
         delivery_state: state.toUpperCase().slice(0, 2),
-        delivery_address_full: address,
+        delivery_address_full: fullAddress,
       }),
     });
 
@@ -286,12 +295,30 @@ export default function CompletarPerfilPage() {
             </div>
 
             <Input
-              label="Endereço completo"
+              label="Rua / Logradouro / Avenida"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              placeholder="Rua, número, bairro"
+              placeholder="Ex: Rua Augusta"
               required
             />
+
+            <div className="flex gap-3">
+              <Input
+                label="Número do Estabelecimento"
+                value={streetNumber}
+                onChange={(e) => setStreetNumber(e.target.value)}
+                placeholder="Ex: 500 ou S/N"
+                required
+                className="flex-1 font-semibold"
+              />
+              <Input
+                label="Complemento (opcional)"
+                value={complement}
+                onChange={(e) => setComplement(e.target.value)}
+                placeholder="Ex: Sala 12, Galpão B"
+                className="flex-1"
+              />
+            </div>
 
             {error && (
               <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">

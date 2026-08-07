@@ -46,6 +46,7 @@ export async function sendOrderEmail({
   distributorName,
   items,
   totalCents,
+  deliveryAddress,
 }: {
   to: string;
   clientName: string;
@@ -54,6 +55,7 @@ export async function sendOrderEmail({
   distributorName: string;
   items: OrderEmailItem[];
   totalCents: number;
+  deliveryAddress?: string | null;
 }): Promise<void> {
   // Em dev sem SMTP configurado: apenas loga
   if (!process.env.EMAIL_SMTP_HOST) {
@@ -94,7 +96,7 @@ Nova cotação recebida — ${distributorName}
 
 Cliente: ${clientName}
 WhatsApp: ${clientWhatsapp}
-Cidade de entrega: ${deliveryCity}
+Endereço de entrega: ${deliveryAddress ?? deliveryCity}
 
 Produtos:
 ${itemsText}
@@ -138,7 +140,7 @@ Acesse o painel para responder: ${panelUrl}
       </table>
 
       <div style="background:#F5F7FB;border-radius:12px;padding:16px;margin-bottom:24px;font-size:14px;color:#475569;">
-        <p style="margin:0 0 4px;"><strong>Cidade de entrega:</strong> ${deliveryCity}</p>
+        <p style="margin:0 0 6px;"><strong>Endereço de entrega completo:</strong> ${deliveryAddress ?? deliveryCity}</p>
         <p style="margin:0;"><strong>WhatsApp do cliente:</strong> ${clientWhatsapp}</p>
       </div>
 

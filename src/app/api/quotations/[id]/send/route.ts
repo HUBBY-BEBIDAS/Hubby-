@@ -61,7 +61,8 @@ function formatOrderSummaryMessage(
   distributorName: string,
   items: any[],
   totalCents: number,
-  deliveryDate: string | null | undefined
+  deliveryDate: string | null | undefined,
+  deliveryAddress?: string | null
 ): string {
   const formatBRL = (cents: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -73,7 +74,7 @@ function formatOrderSummaryMessage(
   return `📦 *Novo Pedido Confirmado!*
 Cliente: ${clientName}
 Distribuidora: ${distributorName}
-${deliveryDate ? `Previsão de Entrega: ${deliveryDate}\n` : ""}
+${deliveryAddress ? `📍 *Endereço de Entrega:* ${deliveryAddress}\n` : ""}${deliveryDate ? `Previsão de Entrega: ${deliveryDate}\n` : ""}
 Produtos:
 ${itemsText}
 
@@ -142,6 +143,7 @@ export const POST = withAuth(
             company_name: true,
             cnpj: true,
             whatsapp: true,
+            delivery_address_full: true,
             user: { select: { id: true } },
           },
         },
@@ -268,6 +270,10 @@ export const POST = withAuth(
         },
       });
 
+      const fullDeliveryAddress =
+        quotation.client.delivery_address_full ||
+        `${quotation.delivery_city} - ${quotation.delivery_state}`;
+
       // ── Notificações para a distribuidora ───────────────────────────────────
       const whatsappMsg = newOrderWhatsAppMessage({
         clientName: quotation.client.company_name,
@@ -278,6 +284,7 @@ export const POST = withAuth(
         totalCents: entry.total_cents,
         items: entry.items,
         estimatedDeliveryDate: entry.estimated_delivery_date ?? null,
+        deliveryAddress: fullDeliveryAddress,
       });
 
       // Fire-and-forget — não bloqueia a resposta se qualquer canal falhar.
@@ -316,6 +323,7 @@ export const POST = withAuth(
               unit_price_cents: i.unit_price_cents,
             })),
             totalCents: entry.total_cents,
+            deliveryAddress: fullDeliveryAddress,
           }).catch((err) => console.error(`[send] Email error for ${distributor.id}:`, err))
         );
       }
@@ -333,6 +341,7 @@ export const POST = withAuth(
           client_cnpj: quotation.client.cnpj,
           delivery_city: quotation.delivery_city,
           delivery_state: quotation.delivery_state,
+          delivery_address_full: fullDeliveryAddress,
           total_cents: entry.total_cents,
           items: entry.items,
           estimated_delivery_date: entry.estimated_delivery_date ?? null,
@@ -363,7 +372,8 @@ export const POST = withAuth(
           distributor.company_name,
           entry.items,
           entry.total_cents,
-          entry.estimated_delivery_date
+          entry.estimated_delivery_date,
+          fullDeliveryAddress
         );
 
         await prisma.chatMessage.create({

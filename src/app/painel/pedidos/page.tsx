@@ -394,12 +394,16 @@ export default function DistribuidorPedidosPage() {
                 </div>
 
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Comprador</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Comprador e Entrega</p>
                   <p className="text-sm font-bold text-[#0F172A]">{selectedOrder.client.company_name}</p>
                   <p className="text-xs text-slate-500 mt-0.5">CNPJ: {selectedOrder.client.cnpj}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {selectedOrder.client.delivery_city} - {selectedOrder.client.delivery_state}
-                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">WhatsApp: {selectedOrder.client.whatsapp}</p>
+                  <div className="mt-2 rounded-xl bg-slate-50 p-2.5 border border-slate-100">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Endereço de Entrega do Estabelecimento</p>
+                    <p className="text-xs font-semibold text-[#0F172A] mt-0.5">
+                      {selectedOrder.client.delivery_address_full || `${selectedOrder.client.delivery_city} - ${selectedOrder.client.delivery_state}`}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">

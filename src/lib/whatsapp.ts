@@ -54,6 +54,7 @@ export function newOrderWhatsAppMessage(opts: {
   totalCents: number;
   items: OrderItem[];
   estimatedDeliveryDate?: string | null;
+  deliveryAddress?: string | null;
 }): string {
   const brl = (cents: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -66,12 +67,17 @@ export function newOrderWhatsAppMessage(opts: {
     ? `\nPrevisão de entrega: ${opts.estimatedDeliveryDate}`
     : "";
 
+  const addressLine = opts.deliveryAddress
+    ? `*Endereço de Entrega:* ${opts.deliveryAddress}\n`
+    : "";
+
   return [
     `*Novo pedido recebido — ${opts.distributorName}*`,
     ``,
     `*Cliente:* ${opts.clientName}`,
     `*CNPJ:* ${opts.clientCnpj}`,
     `*WhatsApp:* ${opts.clientWhatsapp}`,
+    addressLine ? addressLine.trim() : "",
     ``,
     `*Itens do pedido:*`,
     itemLines,
@@ -79,5 +85,5 @@ export function newOrderWhatsAppMessage(opts: {
     `*Total: ${brl(opts.totalCents)}*${deliveryLine}`,
     ``,
     `Acesse o painel para aprovar ou rejeitar: /distributor/orders/${opts.orderId}`,
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }

@@ -497,10 +497,10 @@ export default function PerfilClientePage() {
             </div>
 
             <Input
-              label="Endereço completo"
+              label="Endereço de entrega (com número do estabelecimento)"
               value={form.delivery_address_full}
               onChange={(e) => setForm((f) => ({ ...f, delivery_address_full: e.target.value }))}
-              placeholder="Rua, número, bairro"
+              placeholder="Rua, número do estabelecimento, complemento, bairro"
               required
             />
 
