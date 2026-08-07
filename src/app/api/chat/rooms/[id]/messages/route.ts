@@ -3,6 +3,7 @@ import { z } from "zod";
 import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notifications";
+import { validateChatMessage } from "@/lib/chat-guard";
 
 // Helper para obter os perfis associados ao usuário logado
 async function getUserProfileIds(userId: string, role: string) {
@@ -105,6 +106,19 @@ export const POST = withAuth(
     const parsed = messageSchema.safeParse(body);
     if (!parsed.success) {
       return Response.json({ error: parsed.error.issues[0]?.message || "Dados inválidos" }, { status: 422 });
+    }
+
+    // Valida se a mensagem viola os termos de privacidade de contatos
+    const guardResult = validateChatMessage(parsed.data.text);
+    if (!guardResult.isClean) {
+      return Response.json(
+        {
+          error: `Mensagem bloqueada por política de segurança: ${guardResult.reason}`,
+          guard_blocked: true,
+          reason: guardResult.reason,
+        },
+        { status: 400 }
+      );
     }
 
     const isClient = user.role === "client";

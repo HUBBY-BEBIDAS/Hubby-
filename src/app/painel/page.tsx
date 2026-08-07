@@ -9,8 +9,32 @@ import { Navbar } from "@/components/Navbar";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { ClientDashboard } from "./client-dashboard";
 import {
-  Building2, CheckCircle, AlertTriangle, XCircle, Check, X, Phone, Eye, MessageSquare,
+  Building2, CheckCircle, AlertTriangle, XCircle, Check, X, Phone, Eye, MessageSquare, Volume2, Bell,
 } from "lucide-react";
+import { soundNotifier, requestDesktopNotificationPermission } from "@/lib/audio";
+
+function getOrderElapsedBadge(sentAtIso: string, status: string) {
+  if (status !== "sent") return null;
+  const elapsedMs = Date.now() - new Date(sentAtIso).getTime();
+  const minutes = Math.floor(elapsedMs / 60_000);
+
+  if (minutes < 5) {
+    return {
+      label: `⏱️ Recebido há ${minutes < 1 ? "menos de 1 min" : `${minutes} min`} — Responda rápido para nota 5⭐`,
+      color: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    };
+  } else if (minutes < 30) {
+    return {
+      label: `⏱️ Recebido há ${minutes} min — Responda para manter boa avaliação ⭐`,
+      color: "bg-amber-50 text-amber-800 border-amber-200",
+    };
+  } else {
+    return {
+      label: `⚠️ Recebido há ${minutes >= 60 ? `${Math.floor(minutes / 60)}h` : `${minutes} min`} — Resposta pendente`,
+      color: "bg-rose-50 text-rose-700 border-rose-200",
+    };
+  }
+}
 
 type PendingFeedback = {
   id: string;
@@ -1576,15 +1600,28 @@ export default function PainelPage() {
         )}
 
         {/* Leads recentes */}
-        <div className="rounded-3xl border border-[#DBEAFE] bg-white shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[#DBEAFE] px-6 py-4">
+        <div id="pedidos-recentes" className="rounded-3xl border border-[#DBEAFE] bg-white shadow-sm overflow-hidden scroll-mt-20">
+          <div className="flex flex-wrap items-center justify-between border-b border-[#DBEAFE] px-6 py-4 gap-2">
             <h2 className="text-sm font-display font-semibold text-[#0F172A]">Pedidos e Acompanhamento</h2>
-            <button
-              onClick={() => router.push("/painel/pedidos")}
-              className="text-xs text-[#2563EB] hover:underline"
-            >
-              Ver todos →
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  soundNotifier.playOrderChime();
+                  requestDesktopNotificationPermission();
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-100 transition"
+                title="Testar alarme de novos pedidos"
+              >
+                <Volume2 size={13} className="text-[#22C55E]" /> Testar Alarme
+              </button>
+              <button
+                onClick={() => router.push("/painel/pedidos")}
+                className="text-xs font-bold text-[#2563EB] hover:underline"
+              >
+                Ver todos →
+              </button>
+            </div>
           </div>
 
           {/* Sub-abas de status de pedido */}
@@ -1652,6 +1689,17 @@ export default function PainelPage() {
                           {order.client.delivery_city} — {order.client.delivery_state} ·{" "}
                           <span className="font-mono font-medium">{formatDateTime(order.sent_at)}</span>
                         </p>
+                        {(() => {
+                          const elapsed = getOrderElapsedBadge(order.sent_at, order.status);
+                          if (!elapsed) return null;
+                          return (
+                            <div className="mt-2">
+                              <span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-[11px] font-bold shadow-xs ${elapsed.color}`}>
+                                {elapsed.label}
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       <div className="flex flex-col items-end gap-2.5">

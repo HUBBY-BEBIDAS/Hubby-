@@ -7,6 +7,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { ShoppingCart, LogOut, MessageSquare } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { soundNotifier, sendDesktopNotification, requestDesktopNotificationPermission } from "@/lib/audio";
 
 type NavLink = { href: string; label: string; roles: string[] };
 
@@ -112,23 +113,47 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const knownNotifIdsRef = useRef<Set<string>>(new Set());
+
   const fetchNotifications = useCallback(async () => {
     if (!token || !isDistributor) return;
     try {
       const res = await apiFetch("/api/notifications?limit=10", { method: "GET", token });
       if (!res.ok) return;
       const json = await res.json() as { data: Notification[]; unread_count: number };
-      setNotifications(json.data);
+      
+      const newItems = json.data || [];
+      
+      // Verifica se chegaram notificações novas que ainda não foram tocadas
+      let hasNewOrder = false;
+      let newestOrderNotif: Notification | null = null;
+
+      for (const n of newItems) {
+        if (!knownNotifIdsRef.current.has(n.id)) {
+          knownNotifIdsRef.current.add(n.id);
+          if (!n.read && n.type === "new_order") {
+            hasNewOrder = true;
+            newestOrderNotif = n;
+          }
+        }
+      }
+
+      if (hasNewOrder && newestOrderNotif) {
+        soundNotifier.playOrderChime();
+        sendDesktopNotification("🚨 Nova cotação recebida!", newestOrderNotif.body);
+      }
+
+      setNotifications(newItems);
       setUnreadCount(json.unread_count);
     } catch {
       // silencia erros de rede
     }
   }, [token, isDistributor]);
 
-  // Busca ao montar e a cada 30s
+  // Busca ao montar e a cada 12s para garantir resposta ágil
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30_000);
+    const interval = setInterval(fetchNotifications, 12_000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
@@ -142,6 +167,15 @@ export function Navbar() {
       }
     }
   }, [session, onboardingSurveyCompleted, role, router]);
+
+  function toggleBell() {
+    setBellOpen((v) => {
+      if (!v) {
+        requestDesktopNotificationPermission().catch(() => {});
+      }
+      return !v;
+    });
+  }
 
   async function markAllRead() {
     if (!token || markingAll) return;
@@ -208,7 +242,7 @@ export function Navbar() {
             {isDistributor && session && (
               <div ref={bellRef} className="relative">
                 <button
-                  onClick={() => setBellOpen((v) => !v)}
+                  onClick={toggleBell}
                   className="relative flex h-9 w-9 items-center justify-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white"
                   aria-label="Notificações"
                 >
@@ -404,7 +438,7 @@ export function Navbar() {
               {isDistributor && (
                 <div ref={bellRef} className="relative">
                   <button
-                    onClick={() => setBellOpen((v) => !v)}
+                    onClick={toggleBell}
                     className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition"
                     title="Notificações"
                   >

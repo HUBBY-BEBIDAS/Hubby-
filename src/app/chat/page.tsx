@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { Navbar } from "@/components/Navbar";
-import { Send, Search, MessageSquare, ArrowLeft, Check, CheckCheck } from "lucide-react";
+import { validateChatMessage } from "@/lib/chat-guard";
+import { Send, Search, MessageSquare, ArrowLeft, Check, CheckCheck, ShieldAlert } from "lucide-react";
 
 type ChatRoom = {
   id: string;
@@ -86,13 +87,27 @@ function ChatContent() {
     }
   };
 
+  // Estado de aviso de erro
+  const [chatError, setChatError] = useState<string | null>(null);
+
+  // Análise preventiva de contatos na mensagem atual
+  const guardResult = useMemo(() => {
+    return validateChatMessage(messageText);
+  }, [messageText]);
+
   // Envia uma nova mensagem
   const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault();
     if (!token || !selectedRoomId || !messageText.trim() || sending) return;
 
+    if (!guardResult.isClean) {
+      setChatError(guardResult.reason || "Conteúdo bloqueado por segurança.");
+      return;
+    }
+
     const textToSend = messageText.trim();
     setMessageText("");
+    setChatError(null);
     setSending(true);
 
     try {
@@ -110,12 +125,14 @@ function ChatContent() {
         fetchRooms();
         setTimeout(scrollToBottom, 50);
       } else {
-        // Devolve o texto em caso de erro para não perder o que foi digitado
+        const errData = await res.json().catch(() => ({}));
         setMessageText(textToSend);
+        setChatError(errData.error || "Não foi possível enviar a mensagem.");
       }
     } catch (err) {
       console.error("Erro ao enviar mensagem:", err);
       setMessageText(textToSend);
+      setChatError("Erro de conexão ao enviar mensagem.");
     } finally {
       setSending(false);
     }
@@ -358,6 +375,25 @@ function ChatContent() {
                   <div ref={messagesEndRef} />
                 </div>
 
+                {/* Banner de alerta de segurança / chat guard */}
+                {(!guardResult.isClean || chatError) && (
+                  <div className="flex items-center gap-2 border-t border-amber-200 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-800">
+                    <ShieldAlert size={16} className="shrink-0 text-amber-600" />
+                    <span className="flex-1">
+                      {chatError || guardResult.reason || "Por segurança, o envio de telefones, e-mails e termos de contato externo é bloqueado."}
+                    </span>
+                    {chatError && (
+                      <button
+                        type="button"
+                        onClick={() => setChatError(null)}
+                        className="text-amber-600 hover:text-amber-900 underline ml-2"
+                      >
+                        Fechar
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Input de envio */}
                 <form
                   onSubmit={handleSendMessage}
@@ -367,12 +403,19 @@ function ChatContent() {
                     type="text"
                     placeholder="Digite sua mensagem..."
                     value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
-                    className="flex-1 rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] px-4 py-3 text-sm text-[#0F172A] placeholder:text-slate-400 outline-none focus:border-[#22C55E] focus:bg-white transition-colors"
+                    onChange={(e) => {
+                      setMessageText(e.target.value);
+                      if (chatError) setChatError(null);
+                    }}
+                    className={`flex-1 rounded-2xl border px-4 py-3 text-sm text-[#0F172A] placeholder:text-slate-400 outline-none transition-colors ${
+                      !guardResult.isClean
+                        ? "border-rose-300 bg-rose-50/50 focus:border-rose-500"
+                        : "border-[#DBEAFE] bg-[#F5F7FB] focus:border-[#22C55E] focus:bg-white"
+                    }`}
                   />
                   <button
                     type="submit"
-                    disabled={!messageText.trim() || sending}
+                    disabled={!messageText.trim() || sending || !guardResult.isClean}
                     className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#22C55E] text-white hover:bg-[#16A34A] active:scale-95 disabled:opacity-50 transition"
                   >
                     <Send size={16} />

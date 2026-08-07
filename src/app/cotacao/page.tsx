@@ -377,10 +377,39 @@ export default function CotacaoPage() {
   const [profile, setProfile] = useState<ClientProfile | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
 
+  const isLoadedRef = useRef(false);
+
+  // 1. Carrega itens do localStorage ao montar o componente
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("hubby_draft_quotation_items");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setItems(parsed);
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao carregar rascunho de cotação:", err);
+    } finally {
+      isLoadedRef.current = true;
+    }
+  }, []);
+
+  // 2. Salva itens no localStorage sempre que o estado de items mudar
+  useEffect(() => {
+    if (!isLoadedRef.current) return;
+    if (items.length > 0) {
+      localStorage.setItem("hubby_draft_quotation_items", JSON.stringify(items));
+    } else {
+      localStorage.removeItem("hubby_draft_quotation_items");
+    }
+  }, [items]);
+
   useEffect(() => {
     if (!token) return;
 
-    // 1. Carrega o perfil do comprador
+    // Carrega o perfil do comprador
     apiFetch("/api/profile", { method: "GET", token })
       .then((r: Response) => r.json())
       .then((d: { profile?: ClientProfile }) => {
@@ -388,7 +417,7 @@ export default function CotacaoPage() {
       })
       .catch(() => {});
 
-    // 2. Verifica se existe alguma cotação em aberto (e que não tenha pedidos enviados)
+    // Verifica se existe alguma cotação em aberto (e que não tenha pedidos enviados)
     apiFetch("/api/quotations?status=open", { method: "GET", token })
       .then((r: Response) => r.json())
       .then((d: { quotations?: any[] }) => {
@@ -475,6 +504,12 @@ export default function CotacaoPage() {
     setLoading(false);
 
     if (!res.ok) { setError(data.error ?? "Erro ao criar cotação."); return; }
+    
+    // Limpa rascunho salvo localmente
+    try {
+      localStorage.removeItem("hubby_draft_quotation_items");
+    } catch {}
+
     router.push(`/cotacao/${data.quotation!.id}/ranking`);
   }
 
@@ -592,7 +627,16 @@ export default function CotacaoPage() {
           <div className="mb-6 rounded-3xl border border-[#DBEAFE] bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-[#DBEAFE] px-6 py-3">
               <h2 className="text-sm font-bold text-[#0F172A]">Produtos da cotação</h2>
-              <span className="text-xs text-slate-400">{items.length} produto(s)</span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setItems([])}
+                  className="text-xs font-semibold text-rose-500 hover:text-rose-700 hover:underline"
+                >
+                  Limpar rascunho
+                </button>
+                <span className="text-xs text-slate-400">{items.length} produto(s)</span>
+              </div>
             </div>
 
             <ul className="divide-y divide-[#DBEAFE]">
