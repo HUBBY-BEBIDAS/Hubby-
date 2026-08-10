@@ -11,7 +11,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self'",
-  "connect-src 'self' https://api.stripe.com https://viacep.com.br https://maps.googleapis.com",
+  "connect-src 'self' https://api.stripe.com https://viacep.com.br https://brasilapi.com.br https://nominatim.openstreetmap.org https://maps.googleapis.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -51,6 +51,18 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+    ];
+  },
+  async redirects() {
+    return [
+      { source: "/login", destination: "/auth/login", permanent: true },
+      { source: "/cadastro", destination: "/auth/register", permanent: true },
+      { source: "/register", destination: "/auth/register", permanent: true },
+      { source: "/cadastrar", destination: "/auth/register", permanent: true },
+      { source: "/dashboard", destination: "/painel", permanent: true },
+      { source: "/regioes", destination: "/painel/regioes", permanent: true },
+      { source: "/produtos", destination: "/painel/produtos", permanent: true },
+      { source: "/pedidos", destination: "/painel/pedidos", permanent: true },
     ];
   },
 };

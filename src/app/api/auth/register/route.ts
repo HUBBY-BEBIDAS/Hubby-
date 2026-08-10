@@ -9,6 +9,7 @@ import { validateCnpjReceita } from "@/lib/cnpj";
 import { isCovered, normalizeCityName } from "@/lib/coverage";
 import { ensureUniqueCode } from "@/lib/referral";
 import { checkLoginRateLimit } from "@/lib/rate-limit";
+import { geocodeCepOrAddress } from "@/lib/geocoding";
 import { storeEmailVerificationToken } from "@/lib/redis";
 import { sendEmailVerificationEmail } from "@/lib/email";
 
@@ -61,6 +62,13 @@ const distributorSchema = baseSchema.extend({
   role: z.literal("distributor_admin"),
   whatsapp_commercial: whatsappField,
   referral_code: z.string().min(4).max(10).trim().toUpperCase().optional(),
+  zipcode: z.string().optional(),
+  street: z.string().optional(),
+  number: z.string().optional(),
+  complement: z.string().optional(),
+  district: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
 });
 
 const registerSchema = z.discriminatedUnion("role", [clientSchema, distributorSchema]);
@@ -211,6 +219,33 @@ export async function POST(req: NextRequest) {
         referrerClientId = referrer.id;
       }
 
+      let lat: number | null = null;
+      let lng: number | null = null;
+      let addressJson: any = null;
+
+      if (d.zipcode && d.city && d.state) {
+        addressJson = {
+          zipcode: d.zipcode.replace(/\D/g, ""),
+          street: d.street ?? "",
+          number: d.number ?? "",
+          complement: d.complement ?? "",
+          district: d.district ?? "",
+          city: d.city,
+          state: d.state.toUpperCase(),
+        };
+
+        const coords = await geocodeCepOrAddress({
+          cep: d.zipcode.replace(/\D/g, ""),
+          addressFull: `${d.street ?? ""}, ${d.number ?? ""} - ${d.district ?? ""}`,
+          city: d.city,
+          state: d.state.toUpperCase(),
+        });
+        if (coords) {
+          lat = coords.lat;
+          lng = coords.lng;
+        }
+      }
+
       await prisma.$transaction(async (tx) => {
         const user = await tx.user.create({
           data: {
@@ -227,8 +262,11 @@ export async function POST(req: NextRequest) {
             user_id: user.id,
             company_name: d.company_name,
             cnpj: d.cnpj,
+            responsible_name: d.responsible_name,
             whatsapp_commercial: d.whatsapp_commercial,
             email_commercial: d.email,
+            ...(addressJson ? { address: addressJson } : {}),
+            ...(lat !== null ? { lat, lng } : {}),
             ...(d.referral_code && { referral_code_used: d.referral_code }),
           },
         });

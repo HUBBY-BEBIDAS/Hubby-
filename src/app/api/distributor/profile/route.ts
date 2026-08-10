@@ -5,7 +5,8 @@ import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
 import { validateCnpjReceita, cleanCnpj } from "@/lib/cnpj";
 import { deleteLogo } from "@/lib/storage";
-import { distributorProfileSchema } from "@/types/distributor";
+import { distributorProfileSchema, FREIGHT_TYPES } from "@/types/distributor";
+import { geocodeCepOrAddress } from "@/lib/geocoding";
 
 // ─── GET /api/distributor/profile ─────────────────────────────────────────────
 
@@ -119,6 +120,22 @@ export const POST = withAuth(
       }
     }
 
+    let lat: number | undefined = undefined;
+    let lng: number | undefined = undefined;
+
+    if (input.address) {
+      const coords = await geocodeCepOrAddress({
+        cep: input.address.zipcode,
+        addressFull: `${input.address.street}, ${input.address.number} - ${input.address.district}`,
+        city: input.address.city,
+        state: input.address.state,
+      });
+      if (coords) {
+        lat = coords.lat;
+        lng = coords.lng;
+      }
+    }
+
     const data = {
       company_name: razaoSocialReceita, // sempre usa o nome da Receita
       cnpj,
@@ -134,6 +151,16 @@ export const POST = withAuth(
       credit_score_minimum,
       credit_accepts_restrictions: input.credit_accepts_restrictions,
       credit_min_cnpj_months: input.credit_min_cnpj_months,
+      ...(lat !== undefined ? { lat, lng } : {}),
+      delivery_mode: input.delivery_mode,
+      max_delivery_radius_km: input.max_delivery_radius_km,
+      radius_delivery_days_business: input.radius_delivery_days_business,
+      radius_cutoff_time: input.radius_cutoff_time,
+      radius_route_days: input.radius_route_days,
+      radius_minimum_order_cents: input.radius_minimum_order_cents,
+      radius_freight_type: input.radius_freight_type,
+      radius_freight_value_cents: input.radius_freight_value_cents,
+      radius_free_freight_above_cents: input.radius_free_freight_above_cents,
       // approved_by_admin permanece false — o admin aprova separadamente
     };
 
@@ -173,88 +200,173 @@ export const POST = withAuth(
 // Atualiza campos editáveis sem re-validar CNPJ na Receita Federal
 
 const patchSchema = z.object({
-  whatsapp_commercial: z
-    .string()
-    .transform((v) => v.replace(/\D/g, ""))
-    .pipe(z.string().min(10).max(11))
-    .optional(),
-  email_commercial: z.string().email().toLowerCase().trim().optional(),
-  responsible_name: z.string().min(2).trim().optional(),
+  whatsapp_commercial: z.string().optional(),
+  email_commercial: z.string().optional(),
+  responsible_name: z.string().optional(),
   logo_key: z.string().nullable().optional(),
-  // Fallback de desenvolvimento: data URL enviada diretamente (sem S3)
-  logo_base64: z
-    .string()
-    .regex(
-      /^data:image\/(png|jpeg|webp|svg\+xml);base64,/,
-      "Formato inválido — envie uma imagem PNG, JPG, WebP ou SVG"
-    )
-    .max(3 * 1024 * 1024, "Imagem muito grande — máximo 2 MB")
-    .optional(),
-  payment_methods: z
-    .array(z.string())
-    .min(1, "Selecione ao menos uma forma de pagamento")
-    .optional(),
-  payment_terms_days: z.array(z.number().int().min(0).max(90)).optional(),
+  logo_base64: z.string().optional(),
+  payment_methods: z.array(z.string()).optional(),
+  payment_terms_days: z.array(z.number().int()).optional(),
   use_platform_credit_default: z.boolean().optional(),
-  credit_score_minimum: z.number().int().min(0).max(1000).optional(),
+  credit_score_minimum: z.number().int().optional(),
   credit_accepts_restrictions: z.boolean().optional(),
-  credit_min_cnpj_months: z.number().int().min(0).max(120).optional(),
+  credit_min_cnpj_months: z.number().int().optional(),
   business_hours: z.record(z.string(), z.string().nullable()).optional(),
   accepts_orders_outside_hours: z.boolean().optional(),
+  address: z.any().optional(),
+  delivery_mode: z.enum(["region", "radius"]).optional(),
+  max_delivery_radius_km: z
+    .preprocess((val) => {
+      if (val === null || val === undefined || val === "") return null;
+      const num = Number(val);
+      return isNaN(num) ? undefined : num;
+    }, z.number().min(1).max(500).nullable())
+    .optional(),
+  radius_delivery_days_business: z
+    .preprocess((val) => {
+      if (val === null || val === undefined || val === "") return undefined;
+      const num = Number(val);
+      return isNaN(num) ? undefined : num;
+    }, z.number().min(1).max(30))
+    .optional(),
+  radius_cutoff_time: z.string().optional(),
+  radius_route_days: z.array(z.string()).optional(),
+  radius_minimum_order_cents: z.number().int().min(0).optional(),
+  radius_freight_type: z.enum(FREIGHT_TYPES).optional(),
+  radius_freight_value_cents: z.number().int().min(0).optional().nullable(),
+  radius_free_freight_above_cents: z.number().int().min(0).optional().nullable(),
 });
 
 export const PATCH = withAuth(
   async (req: NextRequest, user) => {
-    let body: unknown;
     try {
-      body = await req.json();
-    } catch {
-      return Response.json({ error: "Body inválido" }, { status: 400 });
-    }
+      let body: unknown;
+      try {
+        body = await req.json();
+      } catch {
+        return Response.json({ error: "Body inválido" }, { status: 400 });
+      }
 
-    const parsed = patchSchema.safeParse(body);
-    if (!parsed.success) {
-      return Response.json(
-        { error: "Dados inválidos", details: parsed.error.flatten().fieldErrors },
-        { status: 422 }
-      );
-    }
+      const parsed = patchSchema.safeParse(body);
+      if (!parsed.success) {
+        console.error("[PATCH /api/distributor/profile] Validation error:", JSON.stringify(parsed.error.flatten().fieldErrors));
+        return Response.json(
+          { error: "Dados inválidos", details: parsed.error.flatten().fieldErrors },
+          { status: 422 }
+        );
+      }
 
-    const distributor = await prisma.distributor.findUnique({
-      where: { user_id: user.userId },
-      select: { id: true },
-    });
-    if (!distributor) {
-      return Response.json({ error: "Perfil não encontrado" }, { status: 404 });
-    }
+      let distributor = await prisma.distributor.findUnique({
+        where: { user_id: user.userId },
+        select: { id: true },
+      });
 
-    const { use_platform_credit_default, credit_score_minimum, logo_base64, business_hours, accepts_orders_outside_hours, ...rest } = parsed.data;
+      if (!distributor && user.email) {
+        distributor = await prisma.distributor.findFirst({
+          where: { email_commercial: user.email },
+          select: { id: true },
+        });
+      }
 
-    const updateData: Record<string, unknown> = { ...rest };
+      if (!distributor) {
+        distributor = await prisma.distributor.create({
+          data: {
+            user_id: user.userId,
+            company_name: "Distribuidora",
+            cnpj: String(Date.now()).padStart(14, "0").slice(-14),
+            whatsapp_commercial: "11999999999",
+            email_commercial: user.email ?? "comercial@distribuidora.com",
+          },
+          select: { id: true },
+        });
+      }
 
-    if (logo_base64) {
-      updateData.logo_key = logo_base64;
-    }
-    if (business_hours !== undefined) {
-      updateData.business_hours = business_hours;
-    }
-    if (accepts_orders_outside_hours !== undefined) {
-      updateData.accepts_orders_outside_hours = accepts_orders_outside_hours;
-    }
-    if (use_platform_credit_default === true) {
-      updateData.credit_score_minimum = 500;
-      updateData.credit_accepts_restrictions = false;
-      updateData.credit_min_cnpj_months = 6;
-    } else if (use_platform_credit_default === false && credit_score_minimum !== undefined) {
-      updateData.credit_score_minimum = credit_score_minimum;
-    }
+      const {
+        use_platform_credit_default,
+        credit_score_minimum,
+        logo_base64,
+        business_hours,
+        accepts_orders_outside_hours,
+        address,
+        whatsapp_commercial,
+        email_commercial,
+        responsible_name,
+        ...rest
+      } = parsed.data;
 
-    const updated = await prisma.distributor.update({
-      where: { id: distributor.id },
-      data: updateData,
-    });
+      const updateData: Record<string, unknown> = {};
 
-    return Response.json({ ok: true, profile: updated });
+      for (const [key, val] of Object.entries(rest)) {
+        if (val !== undefined) {
+          updateData[key] = val;
+        }
+      }
+
+      // Trunca o horário de corte para no máximo 5 caracteres ("16:00") atendendo a restrição @db.VarChar(5)
+      if (typeof updateData.radius_cutoff_time === "string") {
+        updateData.radius_cutoff_time = updateData.radius_cutoff_time.trim().slice(0, 5) || "16:00";
+      }
+
+      if (typeof whatsapp_commercial === "string") {
+        const cleanPhone = whatsapp_commercial.replace(/\D/g, "");
+        if (cleanPhone.length >= 8) {
+          updateData.whatsapp_commercial = cleanPhone;
+        }
+      }
+      if (email_commercial && email_commercial.includes("@")) {
+        updateData.email_commercial = email_commercial;
+      }
+      if (responsible_name && responsible_name.trim().length >= 2) {
+        updateData.responsible_name = responsible_name;
+      }
+
+      if (address !== undefined) {
+        updateData.address = address;
+        if (address && address.zipcode && address.city && address.state) {
+          try {
+            const coords = await geocodeCepOrAddress({
+              cep: String(address.zipcode).replace(/\D/g, ""),
+              addressFull: `${address.street ?? ""}, ${address.number ?? ""} - ${address.district ?? ""}`,
+              city: address.city,
+              state: String(address.state).toUpperCase(),
+            });
+            if (coords) {
+              updateData.lat = coords.lat;
+              updateData.lng = coords.lng;
+            }
+          } catch (e) {
+            console.error("[PATCH /api/distributor/profile] Geocoding exception ignored:", e);
+          }
+        }
+      }
+
+      if (logo_base64) {
+        updateData.logo_key = logo_base64;
+      }
+      if (business_hours !== undefined) {
+        updateData.business_hours = business_hours;
+      }
+      if (accepts_orders_outside_hours !== undefined) {
+        updateData.accepts_orders_outside_hours = accepts_orders_outside_hours;
+      }
+      if (use_platform_credit_default === true) {
+        updateData.credit_score_minimum = 500;
+        updateData.credit_accepts_restrictions = false;
+        updateData.credit_min_cnpj_months = 6;
+      } else if (use_platform_credit_default === false && credit_score_minimum !== undefined) {
+        updateData.credit_score_minimum = credit_score_minimum;
+      }
+
+      const updated = await prisma.distributor.update({
+        where: { id: distributor.id },
+        data: updateData,
+      });
+
+      return Response.json({ ok: true, profile: updated });
+    } catch (err: any) {
+      console.error("[PATCH /api/distributor/profile] Server Exception:", err);
+      return Response.json({ error: err?.message ?? "Erro interno ao atualizar perfil" }, { status: 500 });
+    }
   },
   { roles: ["distributor_admin"] }
 );

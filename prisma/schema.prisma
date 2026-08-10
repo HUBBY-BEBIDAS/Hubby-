@@ -96,6 +96,11 @@ enum FreightType {
   custom
 }
 
+enum DeliveryMode {
+  region
+  radius
+}
+
 enum ReferralStatus {
   pending
   converted
@@ -320,6 +325,15 @@ model Distributor {
   accepts_orders_outside_hours  Boolean    @default(false)
   lat                           Float?
   lng                           Float?
+  delivery_mode                 DeliveryMode @default(region)
+  max_delivery_radius_km        Int?
+  radius_delivery_days_business Int          @default(1)
+  radius_cutoff_time            String       @default("16:00") @db.VarChar(5)
+  radius_route_days             String[]     @default(["monday", "tuesday", "wednesday", "thursday", "friday"])
+  radius_minimum_order_cents    Int          @default(0)
+  radius_freight_type           FreightType  @default(free)
+  radius_freight_value_cents    Int?
+  radius_free_freight_above_cents Int?
   created_at                    DateTime   @default(now())
 
   user               User               @relation(fields: [user_id], references: [id], onDelete: Cascade)

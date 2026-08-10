@@ -126,6 +126,56 @@ export default function RegisterClient() {
   const [referralValid, setReferralValid] = useState<boolean | null>(null);
   const [referralName,  setReferralName]  = useState("");
 
+  // Estados para desmembramento do formulário da distribuidora (Passo 1: Dados / Passo 2: Endereço)
+  const [distributorSubStep, setDistributorSubStep] = useState<1 | 2>(1);
+  const [zipcode, setZipcode] = useState("");
+  const [street, setStreet] = useState("");
+  const [number, setNumber] = useState("");
+  const [complement, setComplement] = useState("");
+  const [district, setDistrict] = useState("");
+  const [distributorCity, setDistributorCity] = useState("");
+  const [distributorState, setDistributorState] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
+
+  function formatCep(v: string) {
+    const d = v.replace(/\D/g, "").slice(0, 8);
+    return d.replace(/^(\d{5})(\d)/, "$1-$2");
+  }
+
+  // Busca automática do CEP da distribuidora
+  useEffect(() => {
+    const cleanCep = zipcode.replace(/\D/g, "");
+    if (cleanCep.length !== 8) return;
+    setCepLoading(true);
+    fetch(`https://brasilapi.com.br/api/cep/v2/${cleanCep}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setCepLoading(false);
+        if (d.street) setStreet(d.street);
+        if (d.neighborhood) setDistrict(d.neighborhood);
+        if (d.city) setDistributorCity(d.city);
+        if (d.state) setDistributorState(d.state.toUpperCase());
+      })
+      .catch(() => setCepLoading(false));
+  }, [zipcode]);
+
+  function handleGoToDistributorAddress(e: React.MouseEvent) {
+    e.preventDefault();
+    setError("");
+
+    if (!responsibleName.trim()) { setError("Informe o nome do responsável."); return; }
+    if (!companyName.trim()) { setError("Informe a Razão Social da empresa."); return; }
+    if (!email.trim() || !email.includes("@")) { setError("Informe um e-mail válido."); return; }
+    if (password.length < 8) { setError("Senha deve ter ao menos 8 caracteres."); return; }
+    const cleanCnpj = cnpj.replace(/\D/g, "");
+    if (cleanCnpj.length !== 14) { setError("Informe um CNPJ válido com 14 dígitos."); return; }
+    if (cnpjValidating) { setError("Aguarde a validação do CNPJ na Receita Federal..."); return; }
+    if (cnpjValid !== true) { setError(cnpjError || "Por favor, informe um CNPJ ativo na Receita Federal."); return; }
+    if (whatsapp.replace(/\D/g, "").length < 10) { setError("Informe um WhatsApp comercial válido."); return; }
+
+    setDistributorSubStep(2);
+  }
+
   // Validação de CNPJ via ReceitaWS
   const [cnpjValidating, setCnpjValidating] = useState(false);
   const [cnpjValid, setCnpjValid] = useState<boolean | null>(null);
@@ -252,6 +302,13 @@ export default function RegisterClient() {
             company_name: companyName,
             cnpj: cnpj.replace(/\D/g, ""),
             whatsapp_commercial: whatsapp.replace(/\D/g, ""),
+            zipcode: zipcode.replace(/\D/g, ""),
+            street,
+            number,
+            complement,
+            district,
+            city: distributorCity,
+            state: distributorState.toUpperCase(),
             ...(referralCode.trim() && { referral_code: referralCode.trim().toUpperCase() }),
           };
 
@@ -450,234 +507,323 @@ export default function RegisterClient() {
           </button>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <Input
-              label="Nome do responsável"
-              value={responsibleName}
-              onChange={(e) => setResponsibleName(e.target.value)}
-              placeholder="Seu nome completo"
-              required
-            />
-
-            <Input
-              label={role === "client" ? "Nome do estabelecimento" : "Razão Social"}
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              disabled
-              placeholder="Preenchido automaticamente pelo CNPJ"
-              required
-            />
-
-            <Input
-              label="E-mail"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-            />
-
-            <Input
-              label="Senha"
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              hint="Mínimo 8 caracteres, 1 maiúscula e 1 número (ex: Senha123)"
-              autoComplete="new-password"
-              required
-              suffix={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="flex h-full items-center justify-center text-slate-400 hover:text-slate-600 focus:outline-none focus:text-slate-600"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              }
-            />
-
-            <Input
-              label="CNPJ"
-              value={cnpj}
-              onChange={(e) => setCnpj(formatCnpj(e.target.value))}
-              placeholder="00.000.000/0000-00"
-              required
-            />
-
-            {cnpj.replace(/\D/g, "").length === 14 && (
-              <div className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 ${
-                cnpjValidating 
-                  ? "border-blue-200 bg-blue-50/50" 
-                  : cnpjValid === true
-                    ? "border-[#22C55E]/30 bg-[#22C55E]/5"
-                    : "border-red-200 bg-red-50/50"
-              }`}>
-                {cnpjValidating ? (
-                  <>
-                    <span className="mt-1 h-3.5 w-3.5 animate-spin rounded-full border border-blue-500 border-t-transparent" />
-                    <div>
-                      <p className="text-xs font-bold text-blue-700">Verificando CNPJ na Receita Federal...</p>
-                      <p className="mt-0.5 text-[11px] font-medium text-slate-500">Consultando situação cadastral do estabelecimento.</p>
-                    </div>
-                  </>
-                ) : cnpjValid === true ? (
-                  <>
-                    <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#16A34A]" viewBox="0 0 16 16" fill="none" aria-hidden>
-                      <path d="M8 1.5L2 4v4c0 3.31 2.55 5.91 6 6.5 3.45-.59 6-3.19 6-6.5V4L8 1.5Z" fill="#16A34A" opacity=".2" stroke="#16A34A" strokeWidth="1.2" strokeLinejoin="round"/>
-                      <path d="M5.5 8l2 2 3-3" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <div>
-                      <p className="text-xs font-bold text-[#16A34A]">CNPJ ATIVO na Receita Federal</p>
-                      <p className="mt-0.5 text-[11px] font-bold text-slate-700 truncate max-w-[280px]">
-                        {cnpjOfficialName}
-                      </p>
-                      <p className="text-[10px] text-slate-400">Razão Social e situação cadastral confirmados.</p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <div>
-                      <p className="text-xs font-bold text-red-700">Falha na verificação do CNPJ</p>
-                      <p className="mt-0.5 text-[11px] font-medium text-red-600">{cnpjError || "CNPJ inativo ou inexistente."}</p>
-                    </div>
-                  </>
-                )}
+            {role === "distributor_admin" && (
+              <div className="mb-2 flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h2 className="text-base font-extrabold text-[#0F172A]">
+                    {distributorSubStep === 1 ? "1. Dados da Distribuidora" : "2. Endereço da Sede / Galpão"}
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    {distributorSubStep === 1
+                      ? "Informe os dados principais da sua empresa."
+                      : "Cadastre o CEP e endereço para cálculo do raio de entrega."}
+                  </p>
+                </div>
+                <span className="rounded-full bg-green-50 border border-[#22C55E]/30 px-3 py-1 text-xs font-bold text-[#16A34A]">
+                  Passo {distributorSubStep} de 2
+                </span>
               </div>
             )}
 
-            <Input
-              label={role === "client" ? "WhatsApp" : "WhatsApp comercial"}
-              value={whatsapp}
-              onChange={(e) => setWhatsapp(formatWhatsapp(e.target.value))}
-              placeholder="(11) 99999-9999"
-              required
-            />
-
-            {role === "client" && (
+            {/* FORMULÁRIO DE COMPRADOR OU PASSO 1 DA DISTRIBUIDORA */}
+            {(role === "client" || (role === "distributor_admin" && distributorSubStep === 1)) && (
               <>
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-[#0F172A]">
-                    Tipo de estabelecimento
-                  </label>
-                  <select
-                    value={establishmentType}
-                    onChange={(e) => setEstablishmentType(e.target.value)}
-                    className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3 py-2.5 text-sm text-[#0F172A] outline-none transition-colors focus:border-[#22C55E] focus:ring-2 focus:ring-[#22C55E]/20"
-                  >
-                    {ESTABLISHMENT_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
-                    ))}
-                  </select>
-                </div>
+                <Input
+                  label="Nome do responsável"
+                  value={responsibleName}
+                  onChange={(e) => setResponsibleName(e.target.value)}
+                  placeholder="Seu nome completo"
+                  required
+                />
 
-                <div className="flex gap-3">
-                  <CityAutocomplete
-                    label="Cidade de entrega"
-                    value={city}
-                    stateFilter={state}
-                    onSelect={(opt: CityOption) => {
-                      if (opt.city) {
-                        setCity(opt.city);
-                        setState(opt.state);
-                        setCitySelected(true);
-                        setCoverageCheck("covered");
-                      } else {
-                        setCitySelected(false);
-                        setCoverageCheck(null);
-                      }
-                    }}
-                    required
-                  />
-                  <StateSelect
-                    label="UF"
-                    value={state}
-                    onChange={(uf) => { setState(uf); setCitySelected(false); setCoverageCheck(null); }}
-                    required
-                    className="w-36"
-                  />
-                </div>
+                <Input
+                  label={role === "client" ? "Nome do estabelecimento" : "Razão Social"}
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  disabled
+                  placeholder="Preenchido automaticamente pelo CNPJ"
+                  required
+                />
 
-                {coverageCheck === "not_covered" && (
-                  <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
-                    <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" viewBox="0 0 16 16" fill="none">
-                      <path d="M8 2a6 6 0 100 12A6 6 0 008 2zm0 3.5v3m0 2.25h.01" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                    </svg>
-                    <div>
-                      <p className="text-xs font-bold text-amber-800">Ainda não temos cobertura em {city}</p>
-                      <p className="mt-0.5 text-[11px] font-medium text-amber-700">Finalize seu cadastro e avisamos quando chegar!</p>
-                    </div>
+                <Input
+                  label="E-mail"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  required
+                />
+
+                <Input
+                  label="Senha"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  hint="Mínimo 8 caracteres, 1 maiúscula e 1 número (ex: Senha123)"
+                  autoComplete="new-password"
+                  required
+                  suffix={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="flex h-full items-center justify-center text-slate-400 hover:text-slate-600 focus:outline-none focus:text-slate-600"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  }
+                />
+
+                <Input
+                  label="CNPJ"
+                  value={cnpj}
+                  onChange={(e) => setCnpj(formatCnpj(e.target.value))}
+                  placeholder="00.000.000/0000-00"
+                  required
+                />
+
+                {cnpj.replace(/\D/g, "").length === 14 && (
+                  <div className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 ${
+                    cnpjValidating 
+                      ? "border-blue-200 bg-blue-50/50" 
+                      : cnpjValid === true
+                        ? "border-[#22C55E]/30 bg-[#22C55E]/5"
+                        : "border-red-200 bg-red-50/50"
+                  }`}>
+                    {cnpjValidating ? (
+                      <>
+                        <span className="mt-1 h-3.5 w-3.5 animate-spin rounded-full border border-blue-500 border-t-transparent" />
+                        <div>
+                          <p className="text-xs font-bold text-blue-700">Verificando CNPJ na Receita Federal...</p>
+                          <p className="mt-0.5 text-[11px] font-medium text-slate-500">Consultando situação cadastral do estabelecimento.</p>
+                        </div>
+                      </>
+                    ) : cnpjValid === true ? (
+                      <>
+                        <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#16A34A]" viewBox="0 0 16 16" fill="none" aria-hidden>
+                          <path d="M8 1.5L2 4v4c0 3.31 2.55 5.91 6 6.5 3.45-.59 6-3.19 6-6.5V4L8 1.5Z" fill="#16A34A" opacity=".2" stroke="#16A34A" strokeWidth="1.2" strokeLinejoin="round"/>
+                          <path d="M5.5 8l2 2 3-3" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <div>
+                          <p className="text-xs font-bold text-[#16A34A]">CNPJ ATIVO na Receita Federal</p>
+                          <p className="mt-0.5 text-[11px] font-bold text-slate-700 truncate max-w-[280px]">
+                            {cnpjOfficialName}
+                          </p>
+                          <p className="text-[10px] text-slate-400">Razão Social e situação cadastral confirmados.</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div>
+                          <p className="text-xs font-bold text-red-700">Falha na verificação do CNPJ</p>
+                          <p className="mt-0.5 text-[11px] font-medium text-red-600">{cnpjError || "CNPJ inativo ou inexistente."}</p>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
-                {coverageCheck === "covered" && (
-                  <div className="flex items-center gap-2 rounded-xl border border-[#22C55E]/30 bg-[#22C55E]/5 px-3.5 py-2.5">
-                    <svg className="h-4 w-4 shrink-0 text-[#16A34A]" viewBox="0 0 16 16" fill="none">
-                      <circle cx="8" cy="8" r="6" stroke="#16A34A" strokeWidth="1.2"/>
-                      <path d="M5.5 8l2 2 3-3" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <p className="text-xs font-bold text-[#16A34A]">{city} está na nossa área de cobertura!</p>
+
+                <Input
+                  label={role === "client" ? "WhatsApp" : "WhatsApp comercial"}
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(formatWhatsapp(e.target.value))}
+                  placeholder="(11) 99999-9999"
+                  required
+                />
+
+                {role === "client" && (
+                  <>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-[#0F172A]">
+                        Tipo de estabelecimento
+                      </label>
+                      <select
+                        value={establishmentType}
+                        onChange={(e) => setEstablishmentType(e.target.value)}
+                        className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3 py-2.5 text-sm text-[#0F172A] outline-none transition-colors focus:border-[#22C55E] focus:ring-2 focus:ring-[#22C55E]/20"
+                      >
+                        {ESTABLISHMENT_TYPES.map((t) => (
+                          <option key={t.value} value={t.value}>{t.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <CityAutocomplete
+                        label="Cidade de entrega"
+                        value={city}
+                        stateFilter={state}
+                        onSelect={(opt: CityOption) => {
+                          if (opt.city) {
+                            setCity(opt.city);
+                            setState(opt.state);
+                            setCitySelected(true);
+                            setCoverageCheck("covered");
+                          } else {
+                            setCitySelected(false);
+                            setCoverageCheck(null);
+                          }
+                        }}
+                        required
+                      />
+                      <StateSelect
+                        label="UF"
+                        value={state}
+                        onChange={(uf) => { setState(uf); setCitySelected(false); setCoverageCheck(null); }}
+                        required
+                        className="w-36"
+                      />
+                    </div>
+
+                    {coverageCheck === "not_covered" && (
+                      <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
+                        <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" viewBox="0 0 16 16" fill="none">
+                          <path d="M8 2a6 6 0 100 12A6 6 0 008 2zm0 3.5v3m0 2.25h.01" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                        </svg>
+                        <div>
+                          <p className="text-xs font-bold text-amber-800">Ainda não temos cobertura em {city}</p>
+                          <p className="mt-0.5 text-[11px] font-medium text-amber-700">Finalize seu cadastro e avisamos quando chegar!</p>
+                        </div>
+                      </div>
+                    )}
+                    {coverageCheck === "covered" && (
+                      <div className="flex items-center gap-2 rounded-xl border border-[#22C55E]/30 bg-[#22C55E]/5 px-3.5 py-2.5">
+                        <svg className="h-4 w-4 shrink-0 text-[#16A34A]" viewBox="0 0 16 16" fill="none">
+                          <circle cx="8" cy="8" r="6" stroke="#16A34A" strokeWidth="1.2"/>
+                          <path d="M5.5 8l2 2 3-3" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <p className="text-xs font-bold text-[#16A34A]">{city} está na nossa área de cobertura!</p>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {role === "distributor_admin" && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-[#0F172A]">
+                      <Gift size={13} className="inline mr-1 text-[#22C55E]" />
+                      Código de indicação
+                      <span className="ml-1 text-xs font-normal text-slate-400">opcional</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Ex: HUB3K9"
+                        value={referralCode}
+                        onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                        maxLength={10}
+                        className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3 py-2.5 text-sm font-mono uppercase text-[#0F172A] placeholder:text-slate-400 focus:border-[#22C55E] focus:outline-none focus:ring-2 focus:ring-[#DBEAFE]"
+                      />
+                      {referralValid === true && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
+                          <Check size={15} />
+                        </div>
+                      )}
+                    </div>
+                    {referralValid === true && (
+                      <p className="text-xs text-green-600 font-medium">
+                        <Check size={10} className="inline mr-0.5" />Indicado por {referralName}
+                      </p>
+                    )}
+                    {referralValid === false && referralCode.length >= 4 && (
+                      <p className="text-xs text-red-600">Código não encontrado</p>
+                    )}
                   </div>
                 )}
               </>
             )}
 
-            {role === "distributor_admin" && (
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-[#0F172A]">
-                  <Gift size={13} className="inline mr-1 text-[#22C55E]" />
-                  Código de indicação
-                  <span className="ml-1 text-xs font-normal text-slate-400">opcional</span>
-                </label>
+            {/* PASSO 2 DA DISTRIBUIDORA: ENDEREÇO DA DISTRIBUIDORA */}
+            {role === "distributor_admin" && distributorSubStep === 2 && (
+              <div className="flex flex-col gap-4">
                 <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Ex: HUB3K9"
-                    value={referralCode}
-                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                    maxLength={10}
-                    className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3 py-2.5 text-sm font-mono uppercase text-[#0F172A] placeholder:text-slate-400 focus:border-[#22C55E] focus:outline-none focus:ring-2 focus:ring-[#DBEAFE]"
+                  <Input
+                    label="CEP da Distribuidora"
+                    value={zipcode}
+                    onChange={(e) => setZipcode(formatCep(e.target.value))}
+                    placeholder="00000-000"
+                    required
                   />
-                  {referralValid === true && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
-                      <Check size={15} />
-                    </div>
+                  {cepLoading && (
+                    <span className="absolute right-3 top-9 h-4 w-4 animate-spin rounded-full border-2 border-[#22C55E] border-t-transparent" />
                   )}
                 </div>
-                {referralValid === true && (
-                  <p className="text-xs text-green-600 font-medium">
-                    <Check size={10} className="inline mr-0.5" />Indicado por {referralName}
-                  </p>
-                )}
-                {referralValid === false && referralCode.length >= 4 && (
-                  <p className="text-xs text-red-600">Código não encontrado</p>
-                )}
-                <p className="text-xs text-slate-400">
-                  Se alguém te indicou a Hubby, informe o código para que ele ganhe dias grátis do plano Pro.
-                </p>
+
+                <Input
+                  label="Logradouro / Rua"
+                  value={street}
+                  onChange={(e) => setStreet(e.target.value)}
+                  placeholder="Ex: Av. Paulista"
+                  required
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    label="Número"
+                    value={number}
+                    onChange={(e) => setNumber(e.target.value)}
+                    placeholder="1000"
+                    required
+                  />
+                  <Input
+                    label="Complemento"
+                    value={complement}
+                    onChange={(e) => setComplement(e.target.value)}
+                    placeholder="Galpão 3 (opcional)"
+                  />
+                </div>
+
+                <Input
+                  label="Bairro"
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  placeholder="Ex: Bela Vista"
+                  required
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    label="Cidade"
+                    value={distributorCity}
+                    onChange={(e) => setDistributorCity(e.target.value)}
+                    placeholder="São Paulo"
+                    required
+                  />
+                  <StateSelect
+                    label="UF"
+                    value={distributorState}
+                    onChange={(uf) => setDistributorState(uf)}
+                    required
+                  />
+                </div>
               </div>
             )}
 
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                required
-                checked={termsAccepted}
-                onChange={(e) => setTermsAccepted(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded accent-[#22C55E]"
-              />
-              <span className="text-sm text-slate-600">
-                Li e concordo com os{" "}
-                <a href="/termos" target="_blank" className="font-semibold text-[#22C55E] hover:underline">
-                  Termos de Uso
-                </a>{" "}
-                e a{" "}
-                <a href="/privacidade" target="_blank" className="font-semibold text-[#22C55E] hover:underline">
-                  Política de Privacidade
-                </a>{" "}
-                da Hubby.
-              </span>
-            </label>
+            {/* ACEITE DE TERMOS */}
+            {(role === "client" || (role === "distributor_admin" && distributorSubStep === 2)) && (
+              <label className="flex items-start gap-3 cursor-pointer mt-2">
+                <input
+                  type="checkbox"
+                  required
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded accent-[#22C55E]"
+                />
+                <span className="text-sm text-slate-600">
+                  Li e concordo com os{" "}
+                  <a href="/termos" target="_blank" className="font-semibold text-[#22C55E] hover:underline">
+                    Termos de Uso
+                  </a>{" "}
+                  e a{" "}
+                  <a href="/privacidade" target="_blank" className="font-semibold text-[#22C55E] hover:underline">
+                    Política de Privacidade
+                  </a>{" "}
+                  da Hubby.
+                </span>
+              </label>
+            )}
 
             {error && (
               <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -685,16 +831,56 @@ export default function RegisterClient() {
               </div>
             )}
 
-            <Button 
-              type="submit" 
-              fullWidth 
-              loading={loading} 
-              size="lg" 
-              disabled={!termsAccepted || cnpjValidating || (cnpj.replace(/\D/g, "").length === 14 && cnpjValid !== true)} 
-              className="bg-[#22C55E] hover:bg-[#16A34A] font-bold"
-            >
-              Criar conta
-            </Button>
+            {/* BOTÃO DO PASSO 1 DA DISTRIBUIDORA */}
+            {role === "distributor_admin" && distributorSubStep === 1 && (
+              <Button
+                type="button"
+                onClick={handleGoToDistributorAddress}
+                fullWidth
+                size="lg"
+                className="bg-[#22C55E] hover:bg-[#16A34A] font-bold"
+              >
+                Próximo: Endereço da Distribuidora →
+              </Button>
+            )}
+
+            {/* BOTÕES DO PASSO 2 DA DISTRIBUIDORA */}
+            {role === "distributor_admin" && distributorSubStep === 2 && (
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDistributorSubStep(1)}
+                  className="w-1/3"
+                >
+                  ← Voltar
+                </Button>
+                <Button
+                  type="submit"
+                  fullWidth
+                  loading={loading}
+                  size="lg"
+                  disabled={!termsAccepted || !zipcode || !street || !number || !distributorCity || !distributorState}
+                  className="w-2/3 bg-[#22C55E] hover:bg-[#16A34A] font-bold"
+                >
+                  Criar conta
+                </Button>
+              </div>
+            )}
+
+            {/* BOTÃO DO COMPRADOR */}
+            {role === "client" && (
+              <Button 
+                type="submit" 
+                fullWidth 
+                loading={loading} 
+                size="lg" 
+                disabled={!termsAccepted || cnpjValidating || (cnpj.replace(/\D/g, "").length === 14 && cnpjValid !== true)} 
+                className="bg-[#22C55E] hover:bg-[#16A34A] font-bold"
+              >
+                Criar conta
+              </Button>
+            )}
           </form>
         </div>
 

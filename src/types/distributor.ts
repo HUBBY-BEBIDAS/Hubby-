@@ -32,6 +32,22 @@ export const PAYMENT_METHODS = [
 
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
+// ─── Entrega e Frete ──────────────────────────────────────────────────────────
+
+export const WEEK_DAYS = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+] as const;
+
+export type WeekDay = (typeof WEEK_DAYS)[number];
+
+export const FREIGHT_TYPES = ["free", "fixed", "by_weight", "by_value", "custom"] as const;
+export type FreightType = (typeof FREIGHT_TYPES)[number];
+
 // ─── Perfil da distribuidora ──────────────────────────────────────────────────
 
 export const distributorProfileSchema = z.object({
@@ -75,31 +91,22 @@ export const distributorProfileSchema = z.object({
     .max(1000)
     .optional(),
   credit_accepts_restrictions: z.boolean().default(false),
-  credit_min_cnpj_months: z
-    .number()
-    .int()
-    .min(0)
-    .max(120)
-    .default(6),
+  credit_min_cnpj_months: z.number().int().min(0).optional().default(6),
+  // Configuração de entrega
+  delivery_mode: z.enum(["region", "radius"]).default("region"),
+  max_delivery_radius_km: z.number().int().min(1).max(500).optional().nullable(),
+  radius_delivery_days_business: z.number().int().min(1).max(30).optional().default(1),
+  radius_cutoff_time: z.string().optional().default("16:00"),
+  radius_route_days: z.array(z.string()).optional().default(["monday", "tuesday", "wednesday", "thursday", "friday"]),
+  radius_minimum_order_cents: z.number().int().min(0).optional().default(0),
+  radius_freight_type: z.enum(FREIGHT_TYPES).optional().default("free"),
+  radius_freight_value_cents: z.number().int().min(0).optional().nullable(),
+  radius_free_freight_above_cents: z.number().int().min(0).optional().nullable(),
 });
 
 export type DistributorProfileInput = z.infer<typeof distributorProfileSchema>;
 
 // ─── Região de entrega ────────────────────────────────────────────────────────
-
-export const WEEK_DAYS = [
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-] as const;
-
-export type WeekDay = (typeof WEEK_DAYS)[number];
-
-export const FREIGHT_TYPES = ["free", "fixed", "by_weight", "by_value", "custom"] as const;
-export type FreightType = (typeof FREIGHT_TYPES)[number];
 
 export const deliveryRegionSchema = z.object({
   city: z.string().min(2, "Cidade é obrigatória"),

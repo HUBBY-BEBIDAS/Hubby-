@@ -518,20 +518,91 @@ export default function RegioesPage() {
   // Operações em andamento
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // ─── Carrega regiões ──────────────────────────────────────────────────────
+  const [deliveryMode, setDeliveryMode] = useState<"region" | "radius">("region");
+  const [radiusKm, setRadiusKm] = useState<number>(20);
+  const [radiusDays, setRadiusDays] = useState<number>(1);
+  const [radiusCutoff, setRadiusCutoff] = useState<string>("16:00");
+  const [radiusRouteDays, setRadiusRouteDays] = useState<string[]>(["monday", "tuesday", "wednesday", "thursday", "friday"]);
+  const [radiusMinOrder, setRadiusMinOrder] = useState<number>(0);
+  const [savingRadius, setSavingRadius] = useState(false);
+  const [radiusMsg, setRadiusMsg] = useState("");
 
-  async function loadRegions() {
+  // ─── Carrega regiões e perfil ─────────────────────────────────────────────
+
+  async function loadData() {
     if (!token) return;
-    const res = await apiFetch("/api/distributor/delivery-regions", { method: "GET", token });
-    if (res.ok) {
-      const data = await res.json() as { regions: DeliveryRegion[] };
-      setRegions(data.regions ?? []);
+    setLoading(true);
+    try {
+      const [resReg, resProf] = await Promise.all([
+        apiFetch("/api/distributor/delivery-regions", { method: "GET", token }),
+        apiFetch("/api/distributor/profile", { method: "GET", token }),
+      ]);
+      if (resReg.ok) {
+        const data = await resReg.json() as { regions: DeliveryRegion[] };
+        setRegions(data.regions ?? []);
+      }
+      if (resProf.ok) {
+        const data = await resProf.json();
+        if (data.profile) {
+          setDeliveryMode(data.profile.delivery_mode ?? "region");
+          setRadiusKm(data.profile.max_delivery_radius_km ?? 20);
+          setRadiusDays(data.profile.radius_delivery_days_business ?? 1);
+          setRadiusCutoff(data.profile.radius_cutoff_time ?? "16:00");
+          setRadiusRouteDays(data.profile.radius_route_days ?? ["monday", "tuesday", "wednesday", "thursday", "friday"]);
+          setRadiusMinOrder((data.profile.radius_minimum_order_cents ?? 0) / 100);
+        }
+      }
+    } catch {
+      // Falha graciosa
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  }
+
+  async function saveRadiusConfig(e: FormEvent) {
+    e.preventDefault();
+    if (!token) return;
+    setSavingRadius(true);
+    setRadiusMsg("");
+    try {
+      const res = await apiFetch("/api/distributor/onboarding", {
+        method: "PATCH",
+        token,
+        body: JSON.stringify({
+          delivery_mode: "radius",
+          max_delivery_radius_km: Number(radiusKm),
+          radius_delivery_days_business: Number(radiusDays),
+          radius_cutoff_time: radiusCutoff,
+          radius_route_days: radiusRouteDays,
+          radius_minimum_order_cents: Number(radiusMinOrder) * 100,
+        }),
+      });
+      setSavingRadius(false);
+      if (res.ok) {
+        setDeliveryMode("radius");
+        setRadiusMsg("Configurações de Raio salvas com sucesso!");
+      } else {
+        const d = await res.json();
+        setRadiusMsg(d.error ?? "Erro ao salvar raio de entrega");
+      }
+    } catch {
+      setSavingRadius(false);
+      setRadiusMsg("Erro de conexão");
+    }
+  }
+
+  async function switchMode(mode: "region" | "radius") {
+    if (!token) return;
+    setDeliveryMode(mode);
+    await apiFetch("/api/distributor/onboarding", {
+      method: "PATCH",
+      token,
+      body: JSON.stringify({ delivery_mode: mode }),
+    });
   }
 
   useEffect(() => {
-    if (token) loadRegions();
+    if (token) loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -639,32 +710,168 @@ export default function RegioesPage() {
             >
               ← Voltar ao painel
             </button>
-            <h1 className="text-2xl font-display font-semibold text-[#0F172A]">Regiões e rotas</h1>
-            <p className="text-sm text-slate-500">{regions.length} município{regions.length !== 1 ? "s" : ""} cadastrado{regions.length !== 1 ? "s" : ""}</p>
+            <h1 className="text-2xl font-display font-semibold text-[#0F172A]">Regiões e Cobertura de Entrega</h1>
+            <p className="text-sm text-slate-500">
+              {deliveryMode === "radius"
+                ? `Entrega ativada por Raio Máximo (${radiusKm} km)`
+                : `${regions.length} município${regions.length !== 1 ? "s" : ""} cadastrado${regions.length !== 1 ? "s" : ""}`}
+            </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>
-              <FileText size={14} className="inline mr-1" />Importar planilha
-            </Button>
-            <Button size="sm" onClick={() => { setShowAdd(true); setEditingRegion(null); setRegionForm(EMPTY_FORM); setFormError(""); }}>
-              + Adicionar região
-            </Button>
-          </div>
+          {deliveryMode === "region" && (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>
+                <FileText size={14} className="inline mr-1" />Importar planilha
+              </Button>
+              <Button size="sm" onClick={() => { setShowAdd(true); setEditingRegion(null); setRegionForm(EMPTY_FORM); setFormError(""); }}>
+                + Adicionar região
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Filtro */}
-        <div className="mb-4">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por cidade ou estado…"
-            className="w-full max-w-xs rounded-xl border border-[#DBEAFE] bg-white px-4 py-2.5 text-sm text-[#0F172A] placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none"
-          />
+        {/* Abas de Modo de Entrega */}
+        <div className="mb-6 grid grid-cols-2 gap-3 max-w-xl">
+          <button
+            type="button"
+            onClick={() => switchMode("radius")}
+            className={`flex items-center gap-3 rounded-2xl border-2 p-4 text-left transition ${
+              deliveryMode === "radius"
+                ? "border-[#22C55E] bg-[#22C55E]/10 font-bold text-[#0F172A]"
+                : "border-[#DBEAFE] bg-white text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            <MapPin size={22} className={deliveryMode === "radius" ? "text-[#22C55E]" : "text-slate-400"} />
+            <div>
+              <p className="text-sm font-semibold">Raio Máximo em KM</p>
+              <p className="text-xs text-slate-500 font-normal">Ideal para distribuidoras locais</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => switchMode("region")}
+            className={`flex items-center gap-3 rounded-2xl border-2 p-4 text-left transition ${
+              deliveryMode === "region"
+                ? "border-[#2563EB] bg-[#2563EB]/10 font-bold text-[#0F172A]"
+                : "border-[#DBEAFE] bg-white text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            <FileText size={22} className={deliveryMode === "region" ? "text-[#2563EB]" : "text-slate-400"} />
+            <div>
+              <p className="text-sm font-semibold">Cidades & Planilha</p>
+              <p className="text-xs text-slate-500 font-normal">Lista de municípios ou roteiros</p>
+            </div>
+          </button>
         </div>
 
-        {/* Tabela */}
-        <div className="rounded-3xl border border-[#DBEAFE] bg-white shadow-sm overflow-hidden">
+        {/* Seção Modo Raio */}
+        {deliveryMode === "radius" && (
+          <div className="mb-8 rounded-3xl border border-[#22C55E]/30 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-[#0F172A]">Configurar Raio Máximo de Atendimento</h3>
+                <p className="text-xs text-slate-500">Apenas compradores localizados até esta distância da sua distribuidora verão seus produtos.</p>
+              </div>
+              <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">Modo Raio Ativo</span>
+            </div>
+
+            <form onSubmit={saveRadiusConfig} className="space-y-4 max-w-xl">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Raio Máximo em Quilômetros (KM)</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[10, 20, 30, 50].map((km) => (
+                    <button
+                      key={km}
+                      type="button"
+                      onClick={() => setRadiusKm(km)}
+                      className={`py-2 rounded-xl border text-xs font-bold transition ${
+                        radiusKm === km
+                          ? "border-[#22C55E] bg-[#22C55E] text-white"
+                          : "border-[#DBEAFE] bg-white text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      {km} km
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-xs text-slate-500">Distância customizada (KM):</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={500}
+                    value={radiusKm}
+                    onChange={(e) => setRadiusKm(Number(e.target.value))}
+                    className="w-24 rounded-xl border border-[#DBEAFE] px-3 py-1.5 text-sm focus:border-[#22C55E] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Prazo Padrão (dias úteis)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={radiusDays}
+                    onChange={(e) => setRadiusDays(Number(e.target.value))}
+                    className="w-full rounded-xl border border-[#DBEAFE] px-3 py-2 text-sm focus:border-[#22C55E] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Horário de Corte</label>
+                  <input
+                    type="text"
+                    value={radiusCutoff}
+                    onChange={(e) => setRadiusCutoff(e.target.value)}
+                    placeholder="16:00"
+                    className="w-full rounded-xl border border-[#DBEAFE] px-3 py-2 text-sm focus:border-[#22C55E] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Pedido Mínimo (R$)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={radiusMinOrder}
+                  onChange={(e) => setRadiusMinOrder(Number(e.target.value))}
+                  className="w-full rounded-xl border border-[#DBEAFE] px-3 py-2 text-sm focus:border-[#22C55E] focus:outline-none"
+                  placeholder="0 para sem mínimo"
+                />
+              </div>
+
+              {radiusMsg && (
+                <p className={`text-xs font-medium ${radiusMsg.includes("sucesso") ? "text-green-600" : "text-red-600"}`}>
+                  {radiusMsg}
+                </p>
+              )}
+
+              <Button size="sm" type="submit" loading={savingRadius}>
+                Salvar Configurações de Raio
+              </Button>
+            </form>
+          </div>
+        )}
+
+        {/* Modo Regiões/Cidades */}
+        {deliveryMode === "region" && (
+          <>
+            {/* Filtro */}
+            <div className="mb-4">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por cidade ou estado…"
+                className="w-full max-w-xs rounded-xl border border-[#DBEAFE] bg-white px-4 py-2.5 text-sm text-[#0F172A] placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none"
+              />
+            </div>
+
+            {/* Tabela */}
+            <div className="rounded-3xl border border-[#DBEAFE] bg-white shadow-sm overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" />
@@ -755,6 +962,8 @@ export default function RegioesPage() {
             {filtered.length} de {regions.length} região{regions.length !== 1 ? "ões" : ""}
           </p>
         )}
+        </>
+        )}
       </main>
 
       {/* Modal Adicionar */}
@@ -816,7 +1025,7 @@ export default function RegioesPage() {
         <ImportModal
           token={token}
           onClose={() => setShowImport(false)}
-          onImported={() => { loadRegions(); }}
+          onImported={() => { loadData(); }}
         />
       )}
     </div>

@@ -19,6 +19,7 @@ import {
   getNowBRT,
 } from "@/lib/delivery-calculator";
 import { normalizeCityName } from "@/lib/coverage";
+import { geocodeCepOrAddress } from "@/lib/geocoding";
 import type { Product, QuotationItem, Quotation, Client } from "@prisma/client";
 
 // ─── Tipos de saída ───────────────────────────────────────────────────────────
@@ -235,13 +236,32 @@ export async function computeRanking(
     .replace(/\s*\([^)]*\)\s*/g, "")
     .trim();
 
-  // 1. Busca todas as regiões de entrega que cobrem o estado do cliente,
-  //    e depois filtra pela cidade normalizada client-side.
+  // Tenta obter coordenadas do cliente se não estiverem na cotação
+  let clientLat = quotation.delivery_lat ?? null;
+  let clientLng = quotation.delivery_lng ?? null;
+
+  if ((clientLat === null || clientLng === null) && client) {
+    const coords = await geocodeCepOrAddress({
+      cep: client.delivery_zip_code,
+      addressFull: client.delivery_address_full,
+      city: quotation.delivery_city,
+      state: quotation.delivery_state,
+    });
+    if (coords) {
+      clientLat = coords.lat;
+      clientLng = coords.lng;
+    }
+  }
+
+  // 1. Busca todas as regiões de entrega por cidade/estado
   console.log(`[ranking] buscando regiões para: estado="${deliveryState}" cotação=${quotation.id}`);
 
   const allStateRegions = await prisma.deliveryRegion.findMany({
     where: {
       state: { equals: deliveryState, mode: "insensitive" },
+      distributor: {
+        delivery_mode: "region",
+      },
     },
     include: {
       distributor: {
@@ -255,9 +275,54 @@ export async function computeRanking(
   });
 
   const targetCityClean = normalizeCityName(deliveryCity).toLowerCase();
-  const regions = allStateRegions.filter(
+  const regions: Array<typeof allStateRegions[0]> = allStateRegions.filter(
     (r) => normalizeCityName(r.city).toLowerCase() === targetCityClean
   );
+
+  // 1b. Busca distribuidoras que operam por Raio Máximo (delivery_mode = "radius")
+  const radiusDistributors = await prisma.distributor.findMany({
+    where: {
+      delivery_mode: "radius",
+      approved_by_admin: true,
+      max_delivery_radius_km: { not: null },
+      lat: { not: null },
+      lng: { not: null },
+    },
+    include: {
+      products: {
+        where: { available: true },
+      },
+    },
+  });
+
+  for (const dist of radiusDistributors) {
+    if (
+      clientLat !== null &&
+      clientLng !== null &&
+      dist.lat !== null &&
+      dist.lng !== null &&
+      dist.max_delivery_radius_km !== null
+    ) {
+      const distance = calcDistanceKm(clientLat, clientLng, dist.lat, dist.lng);
+      if (distance <= dist.max_delivery_radius_km) {
+        regions.push({
+          id: `radius-${dist.id}`,
+          distributor_id: dist.id,
+          city: deliveryCity,
+          state: deliveryState,
+          delivery_days_business: dist.radius_delivery_days_business ?? 1,
+          route_days: dist.radius_route_days && dist.radius_route_days.length > 0 ? dist.radius_route_days : ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          cutoff_time: dist.radius_cutoff_time ?? "16:00",
+          minimum_order_cents: dist.radius_minimum_order_cents ?? 0,
+          freight_type: dist.radius_freight_type ?? "free",
+          freight_value_cents: dist.radius_freight_value_cents ?? null,
+          free_freight_above_cents: dist.radius_free_freight_above_cents ?? null,
+          freight_notes: `Entrega num raio de até ${dist.max_delivery_radius_km}km`,
+          distributor: dist as any,
+        });
+      }
+    }
+  }
 
   // Busca promoções ativas para todos os produtos das distribuidoras encontradas
   const allProductIds = regions.flatMap((r) => r.distributor.products.map((p) => p.id));
@@ -289,8 +354,6 @@ export async function computeRanking(
 
   // 2. Para cada distribuidora aprovada que atende a região, computa o ranking
   const maxDays = quotation.max_delivery_days;
-  const clientLat = quotation.delivery_lat ?? null;
-  const clientLng = quotation.delivery_lng ?? null;
   const ranked: RankedDistributor[] = [];
 
   for (const region of regions) {

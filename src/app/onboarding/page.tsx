@@ -7,7 +7,7 @@ import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { Badge } from "@/components/ui/Badge";
 import {
   Hand, Package, Map, CheckCircle, BarChart2, Pencil, Lightbulb,
-  Download, FolderOpen, Sparkles, Check, AlertTriangle,
+  Download, FolderOpen, Sparkles, Check, AlertTriangle, MapPin,
 } from "lucide-react";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -23,6 +23,11 @@ type OnboardingState = {
   credit_score_minimum: number;
   credit_accepts_restrictions: boolean;
   credit_min_cnpj_months: number;
+  delivery_mode?: "region" | "radius";
+  max_delivery_radius_km?: number | null;
+  radius_delivery_days_business?: number;
+  radius_cutoff_time?: string;
+  radius_route_days?: string[];
 };
 
 const TOTAL_STEPS = 5;
@@ -30,6 +35,7 @@ const WEEK_DAYS = [
   { value: "monday", label: "Seg" }, { value: "tuesday", label: "Ter" },
   { value: "wednesday", label: "Qua" }, { value: "thursday", label: "Qui" },
   { value: "friday", label: "Sex" }, { value: "saturday", label: "Sáb" },
+  { value: "sunday", label: "Dom" },
 ];
 const CATEGORIES = [
   "beer","whisky","vodka","gin","rum","cachaca","wine","sparkling","energy","soft_drink","water","juice","other"
@@ -418,7 +424,7 @@ function Step2Products({ token, state, onNext, onSkip }: {
 function Step3Regions({ token, state, onNext, onSkip }: {
   token: string | null; state: OnboardingState; onNext: () => void; onSkip: () => void;
 }) {
-  const [mode, setMode] = useState<"choose" | "manual" | "upload">("choose");
+  const [mode, setMode] = useState<"choose" | "manual" | "upload" | "radius">("choose");
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState("");
@@ -442,6 +448,16 @@ function Step3Regions({ token, state, onNext, onSkip }: {
   } | null>(null);
   const [confirming, setConfirming] = useState(false);
 
+  // Estados para modo Raio Máximo
+  const [radiusKm, setRadiusKm] = useState<number>(state.max_delivery_radius_km || 20);
+  const [radiusDeliveryDays, setRadiusDeliveryDays] = useState<number>(state.radius_delivery_days_business || 1);
+  const [radiusCutoffTime, setRadiusCutoffTime] = useState<string>(state.radius_cutoff_time || "16:00");
+  const [radiusRouteDays, setRadiusRouteDays] = useState<string[]>(
+    state.radius_route_days || ["monday", "tuesday", "wednesday", "thursday", "friday"]
+  );
+  const [savingRadius, setSavingRadius] = useState(false);
+  const [radiusMsg, setRadiusMsg] = useState("");
+
   const [form, setForm] = useState({
     city: "", state: "SP", delivery_days_business: 2,
     cutoff_time: "14:00", minimum_order_cents: 0,
@@ -450,6 +466,51 @@ function Step3Regions({ token, state, onNext, onSkip }: {
   const [saving, setSaving] = useState(false);
   const [savedCount, setSavedCount] = useState(state.regions_count);
   const [saveMsg, setSaveMsg] = useState("");
+
+  async function handleSaveRadius(e: FormEvent) {
+    e.preventDefault();
+    if (!token) return;
+    if (radiusRouteDays.length === 0) {
+      setRadiusMsg("Selecione ao menos um dia de entrega na semana");
+      return;
+    }
+    setSavingRadius(true);
+    setRadiusMsg("");
+    try {
+      const res = await apiFetch("/api/distributor/onboarding", {
+        method: "PATCH",
+        token,
+        body: JSON.stringify({
+          delivery_mode: "radius",
+          max_delivery_radius_km: Number(radiusKm),
+          radius_delivery_days_business: Number(radiusDeliveryDays),
+          radius_cutoff_time: radiusCutoffTime,
+          radius_route_days: radiusRouteDays,
+          radius_minimum_order_cents: 0,
+        }),
+      });
+      setSavingRadius(false);
+      if (res.ok) {
+        onNext();
+      } else {
+        let errText = "Erro ao salvar raio de entrega";
+        try {
+          const d = await res.json();
+          errText = d.error ?? errText;
+        } catch { /* silencia */ }
+        setRadiusMsg(errText);
+      }
+    } catch {
+      setSavingRadius(false);
+      setRadiusMsg("Erro de conexão");
+    }
+  }
+
+  function toggleRadiusDay(day: string) {
+    setRadiusRouteDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
+  }
 
   function routeDaysLabel(days: string[]) {
     const map: Record<string, string> = {
@@ -522,25 +583,34 @@ function Step3Regions({ token, state, onNext, onSkip }: {
     if (!token || form.route_days.length === 0) { setSaveMsg("Selecione ao menos um dia de rota"); return; }
     setSaving(true);
     setSaveMsg("");
-    const res = await apiFetch("/api/distributor/delivery-regions", {
-      method: "POST", token,
-      body: JSON.stringify({
-        city: form.city, state: form.state.toUpperCase(),
-        delivery_days_business: Number(form.delivery_days_business),
-        cutoff_time: form.cutoff_time,
-        minimum_order_cents: Number(form.minimum_order_cents) * 100,
-        route_days: form.route_days,
-      }),
-    });
-    setSaving(false);
-    if (res.ok) {
-      const count = savedCount + 1;
-      setSavedCount(count);
-      setSaveMsg(`OK ${form.city}/${form.state} adicionada!`);
-      setForm(f => ({ ...f, city: "", route_days: [] }));
-    } else {
-      const d = await res.json();
-      setSaveMsg(d.error ?? "Erro ao salvar");
+    try {
+      const res = await apiFetch("/api/distributor/delivery-regions", {
+        method: "POST", token,
+        body: JSON.stringify({
+          city: form.city, state: form.state.toUpperCase(),
+          delivery_days_business: Number(form.delivery_days_business),
+          cutoff_time: form.cutoff_time,
+          minimum_order_cents: Number(form.minimum_order_cents) * 100,
+          route_days: form.route_days,
+        }),
+      });
+      setSaving(false);
+      if (res.ok) {
+        const count = savedCount + 1;
+        setSavedCount(count);
+        setSaveMsg(`OK ${form.city}/${form.state} adicionada!`);
+        setForm(f => ({ ...f, city: "", route_days: [] }));
+      } else {
+        let errText = "Erro ao salvar";
+        try {
+          const d = await res.json();
+          errText = d.error ?? errText;
+        } catch { /* ignora */ }
+        setSaveMsg(errText);
+      }
+    } catch {
+      setSaving(false);
+      setSaveMsg("Erro de conexão ao salvar cidade");
     }
   }
 
@@ -554,23 +624,31 @@ function Step3Regions({ token, state, onNext, onSkip }: {
   if (mode === "choose") return (
     <Card>
       <StepTitle>Onde você entrega?</StepTitle>
-      <StepSubtitle>Configure as regiões de entrega para aparecer no ranking dos compradores da sua área.</StepSubtitle>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+      <StepSubtitle>Escolha como deseja definir a sua área de cobertura de entregas.</StepSubtitle>
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <button onClick={() => setMode("radius")}
+          className="flex flex-col items-start gap-2 rounded-2xl border-2 border-[#22C55E]/40 bg-[#22C55E]/5 p-5 text-left transition hover:border-[#22C55E] hover:bg-[#22C55E]/10">
+          <MapPin size={22} className="text-[#22C55E]" />
+          <div>
+            <p className="font-bold text-[#0F172A]">Raio Máximo em KM</p>
+            <span className="inline-block mt-1 text-[10px] font-bold text-[#22C55E] bg-green-100 px-2 py-0.5 rounded-full">Recomendado para menores</span>
+          </div>
+          <p className="text-xs text-slate-500">Defina um raio (ex: 10km, 20km, 50km) em volta da sua distribuidora</p>
+        </button>
         <button onClick={() => setMode("upload")}
-          className="flex flex-col items-start gap-2 rounded-2xl border-2 border-[#DBEAFE] bg-[#F5F7FB] p-5 text-left transition hover:border-[#22C55E]/40 hover:bg-[#22C55E]/5">
-          <BarChart2 size={22} />
-          <p className="font-bold text-[#0F172A]">Importar planilha de roteiro</p>
-          <p className="text-xs text-slate-500">Formato com municípios e dias de rota</p>
+          className="flex flex-col items-start gap-2 rounded-2xl border-2 border-[#DBEAFE] bg-[#F5F7FB] p-5 text-left transition hover:border-[#2563EB]/40 hover:bg-[#2563EB]/5">
+          <BarChart2 size={22} className="text-[#2563EB]" />
+          <p className="font-bold text-[#0F172A]">Importar planilha</p>
+          <p className="text-xs text-slate-500">Planilha com municípios e dias de rota específicos</p>
         </button>
         <button onClick={() => setMode("manual")}
-          className="flex flex-col items-start gap-2 rounded-2xl border-2 border-[#DBEAFE] bg-[#F5F7FB] p-5 text-left transition hover:border-[#22C55E]/40 hover:bg-[#22C55E]/5">
-          <Pencil size={22} />
-          <p className="font-bold text-[#0F172A]">Adicionar cidade por cidade</p>
-          <p className="text-xs text-slate-500">Preencha prazo, horário de corte e dias de rota</p>
+          className="flex flex-col items-start gap-2 rounded-2xl border-2 border-[#DBEAFE] bg-[#F5F7FB] p-5 text-left transition hover:border-[#2563EB]/40 hover:bg-[#2563EB]/5">
+          <Pencil size={22} className="text-[#2563EB]" />
+          <p className="font-bold text-[#0F172A]">Cidade por cidade</p>
+          <p className="text-xs text-slate-500">Preencha cidades, horários de corte e prazos manualmente</p>
         </button>
       </div>
       <div className="mt-4 rounded-xl border border-[#DBEAFE] bg-[#EFF6FF] px-4 py-3 text-xs text-[#2563EB]">
-        <Lightbulb size={14} className="inline mr-1" />Baixe o{" "}
         <a
           href="/api/distributor/delivery-regions/template"
           download="modelo-roteiros-hubby.xlsx"
@@ -581,6 +659,115 @@ function Step3Regions({ token, state, onNext, onSkip }: {
         para importação rápida
       </div>
       <SkipBtn onClick={onSkip} />
+    </Card>
+  );
+
+  if (mode === "radius") return (
+    <Card>
+      <button onClick={() => setMode("choose")} className="mb-4 text-sm text-slate-400 hover:text-slate-600">← Voltar</button>
+      <StepTitle>Configuração de Entrega por Raio</StepTitle>
+      <StepSubtitle>
+        Defina a distância máxima e as regras de entrega para atender os clientes da sua região.
+      </StepSubtitle>
+
+      <form onSubmit={handleSaveRadius} className="mt-6 space-y-6">
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+            1. Distância Máxima de Entrega (em KM)
+          </label>
+          <div className="grid grid-cols-4 gap-2">
+            {[10, 20, 30, 50].map((km) => (
+              <button
+                key={km}
+                type="button"
+                onClick={() => setRadiusKm(km)}
+                className={`py-3 rounded-2xl border text-base font-extrabold transition ${
+                  radiusKm === km
+                    ? "border-[#22C55E] bg-[#22C55E] text-white shadow-md"
+                    : "border-[#DBEAFE] bg-[#F5F7FB] text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                {km} km
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-[#DBEAFE]">
+            <span className="text-xs text-slate-600 font-medium">Ou digite o raio desejado:</span>
+            <input
+              type="number"
+              min={1}
+              max={500}
+              value={radiusKm}
+              onChange={(e) => setRadiusKm(Number(e.target.value))}
+              className="w-24 rounded-xl border border-[#DBEAFE] px-3 py-1.5 text-sm font-bold focus:border-[#22C55E] focus:outline-none text-slate-800"
+            />
+            <span className="text-xs text-slate-500 font-bold">KM</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+              2. Prazo de entrega (dias úteis)
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={30}
+              value={radiusDeliveryDays}
+              onChange={(e) => setRadiusDeliveryDays(Number(e.target.value))}
+              className="w-full rounded-xl border border-[#DBEAFE] px-3.5 py-2.5 text-sm font-bold focus:border-[#22C55E] focus:outline-none text-slate-800"
+              placeholder="Ex: 1"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+              3. Horário de corte
+            </label>
+            <input
+              type="text"
+              value={radiusCutoffTime}
+              onChange={(e) => setRadiusCutoffTime(e.target.value)}
+              className="w-full rounded-xl border border-[#DBEAFE] px-3.5 py-2.5 text-sm font-bold focus:border-[#22C55E] focus:outline-none text-slate-800"
+              placeholder="Ex: 16:00"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+            4. Dias de entrega na semana
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {WEEK_DAYS.map((d) => {
+              const active = radiusRouteDays.includes(d.value);
+              return (
+                <button
+                  key={d.value}
+                  type="button"
+                  onClick={() => toggleRadiusDay(d.value)}
+                  className={`rounded-xl border px-4 py-2 text-xs font-extrabold transition ${
+                    active
+                      ? "border-[#22C55E] bg-[#22C55E] text-white shadow-sm"
+                      : "border-[#DBEAFE] bg-[#F5F7FB] text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {d.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {radiusMsg && <p className="text-xs font-medium text-red-600">{radiusMsg}</p>}
+
+        <div className="pt-2">
+          <PrimaryBtn loading={savingRadius} type="submit">
+            Salvar Raio e Configurações →
+          </PrimaryBtn>
+        </div>
+      </form>
     </Card>
   );
 

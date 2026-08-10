@@ -14,7 +14,7 @@ export const GET = withAuth(
     });
 
     if (!distributor) {
-      return Response.json({ error: "Perfil da distribuidora não encontrado" }, { status: 404 });
+      return Response.json({ regions: [] });
     }
 
     const regions = await prisma.deliveryRegion.findMany({
@@ -39,16 +39,22 @@ export const POST = withAuth(
       return Response.json({ error: "Body inválido" }, { status: 400 });
     }
 
-    const distributor = await prisma.distributor.findUnique({
+    let distributor = await prisma.distributor.findUnique({
       where: { user_id: user.userId },
       select: { id: true },
     });
 
     if (!distributor) {
-      return Response.json(
-        { error: "Complete o cadastro do perfil antes de adicionar regiões" },
-        { status: 404 }
-      );
+      distributor = await prisma.distributor.create({
+        data: {
+          user_id: user.userId,
+          company_name: "Distribuidora",
+          cnpj: `TEMP_${Date.now()}`,
+          whatsapp_commercial: "11999999999",
+          email_commercial: user.email,
+        },
+        select: { id: true },
+      });
     }
 
     // Suporta tanto bulk { regions: [...] } quanto objeto único

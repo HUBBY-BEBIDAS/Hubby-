@@ -37,6 +37,20 @@ type DistributorProfile = {
   credit_min_cnpj_months: number;
   business_hours: Record<string, string | null> | null;
   accepts_orders_outside_hours: boolean;
+  address?: {
+    zipcode?: string;
+    street?: string;
+    number?: string;
+    complement?: string;
+    district?: string;
+    city?: string;
+    state?: string;
+  } | null;
+  delivery_mode?: "region" | "radius";
+  max_delivery_radius_km?: number | null;
+  radius_delivery_days_business?: number;
+  radius_cutoff_time?: string;
+  radius_route_days?: string[];
   delivery_regions: DeliveryRegion[];
 };
 
@@ -130,9 +144,52 @@ export default function PerfilPage() {
     responsible_name: "",
     whatsapp_commercial: "",
     email_commercial: "",
+    zipcode: "",
+    street: "",
+    number: "",
+    complement: "",
+    district: "",
+    city: "",
+    state: "SP",
   });
   const [companySaving, setCompanySaving] = useState(false);
   const [companyMsg, setCompanyMsg] = useState("");
+
+  // ── Seção: Modo e Raio de Entrega ──────────────────────────────────────────
+  const [deliveryMode, setDeliveryMode] = useState<"region" | "radius">("radius");
+  const [maxRadiusKm, setMaxRadiusKm] = useState<number | string>(20);
+  const [radiusDaysBusiness, setRadiusDaysBusiness] = useState<number>(3);
+  const [radiusCutoffTime, setRadiusCutoffTime] = useState<string>("16:00");
+  const [radiusRouteDays, setRadiusRouteDays] = useState<string[]>([
+    "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"
+  ]);
+  const [radiusSaving, setRadiusSaving] = useState(false);
+  const [radiusMsg, setRadiusMsg] = useState("");
+  const [profileCepLoading, setProfileCepLoading] = useState(false);
+
+  // Auto busca CEP no perfil da empresa
+  useEffect(() => {
+    const cleanCep = companyForm.zipcode.replace(/\D/g, "");
+    if (cleanCep.length !== 8) return;
+    setProfileCepLoading(true);
+    fetch(`/api/address/cep/${cleanCep}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        setProfileCepLoading(false);
+        if (d.city || d.street) {
+          setCompanyForm((prev) => ({
+            ...prev,
+            street: d.street || prev.street,
+            district: d.district || prev.district,
+            city: d.city || prev.city,
+            state: (d.state || prev.state).toUpperCase(),
+          }));
+        }
+      })
+      .catch(() => setProfileCepLoading(false));
+  }, [companyForm.zipcode, token]);
 
   // Logo
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -214,7 +271,7 @@ export default function PerfilPage() {
     setLoading(true);
     try {
       const res = await apiFetch("/api/distributor/profile", { method: "GET", token });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.profile) {
         setLoading(false);
         return;
@@ -223,15 +280,33 @@ export default function PerfilPage() {
       setProfile(p);
       setSummary(data.products_summary ?? null);
       setRegions(p.delivery_regions ?? []);
+      const addr = (p.address as any) ?? {};
       setCompanyForm({
         responsible_name: p.responsible_name ?? "",
         whatsapp_commercial: p.whatsapp_commercial ?? "",
         email_commercial: p.email_commercial ?? "",
+        zipcode: addr.zipcode ?? "",
+        street: addr.street ?? "",
+        number: addr.number ?? "",
+        complement: addr.complement ?? "",
+        district: addr.district ?? "",
+        city: addr.city ?? "",
+        state: addr.state ?? "SP",
       });
+
+      // Configurações de entrega e raio
+      setDeliveryMode(p.delivery_mode ?? "radius");
+      setMaxRadiusKm(p.max_delivery_radius_km ?? 20);
+      setRadiusDaysBusiness(p.radius_delivery_days_business ?? 3);
+      setRadiusCutoffTime(p.radius_cutoff_time ?? "16:00");
+      setRadiusRouteDays(
+        p.radius_route_days && p.radius_route_days.length > 0
+          ? p.radius_route_days
+          : ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+      );
 
       // Busca URL assinada da logo se houver
       if (p.logo_key) {
-        // Fallback dev: logo_key já é uma data URL — usa diretamente
         if (p.logo_key.startsWith("data:")) {
           setLogoUrl(p.logo_key);
         } else {
@@ -255,7 +330,6 @@ export default function PerfilPage() {
         credit_accepts_restrictions: p.credit_accepts_restrictions,
         credit_min_cnpj_months: p.credit_min_cnpj_months,
       });
-      // Horário de funcionamento
       const bh = p.business_hours as Record<string, string | null> | null;
       if (bh) {
         setBusinessHoursForm((prev) => {
@@ -274,7 +348,6 @@ export default function PerfilPage() {
       }
       setAcceptsOutsideHours(p.accepts_orders_outside_hours ?? false);
 
-      // Busca config ERP
       apiFetch("/api/distributor/erp/config", { method: "GET", token }).then(async (r) => {
         if (!r.ok) return;
         const d = await r.json() as ErpConfig;
@@ -304,17 +377,82 @@ export default function PerfilPage() {
     if (!token) return;
     setCompanySaving(true);
     setCompanyMsg("");
-    const res = await apiFetch("/api/distributor/profile", {
-      method: "PATCH",
-      token,
-      body: JSON.stringify(companyForm),
-    });
-    setCompanySaving(false);
-    if (res.ok) {
-      setCompanyMsg("Dados da empresa salvos com sucesso.");
-    } else {
-      const d = await res.json();
-      setCompanyMsg(`Erro: ${d.error ?? "Falha ao salvar."}`);
+    try {
+      const payload = {
+        responsible_name: companyForm.responsible_name,
+        whatsapp_commercial: companyForm.whatsapp_commercial,
+        email_commercial: companyForm.email_commercial,
+        address: companyForm.zipcode && companyForm.city && companyForm.state ? {
+          zipcode: companyForm.zipcode.replace(/\D/g, ""),
+          street: companyForm.street,
+          number: companyForm.number,
+          complement: companyForm.complement,
+          district: companyForm.district,
+          city: companyForm.city,
+          state: companyForm.state.toUpperCase(),
+        } : null,
+      };
+      const res = await apiFetch("/api/distributor/profile", {
+        method: "PATCH",
+        token,
+        body: JSON.stringify(payload),
+      });
+      setCompanySaving(false);
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setCompanyMsg("✓ Dados da empresa e endereço salvos com sucesso.");
+        if (data.profile) setProfile(data.profile);
+      } else {
+        const d = await res.json().catch(() => ({}));
+        const detailMsg = d.details ? Object.values(d.details).flat().join(", ") : null;
+        setCompanyMsg(`Erro: ${detailMsg || d.error || "Falha ao salvar."}`);
+      }
+    } catch (e: any) {
+      setCompanySaving(false);
+      setCompanyMsg(`Erro de conexão: ${e?.message ?? "Falha ao salvar."}`);
+    }
+  }
+
+  // ── Salvar configurações do raio de entrega ──────────────────────────────
+
+  async function saveRadiusSettings() {
+    if (!token) return;
+    setRadiusSaving(true);
+    setRadiusMsg("");
+
+    const parsedKm = parseInt(String(maxRadiusKm).replace(/\D/g, ""), 10);
+    if (!parsedKm || isNaN(parsedKm) || parsedKm < 1 || parsedKm > 500) {
+      setRadiusSaving(false);
+      setRadiusMsg("Erro: Informe um raio numérico válido entre 1 e 500 KM.");
+      return;
+    }
+
+    try {
+      const res = await apiFetch("/api/distributor/profile", {
+        method: "PATCH",
+        token,
+        body: JSON.stringify({
+          delivery_mode: deliveryMode,
+          max_delivery_radius_km: parsedKm,
+          radius_delivery_days_business: Number(radiusDaysBusiness) || 1,
+          radius_cutoff_time: (radiusCutoffTime || "16:00").slice(0, 5),
+          radius_route_days: radiusRouteDays,
+        }),
+      });
+      setRadiusSaving(false);
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setMaxRadiusKm(parsedKm);
+        setRadiusMsg(`✓ Raio de ${parsedKm} KM salvo e ativado no sistema!`);
+        if (data.profile) setProfile(data.profile);
+      } else {
+        const d = await res.json().catch(() => ({}));
+        const detailMsg = d.details ? Object.values(d.details).flat().join(", ") : null;
+        setRadiusMsg(`Erro: ${detailMsg || d.error || "Falha ao salvar."}`);
+      }
+    } catch (e: any) {
+      setRadiusSaving(false);
+      setRadiusMsg(`Erro de conexão: ${e?.message ?? "Falha ao salvar."}`);
     }
   }
 
@@ -693,6 +831,97 @@ export default function PerfilPage() {
                 />
               </div>
             </div>
+
+            {/* Endereço da Sede / Galpão */}
+            <div className="mt-4 rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] p-4 space-y-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#22C55E]">
+                Endereço da Sede / Galpão (Usado para cálculo do Raio e Geolocalização)
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[#0F172A]">CEP</label>
+                  <input
+                    type="text"
+                    value={companyForm.zipcode}
+                    onChange={(e) => setCompanyForm((p) => ({ ...p, zipcode: e.target.value }))}
+                    disabled={!isAdmin}
+                    className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3 py-2 text-xs text-[#0F172A] focus:border-[#22C55E] focus:outline-none disabled:bg-slate-100"
+                    placeholder="00000-000"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="mb-1 block text-xs font-semibold text-[#0F172A]">Rua / Logradouro</label>
+                  <input
+                    type="text"
+                    value={companyForm.street}
+                    onChange={(e) => setCompanyForm((p) => ({ ...p, street: e.target.value }))}
+                    disabled={!isAdmin}
+                    className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3 py-2 text-xs text-[#0F172A] focus:border-[#22C55E] focus:outline-none disabled:bg-slate-100"
+                    placeholder="Av. Paulista"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[#0F172A]">Número</label>
+                  <input
+                    type="text"
+                    value={companyForm.number}
+                    onChange={(e) => setCompanyForm((p) => ({ ...p, number: e.target.value }))}
+                    disabled={!isAdmin}
+                    className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3 py-2 text-xs text-[#0F172A] focus:border-[#22C55E] focus:outline-none disabled:bg-slate-100"
+                    placeholder="1000"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="mb-1 block text-xs font-semibold text-[#0F172A]">Complemento</label>
+                  <input
+                    type="text"
+                    value={companyForm.complement}
+                    onChange={(e) => setCompanyForm((p) => ({ ...p, complement: e.target.value }))}
+                    disabled={!isAdmin}
+                    className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3 py-2 text-xs text-[#0F172A] focus:border-[#22C55E] focus:outline-none disabled:bg-slate-100"
+                    placeholder="Galpão 3 (opcional)"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[#0F172A]">Bairro</label>
+                  <input
+                    type="text"
+                    value={companyForm.district}
+                    onChange={(e) => setCompanyForm((p) => ({ ...p, district: e.target.value }))}
+                    disabled={!isAdmin}
+                    className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3 py-2 text-xs text-[#0F172A] focus:border-[#22C55E] focus:outline-none disabled:bg-slate-100"
+                    placeholder="Bela Vista"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[#0F172A]">Cidade</label>
+                  <input
+                    type="text"
+                    value={companyForm.city}
+                    onChange={(e) => setCompanyForm((p) => ({ ...p, city: e.target.value }))}
+                    disabled={!isAdmin}
+                    className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3 py-2 text-xs text-[#0F172A] focus:border-[#22C55E] focus:outline-none disabled:bg-slate-100"
+                    placeholder="São Paulo"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[#0F172A]">UF</label>
+                  <input
+                    type="text"
+                    maxLength={2}
+                    value={companyForm.state}
+                    onChange={(e) => setCompanyForm((p) => ({ ...p, state: e.target.value.toUpperCase() }))}
+                    disabled={!isAdmin}
+                    className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3 py-2 text-xs font-bold uppercase text-[#0F172A] focus:border-[#22C55E] focus:outline-none disabled:bg-slate-100"
+                    placeholder="SP"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {isAdmin && (
@@ -705,29 +934,241 @@ export default function PerfilPage() {
           )}
         </Section>
 
-        {/* ── 2. Regiões e rotas ───────────────────────────────────────────── */}
-        <Section title="Regiões e rotas de entrega">
-          <div className="flex items-center justify-between gap-4">
-            <p className="text-sm text-slate-600">
-              {regions.length === 0 ? (
-                <span className="text-slate-400">Nenhuma região cadastrada ainda.</span>
-              ) : (
-                <>
-                  <span className="font-bold text-[#0F172A]">{regions.length}</span>
-                  {" "}região{regions.length !== 1 ? "s" : ""} cadastrada{regions.length !== 1 ? "s" : ""} em{" "}
-                  <span className="font-bold text-[#0F172A]">
-                    {new Set(regions.map((r) => r.state)).size}
-                  </span>
-                  {" "}estado{new Set(regions.map((r) => r.state)).size !== 1 ? "s" : ""}
-                </>
-              )}
-            </p>
-            <Link href="/painel/regioes">
-              <Button size="sm" variant="secondary">
-                Gerenciar regiões →
-              </Button>
-            </Link>
+        {/* ── 2. Regiões e Raio de Entrega ─────────────────────────────────── */}
+        <Section title="Regiões e Raio de Entrega">
+          <p className="mb-4 text-xs text-slate-500">
+            Defina como sua distribuidora atende os compradores: por raio geográfico em KM a partir do seu galpão ou por lista de cidades.
+          </p>
+
+          {/* Seleção do Modo de Entrega */}
+          <div className="mb-6 grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              disabled={!isAdmin}
+              onClick={() => setDeliveryMode("radius")}
+              className={`flex flex-col items-start rounded-2xl border p-4 text-left transition-all ${
+                deliveryMode === "radius"
+                  ? "border-[#22C55E] bg-[#22C55E]/5 ring-2 ring-[#22C55E]/20"
+                  : "border-[#DBEAFE] bg-white hover:border-slate-300"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className={`h-2.5 w-2.5 rounded-full ${deliveryMode === "radius" ? "bg-[#22C55E]" : "bg-slate-300"}`} />
+                <p className="text-sm font-bold text-[#0F172A]">Raio Máximo em KM</p>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                Atendimento automático por geolocalização (calculado via CEP). Recomendado para pequenas distribuidoras.
+              </p>
+            </button>
+
+            <button
+              type="button"
+              disabled={!isAdmin}
+              onClick={() => setDeliveryMode("region")}
+              className={`flex flex-col items-start rounded-2xl border p-4 text-left transition-all ${
+                deliveryMode === "region"
+                  ? "border-[#22C55E] bg-[#22C55E]/5 ring-2 ring-[#22C55E]/20"
+                  : "border-[#DBEAFE] bg-white hover:border-slate-300"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className={`h-2.5 w-2.5 rounded-full ${deliveryMode === "region" ? "bg-[#22C55E]" : "bg-slate-300"}`} />
+                <p className="text-sm font-bold text-[#0F172A]">Cidades / Tabela por Região</p>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                Selecione manualmente as cidades e estados atendidos via planilha ou lista de municípios.
+              </p>
+            </button>
           </div>
+
+          {/* Configurações quando o Modo por Raio está ativo */}
+          {deliveryMode === "radius" && (
+            <div className="rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] p-5 space-y-5">
+              <div>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-[#0F172A]">
+                  Raio Máximo de Entrega (KM a partir da sua empresa)
+                </label>
+                
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  {[10, 20, 30, 50].map((km) => {
+                    const isSelected = Number(maxRadiusKm) === km;
+                    return (
+                      <button
+                        key={km}
+                        type="button"
+                        disabled={!isAdmin}
+                        onClick={() => setMaxRadiusKm(km)}
+                        className={`flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ${
+                          isSelected
+                            ? "bg-[#22C55E] text-white shadow-md shadow-green-500/20 ring-2 ring-[#22C55E]/40"
+                            : "bg-white border border-[#DBEAFE] text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                        }`}
+                      >
+                        {isSelected && <Check size={14} className="stroke-[3]" />}
+                        {km} km
+                      </button>
+                    );
+                  })}
+
+                  {/* Opção de Raio Personalizado / Outro */}
+                  <button
+                    type="button"
+                    disabled={!isAdmin}
+                    onClick={() => {
+                      if ([10, 20, 30, 50].includes(Number(maxRadiusKm))) {
+                        setMaxRadiusKm(15);
+                      }
+                    }}
+                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ${
+                      !([10, 20, 30, 50].includes(Number(maxRadiusKm)))
+                        ? "bg-[#22C55E] text-white shadow-md shadow-green-500/20 ring-2 ring-[#22C55E]/40"
+                        : "bg-white border border-[#DBEAFE] text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                    }`}
+                  >
+                    {!([10, 20, 30, 50].includes(Number(maxRadiusKm))) && <Check size={14} className="stroke-[3]" />}
+                    Personalizado
+                  </button>
+
+                  <div className="flex items-center gap-1.5 ml-2">
+                    <span className="text-xs text-slate-500 font-medium">Outro:</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={maxRadiusKm}
+                      onChange={(e) => setMaxRadiusKm(e.target.value.replace(/\D/g, ""))}
+                      disabled={!isAdmin}
+                      placeholder="Ex: 25"
+                      className={`w-20 rounded-xl border px-3 py-2 text-xs font-extrabold text-[#0F172A] outline-none transition-all ${
+                        !([10, 20, 30, 50].includes(Number(maxRadiusKm)))
+                          ? "border-[#22C55E] bg-green-50/50 ring-2 ring-[#22C55E]/30"
+                          : "border-[#DBEAFE] bg-white focus:border-[#22C55E]"
+                      }`}
+                    />
+                    <span className="text-xs font-bold text-slate-600">km</span>
+                  </div>
+                </div>
+
+                {/* Badge Verdinho de Raio Ativo */}
+                <div className="flex items-center gap-2 rounded-xl border border-[#22C55E]/30 bg-[#22C55E]/10 px-4 py-2.5 text-xs font-bold text-[#16A34A]">
+                  <span className="relative flex h-2.5 w-2.5 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#16A34A]"></span>
+                  </span>
+                  <span>Raio Selecionado: <strong className="text-emerald-800 text-sm font-extrabold">{maxRadiusKm || 0} KM</strong></span>
+                  <span className="text-[11px] font-medium text-slate-500 ml-auto">
+                    (Clientes a até {maxRadiusKm || 0} km verão seu catálogo)
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[#0F172A]">
+                    Prazo de entrega (dias úteis)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={radiusDaysBusiness}
+                    onChange={(e) => setRadiusDaysBusiness(Number(e.target.value))}
+                    disabled={!isAdmin}
+                    className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3.5 py-2 text-xs text-[#0F172A] focus:border-[#22C55E] focus:outline-none"
+                    placeholder="3"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[#0F172A]">
+                    Horário limite de corte (pedidos no dia)
+                  </label>
+                  <input
+                    type="time"
+                    value={radiusCutoffTime}
+                    onChange={(e) => setRadiusCutoffTime(e.target.value)}
+                    disabled={!isAdmin}
+                    className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3.5 py-2 text-xs text-[#0F172A] focus:border-[#22C55E] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-semibold text-[#0F172A]">
+                  Dias de entrega na semana
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: "monday", label: "Seg" },
+                    { value: "tuesday", label: "Ter" },
+                    { value: "wednesday", label: "Qua" },
+                    { value: "thursday", label: "Qui" },
+                    { value: "friday", label: "Sex" },
+                    { value: "saturday", label: "Sáb" },
+                    { value: "sunday", label: "Dom" },
+                  ].map((d) => {
+                    const selected = radiusRouteDays.includes(d.value);
+                    return (
+                      <button
+                        key={d.value}
+                        type="button"
+                        disabled={!isAdmin}
+                        onClick={() => {
+                          setRadiusRouteDays((prev) =>
+                            selected ? prev.filter((item) => item !== d.value) : [...prev, d.value]
+                          );
+                        }}
+                        className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all ${
+                          selected
+                            ? "bg-[#22C55E] text-white shadow-sm"
+                            : "bg-white border border-[#DBEAFE] text-slate-500 hover:bg-slate-100"
+                        }`}
+                      >
+                        {d.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {isAdmin && (
+                <div className="pt-2 flex items-center justify-between border-t border-slate-200/60">
+                  <Button size="sm" loading={radiusSaving} onClick={saveRadiusSettings}>
+                    Salvar Configurações de Raio
+                  </Button>
+                  <SaveMsg msg={radiusMsg} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Configurações quando o Modo por Região/Cidades está ativo */}
+          {deliveryMode === "region" && (
+            <div className="rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-bold text-[#0F172A]">
+                    {regions.length === 0 ? "Nenhuma região cadastrada ainda." : `${regions.length} regiões em ${new Set(regions.map((r) => r.state)).size} estados`}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Gerencie a lista de cidades onde sua distribuidora realiza entregas por tabela.
+                  </p>
+                </div>
+                <Link href="/painel/regioes">
+                  <Button size="sm" variant="secondary">
+                    Gerenciar cidades e regiões →
+                  </Button>
+                </Link>
+              </div>
+
+              {isAdmin && (
+                <div className="mt-4 pt-3 flex items-center justify-between border-t border-slate-200/60">
+                  <Button size="sm" loading={radiusSaving} onClick={saveRadiusSettings}>
+                    Salvar Modo Cidades
+                  </Button>
+                  <SaveMsg msg={radiusMsg} />
+                </div>
+              )}
+            </div>
+          )}
         </Section>
 
         {/* ── 2.5 Horário de funcionamento ─────────────────────────────────── */}
