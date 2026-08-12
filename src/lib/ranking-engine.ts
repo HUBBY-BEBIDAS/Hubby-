@@ -67,6 +67,7 @@ export type RankedDistributor = {
   plan: string;
   average_rating: number | null;
   review_count: number;
+  avg_response_time_minutes: number | null;
   status: "dentro_do_prazo" | "fora_do_prazo";
   delivery_date: string;       // "quarta-feira, 09/07"
   total_business_days: number;
@@ -457,6 +458,7 @@ export async function computeRanking(
       plan: dist.plan,
       average_rating: dist.average_rating,
       review_count:   dist.review_count,
+      avg_response_time_minutes: dist.avg_response_time_minutes ?? 15,
       status,
       delivery_date: estimate.deliveryDateFormatted,
       total_business_days: estimate.totalBusinessDays,

@@ -13,6 +13,7 @@ type ChatRoom = {
   other_party_id: string;
   other_party_name: string;
   other_party_logo_key: string | null;
+  avg_response_time_minutes?: number | null;
   last_message: string | null;
   last_message_time: string | null;
   unread_count?: number;
@@ -315,7 +316,14 @@ function ChatContent() {
                     <h2 className="text-sm font-bold text-[#0F172A]">
                       {activeRoom.other_party_name}
                     </h2>
-                    <span className="text-[10px] font-semibold text-[#22C55E]">Online</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-semibold text-[#22C55E]">Online</span>
+                      {activeRoom.avg_response_time_minutes != null && (
+                        <span className="text-[10px] font-bold text-cyan-700 bg-cyan-50 px-1.5 py-0.5 rounded-full border border-cyan-200/60">
+                          ⚡ Responde em ~{activeRoom.avg_response_time_minutes < 60 ? `${activeRoom.avg_response_time_minutes} min` : `${Math.round(activeRoom.avg_response_time_minutes / 60)}h`}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

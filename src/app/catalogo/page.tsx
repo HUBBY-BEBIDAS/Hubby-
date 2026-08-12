@@ -360,11 +360,18 @@ function ProductCard({
         <button onClick={handleCardClick} className="text-left w-full cursor-pointer">
           <div className="flex items-center justify-between gap-1">
             <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{product.brand}</p>
-            {hasMultipleVariants && (
-              <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">
-                {product.variants!.length} tamanhos
-              </span>
-            )}
+            <div className="flex items-center gap-1">
+              {product.is_sponsored && (
+                <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[9px] font-extrabold text-emerald-600 flex items-center gap-0.5">
+                  ✦ Patrocinado
+                </span>
+              )}
+              {hasMultipleVariants && (
+                <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">
+                  {product.variants!.length} tamanhos
+                </span>
+              )}
+            </div>
           </div>
           <p className="mt-0.5 text-sm font-semibold leading-tight text-[#0F172A]">{product.name}</p>
           <p className="mt-0.5 text-[11px] text-slate-400">

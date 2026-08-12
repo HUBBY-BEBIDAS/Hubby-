@@ -53,6 +53,7 @@ type RankingEntry = {
   status: "within_deadline" | "out_of_deadline";
   average_rating: number | null;
   review_count: number;
+  avg_response_time_minutes?: number | null;
   freight_type: string;
   freight_value_cents: number | null;
   free_freight_above_cents: number | null;
@@ -190,6 +191,7 @@ function toEntry(d: RankedDistributor, historyMap: PriceHistoryMap): RankingEntr
     status: isWithin ? "within_deadline" : "out_of_deadline",
     average_rating: d.average_rating,
     review_count:   d.review_count,
+    avg_response_time_minutes: d.avg_response_time_minutes ?? 15,
     freight_type: d.freight_type,
     freight_value_cents: d.freight_value_cents,
     free_freight_above_cents: d.free_freight_above_cents,

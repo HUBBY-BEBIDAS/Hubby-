@@ -24,7 +24,7 @@ export const GET = withAuth(
   async (_req: NextRequest, user) => {
     const distributor = await prisma.distributor.findUnique({
       where: { user_id: user.userId },
-      select: { id: true, plan: true, plan_status: true },
+      select: { id: true, plan: true, plan_status: true, avg_response_time_minutes: true },
     });
     if (!distributor) {
       return Response.json({ error: "Perfil de distribuidora não encontrado" }, { status: 404 });
@@ -97,6 +97,7 @@ export const GET = withAuth(
       today: todayLabel,
       plan: distributor.plan,
       plan_status: distributor.plan_status,
+      avg_response_time_minutes: distributor.avg_response_time_minutes ?? 15,
       new_orders_today: newOrdersToday.length,
       clients_today: clientsToday,
       approved_orders_today: approvedOrdersToday,

@@ -213,6 +213,7 @@ const patchSchema = z.object({
   credit_min_cnpj_months: z.number().int().optional(),
   business_hours: z.record(z.string(), z.string().nullable()).optional(),
   accepts_orders_outside_hours: z.boolean().optional(),
+  avg_response_time_minutes: z.number().int().min(1).max(1440).optional(),
   address: z.any().optional(),
   delivery_mode: z.enum(["region", "radius"]).optional(),
   max_delivery_radius_km: z

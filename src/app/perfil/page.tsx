@@ -49,6 +49,7 @@ type DistributorProfile = {
   delivery_mode?: "region" | "radius";
   max_delivery_radius_km?: number | null;
   radius_delivery_days_business?: number;
+  avg_response_time_minutes?: number | null;
   radius_cutoff_time?: string;
   radius_route_days?: string[];
   delivery_regions: DeliveryRegion[];

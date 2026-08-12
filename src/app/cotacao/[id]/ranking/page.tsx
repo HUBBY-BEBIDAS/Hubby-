@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Navbar } from "@/components/Navbar";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { Heart, Star, MapPin, Check, X, Sparkles, ShoppingCart, MessageSquare } from "lucide-react";
+import { Heart, Star, MapPin, Check, X, Sparkles, ShoppingCart, MessageSquare, Zap } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useQuotation } from "@/contexts/QuotationContext";
 import { DistributorRatingBadge } from "@/components/DistributorRatingBadge";
@@ -55,6 +55,7 @@ type RankingEntry = {
   status: "within_deadline" | "out_of_deadline";
   average_rating: number | null;
   review_count: number;
+  avg_response_time_minutes?: number | null;
   freight_type: string;
   freight_value_cents: number | null;
   free_freight_above_cents: number | null;
@@ -119,6 +120,7 @@ type ProductOffer = {
   distance_km: number | null;
   is_nearby: boolean;
   minimum_order_cents: number;
+  avg_response_time_minutes?: number | null;
   is_sponsored?: boolean;
 };
 
@@ -312,6 +314,15 @@ function FreightBadge({
       </span>
     </Tooltip>
   );
+}
+
+function formatResponseTime(minutes?: number | null): string {
+  if (!minutes || minutes <= 0) return "Responde rápido";
+  if (minutes < 60) return `~${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours === 1) return "~1 hora";
+  if (hours < 24) return `~${hours}h`;
+  return "~1 dia";
 }
 
 // ─── Indicador de variação de preço ──────────────────────────────────────────
@@ -694,6 +705,7 @@ export default function RankingPage() {
           within_deadline: entry.within_deadline,
           average_rating: entry.average_rating,
           review_count:   entry.review_count,
+          avg_response_time_minutes: entry.avg_response_time_minutes,
           price_change_pct: item.price_change_pct,
           image_url: item.image_url ?? null,
           promotion: item.promotion ?? null,
@@ -1958,7 +1970,8 @@ export default function RankingPage() {
                             {offer.company_name}
                           </span>
                           {offer.is_sponsored && (
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-amber-700 shadow-sm">
+                              <Sparkles size={10} className="text-amber-500 fill-amber-500" />
                               Patrocinado
                             </span>
                           )}
@@ -2011,6 +2024,12 @@ export default function RankingPage() {
                         </div>
                         <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                           <p className="text-xs text-slate-400">{offer.estimated_delivery_date}</p>
+                          <Tooltip text="Tempo médio estimado para resposta de cotações" position="top">
+                            <span className="inline-flex cursor-help items-center gap-1 rounded-full bg-cyan-50 border border-cyan-200/80 px-2 py-0.5 text-[10px] font-bold text-cyan-800">
+                              <Zap size={10} className="text-cyan-600 fill-cyan-600" />
+                              {formatResponseTime(offer.avg_response_time_minutes)}
+                            </span>
+                          </Tooltip>
                           {offer.distance_km !== null && (
                             <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${offer.is_nearby ? "bg-violet-50 text-violet-700" : "bg-slate-100 text-slate-500"}`}>
                               <MapPin size={10} className="inline" /> {offer.distance_km < 1 ? "< 1 km" : `${offer.distance_km.toFixed(0)} km`}

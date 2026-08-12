@@ -34,6 +34,7 @@ export const GET = withAuth(
             select: {
               company_name: true,
               logo_key: true,
+              avg_response_time_minutes: true,
             },
           },
           messages: {
@@ -59,6 +60,7 @@ export const GET = withAuth(
         other_party_id: r.distributor_id,
         other_party_name: r.distributor.company_name,
         other_party_logo_key: r.distributor.logo_key,
+        avg_response_time_minutes: r.distributor.avg_response_time_minutes ?? 15,
         last_message: r.messages[0]?.text ?? null,
         last_message_time: r.messages[0]?.created_at ?? null,
         unread_count: r._count.messages,

@@ -322,6 +322,7 @@ model Distributor {
   onboarding_step               Int        @default(1)
   average_rating                Float?
   review_count                  Int        @default(0)
+  avg_response_time_minutes     Int?       @default(15) // Média de tempo em minutos para responder cotação
   business_hours                Json?      // {"monday":"08:00-18:00","tuesday":"08:00-18:00",...,"sunday":null}
   accepts_orders_outside_hours  Boolean    @default(false)
   lat                           Float?
