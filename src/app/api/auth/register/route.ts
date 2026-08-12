@@ -47,6 +47,7 @@ const whatsappField = z
 const clientSchema = baseSchema.extend({
   role: z.literal("client"),
   whatsapp: whatsappField,
+  invoice_email: z.string().email("E-mail para Nota Fiscal inválido").toLowerCase().trim().optional().nullable().or(z.literal("")),
   establishment_type: z.enum([
     "bar", "restaurant", "adega", "hotel", "nightclub",
     "supermarket", "convenience", "other",
@@ -196,6 +197,7 @@ export async function POST(req: NextRequest) {
             establishment_type: d.establishment_type as EstablishmentType,
             responsible_name: d.responsible_name,
             whatsapp: d.whatsapp,
+            invoice_email: d.invoice_email || null,
             delivery_city: normalizeCityName(d.delivery_city),
             delivery_state: d.delivery_state,
             delivery_address_full: `${normalizeCityName(d.delivery_city)} - ${d.delivery_state}`,

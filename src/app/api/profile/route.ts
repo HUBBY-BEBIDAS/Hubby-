@@ -16,6 +16,7 @@ export const GET = withAuth(async (_req: NextRequest, user) => {
         establishment_type: true,
         responsible_name: true,
         whatsapp: true,
+        invoice_email: true,
         delivery_city: true,
         delivery_state: true,
         delivery_address_full: true,
@@ -77,6 +78,7 @@ const clientPatchSchema = z.object({
     .transform((v) => v.replace(/\D/g, ""))
     .pipe(z.string().min(10).max(11).regex(/^\d+$/))
     .optional(),
+  invoice_email: z.string().email("E-mail de Nota Fiscal inválido").toLowerCase().trim().nullable().optional().or(z.literal("")),
   delivery_city: z.string().min(2).trim().optional(),
   delivery_state: z.string().length(2).toUpperCase().optional(),
   delivery_address_full: z.string().min(5).trim().optional(),
@@ -121,6 +123,7 @@ export const PATCH = withAuth(async (req: NextRequest, user) => {
         establishment_type: true,
         responsible_name: true,
         whatsapp: true,
+        invoice_email: true,
         delivery_city: true,
         delivery_state: true,
         delivery_address_full: true,

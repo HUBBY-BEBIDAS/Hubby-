@@ -30,6 +30,7 @@ type ClientProfile = {
   establishment_type: string;
   responsible_name: string;
   whatsapp: string;
+  invoice_email?: string | null;
   delivery_city: string;
   delivery_state: string;
   delivery_address_full: string;
@@ -116,6 +117,7 @@ export default function PerfilClientePage() {
     establishment_type:    "bar",
     responsible_name:      "",
     whatsapp:              "",
+    invoice_email:         "",
     delivery_zip_code:     "",
     delivery_city:         "",
     delivery_state:        "",
@@ -163,6 +165,7 @@ export default function PerfilClientePage() {
           establishment_type:    p.establishment_type,
           responsible_name:      p.responsible_name,
           whatsapp:              formatWhatsapp(p.whatsapp),
+          invoice_email:         p.invoice_email ?? "",
           delivery_zip_code:     p.delivery_zip_code ? formatZip(p.delivery_zip_code) : "",
           delivery_city:         p.delivery_city,
           delivery_state:        p.delivery_state,
@@ -277,6 +280,7 @@ export default function PerfilClientePage() {
       establishment_type:    form.establishment_type,
       responsible_name:      form.responsible_name,
       whatsapp:              form.whatsapp.replace(/\D/g, ""),
+      invoice_email:         form.invoice_email ? form.invoice_email.trim() : null,
       delivery_city:         form.delivery_city,
       delivery_state:        form.delivery_state.toUpperCase().slice(0, 2),
       delivery_address_full: form.delivery_address_full,
@@ -436,6 +440,15 @@ export default function PerfilClientePage() {
               onChange={(e) => setForm((f) => ({ ...f, whatsapp: formatWhatsapp(e.target.value) }))}
               placeholder="(11) 99999-9999"
               required
+            />
+
+            <Input
+              label="E-mail para envio de Nota Fiscal (opcional)"
+              type="email"
+              value={form.invoice_email}
+              onChange={(e) => setForm((f) => ({ ...f, invoice_email: e.target.value }))}
+              placeholder="financeiro@empresa.com.br"
+              hint="Caso em branco, as notas fiscais serão enviadas para o e-mail de login"
             />
 
             <hr className="border-[#DBEAFE]" />

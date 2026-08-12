@@ -121,6 +121,8 @@ export default function RegisterClient() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [citySelected, setCitySelected] = useState(false); // controla se o usuário escolheu da lista
+  const [sendInvoiceToDifferentEmail, setSendInvoiceToDifferentEmail] = useState(false);
+  const [invoiceEmail, setInvoiceEmail] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [referralCode, setReferralCode]   = useState("");
   const [referralValid, setReferralValid] = useState<boolean | null>(null);
@@ -278,6 +280,13 @@ export default function RegisterClient() {
       }
     }
 
+    if (role === "client" && sendInvoiceToDifferentEmail) {
+      if (!invoiceEmail.trim() || !invoiceEmail.includes("@")) {
+        setError("Informe um e-mail válido para envio da Nota Fiscal.");
+        return;
+      }
+    }
+
     setLoading(true);
 
     const payload =
@@ -290,6 +299,7 @@ export default function RegisterClient() {
             company_name: companyName,
             cnpj: cnpj.replace(/\D/g, ""),
             whatsapp: whatsapp.replace(/\D/g, ""),
+            ...(sendInvoiceToDifferentEmail && invoiceEmail.trim() ? { invoice_email: invoiceEmail.trim() } : {}),
             establishment_type: establishmentType,
             delivery_city: city,
             delivery_state: state.toUpperCase().slice(0, 2),
@@ -635,6 +645,37 @@ export default function RegisterClient() {
 
                 {role === "client" && (
                   <>
+                    {/* Opção para Nota Fiscal em e-mail alternativo */}
+                    <div className="rounded-xl border border-[#DBEAFE] bg-[#F5F7FB] p-3.5 space-y-2">
+                      <label className="flex cursor-pointer items-start gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={sendInvoiceToDifferentEmail}
+                          onChange={(e) => {
+                            setSendInvoiceToDifferentEmail(e.target.checked);
+                            if (!e.target.checked) setInvoiceEmail("");
+                          }}
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#22C55E] focus:ring-[#22C55E] accent-[#22C55E]"
+                        />
+                        <span className="text-xs font-semibold text-[#0F172A] leading-tight">
+                          Deseja receber as notas fiscais em outro e-mail?
+                        </span>
+                      </label>
+
+                      {sendInvoiceToDifferentEmail && (
+                        <div className="pt-1">
+                          <Input
+                            label="E-mail para envio da Nota Fiscal"
+                            type="email"
+                            value={invoiceEmail}
+                            onChange={(e) => setInvoiceEmail(e.target.value)}
+                            placeholder="financeiro@empresa.com.br"
+                            required={sendInvoiceToDifferentEmail}
+                          />
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-semibold text-[#0F172A]">
                         Tipo de estabelecimento

@@ -200,6 +200,7 @@ model Client {
   pro_expires_at            DateTime?          // Pro ganho por indicações (separado do Stripe)
   responsible_name          String
   whatsapp                  String
+  invoice_email             String?           // E-mail alternativo para envio de Notas Fiscais
   max_delivery_days_default Int?
   client_plan               ClientPlan   @default(free)
   client_plan_status        PlanStatus   @default(active)
