@@ -79,12 +79,13 @@ function WishlistRow({
 }) {
   return (
     <div className="group flex items-center gap-4 rounded-2xl border border-[#DBEAFE] bg-white px-4 py-3 shadow-sm transition-all hover:border-[#2563EB]/40 hover:shadow-md">
-      {/* Imagem */}
+      {/* Imagem (comentada para teste sem fotos)
       <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#F5F7FB]">
         {item.image_url
           ? <img src={item.image_url} alt={item.product_name} className="h-12 w-12 object-contain" loading="lazy" />
           : <ShoppingCart size={20} className="text-slate-300" />}
       </div>
+      */}
 
       {/* Info */}
       <div className="min-w-0 flex-1">

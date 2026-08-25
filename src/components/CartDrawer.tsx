@@ -30,9 +30,8 @@ function MinOrderBadge({ subtotal, minimum }: { subtotal: number; minimum: numbe
   const shortfall = minimum - subtotal;
 
   return (
-    <div className={`mt-2 flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold ${
-      met ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"
-    }`}>
+    <div className={`mt-2 flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold ${met ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"
+      }`}>
       {met ? (
         <><Check size={12} />Pedido mínimo atingido ({formatBRL(minimum)})</>
       ) : (
@@ -145,7 +144,7 @@ export function CartDrawer() {
   } = useCart();
 
   const [checkingOut, setCheckingOut] = useState(false);
-  const [clearing,    setClearing]    = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   async function handleCheckout() {
     if (checkingOut) return;

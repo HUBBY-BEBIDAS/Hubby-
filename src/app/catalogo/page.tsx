@@ -149,7 +149,6 @@ function productToModalData(p: CatalogProduct, selectedVariantKey?: string): Pro
 function SkeletonCard({ list }: { list?: boolean }) {
   if (list) return (
     <div className="flex animate-pulse items-center gap-4 rounded-2xl border border-[#DBEAFE] bg-white p-4">
-      <div className="h-14 w-14 shrink-0 rounded-xl bg-slate-200" />
       <div className="flex-1 space-y-2">
         <div className="h-3 w-1/4 rounded bg-slate-200" />
         <div className="h-4 w-1/2 rounded bg-slate-200" />
@@ -158,9 +157,8 @@ function SkeletonCard({ list }: { list?: boolean }) {
     </div>
   );
   return (
-    <div className="flex animate-pulse flex-col overflow-hidden rounded-2xl border border-[#DBEAFE] bg-white">
-      <div className="h-36 bg-slate-200" />
-      <div className="space-y-2 p-4">
+    <div className="flex animate-pulse flex-col justify-between overflow-hidden rounded-2xl border border-[#DBEAFE] bg-white p-4">
+      <div className="space-y-2">
         <div className="h-3 w-1/3 rounded bg-slate-200" />
         <div className="h-4 w-2/3 rounded bg-slate-200" />
         <div className="h-5 w-1/2 rounded bg-slate-200" />
@@ -230,12 +228,13 @@ function ProductCard({
           {compareChecked && <Check size={11} className="text-white" />}
         </div>
 
-        {/* Imagem */}
+        {/* Imagem (comentada para teste sem fotos)
         <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#F5F7FB]">
           {activeImage
             ? <img src={activeImage} alt={activeName} className="h-12 w-12 object-contain" />
             : <ShoppingCart size={20} className="text-slate-300" />}
         </div>
+        */}
 
         {/* Info */}
         <div className="min-w-0 flex-1">
@@ -319,69 +318,73 @@ function ProductCard({
 
   // Grid view
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-[#DBEAFE] bg-white shadow-sm transition-all hover:border-[#2563EB]/40 hover:shadow-md">
-      {/* Badges absolutas */}
-      {hasPromo && (
-        <div className="absolute left-2 top-2 z-10 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow">
-          <Tag size={10} className="mr-0.5 inline" />{promoLabel(activePromo!)}
-        </div>
-      )}
-      {product.is_sponsored && !hasPromo && (
-        <div className="absolute left-2 top-2 z-10 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[9px] font-semibold text-slate-400">
-          Em destaque
-        </div>
-      )}
-
-      {/* Checkbox comparar (top-right) */}
-      <div
-        onClick={onToggleCompare}
-        className={`absolute right-2 top-2 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border-2 bg-white transition ${compareChecked ? "border-[#2563EB] bg-[#2563EB]" : "border-slate-300 opacity-0 group-hover:opacity-100"}`}
-      >
-        {compareChecked && <Check size={11} className="text-white" />}
-      </div>
-
-      {/* Heart (wishlist) */}
-      <button
-        onClick={onToggleWishlist}
-        className="absolute right-2 top-8 z-10 rounded-full bg-white p-1 text-slate-300 shadow-sm transition hover:text-red-400"
-      >
-        <Heart size={14} className={wishlisted ? "fill-current text-red-500" : ""} />
-      </button>
-
-      {/* Imagem — clicável */}
+    <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[#DBEAFE] bg-white p-4 shadow-sm transition-all hover:border-[#2563EB]/40 hover:shadow-md">
+      {/* Imagem (comentada para teste sem fotos)
       <button onClick={handleCardClick} className="flex h-36 items-center justify-center bg-[#F5F7FB] cursor-pointer">
         {activeImage
           ? <img src={activeImage} alt={activeName} className="h-32 w-32 object-contain" loading="lazy" />
           : <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-200 text-slate-400"><ShoppingCart size={28} /></div>}
       </button>
+      */}
 
-      {/* Info */}
-      <div className="flex flex-1 flex-col gap-1.5 p-4 text-left">
-        <button onClick={handleCardClick} className="text-left w-full cursor-pointer">
-          <div className="flex items-center justify-between gap-1">
+      {/* Topo do Card: Marca, Badges, Heart, Checkbox */}
+      <div>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{product.brand}</p>
-            <div className="flex items-center gap-1">
-              {product.is_sponsored && (
-                <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[9px] font-extrabold text-emerald-600 flex items-center gap-0.5">
-                  ✦ Patrocinado
-                </span>
-              )}
-              {hasMultipleVariants && (
-                <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">
-                  {product.variants!.length} tamanhos
-                </span>
-              )}
+            {hasPromo && (
+              <span className="rounded-full bg-red-500 px-2 py-0.5 text-[9px] font-black text-white">
+                <Tag size={9} className="mr-0.5 inline" />{promoLabel(activePromo!)}
+              </span>
+            )}
+            {product.is_sponsored && !hasPromo && (
+              <span className="rounded-full border border-slate-200 bg-[#F5F7FB] px-2 py-0.5 text-[9px] font-semibold text-slate-400">
+                Em destaque
+              </span>
+            )}
+            {product.is_sponsored && (
+              <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[9px] font-extrabold text-emerald-600 flex items-center gap-0.5">
+                ✦ Patrocinado
+              </span>
+            )}
+            {hasMultipleVariants && (
+              <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">
+                {product.variants!.length} tamanhos
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Heart (wishlist) */}
+            <button
+              onClick={onToggleWishlist}
+              className="rounded-full p-1 text-slate-300 transition hover:text-red-400"
+              title="Favoritos"
+            >
+              <Heart size={14} className={wishlisted ? "fill-current text-red-500" : ""} />
+            </button>
+            {/* Checkbox comparar */}
+            <div
+              onClick={onToggleCompare}
+              className={`flex h-5 w-5 cursor-pointer items-center justify-center rounded border-2 transition ${compareChecked ? "border-[#2563EB] bg-[#2563EB]" : "border-slate-300 hover:border-slate-400"}`}
+              title="Comparar"
+            >
+              {compareChecked && <Check size={11} className="text-white" />}
             </div>
           </div>
-          <p className="mt-0.5 text-sm font-semibold leading-tight text-[#0F172A]">{product.name}</p>
-          <p className="mt-0.5 text-[11px] text-slate-400">
+        </div>
+
+        {/* Nome do produto e tipo */}
+        <button onClick={handleCardClick} className="mt-2 block text-left w-full cursor-pointer">
+          <p className="text-sm font-semibold leading-tight text-[#0F172A] hover:text-[#2563EB] transition-colors">{product.name}</p>
+          <p className="mt-1 text-[11px] text-slate-400">
             {PACKAGING_LABEL[activeType] ?? activeType} · {activeVolume}ml
           </p>
         </button>
 
         {/* Seletores de variantes (Pills no Card) */}
         {hasMultipleVariants && (
-          <div className="mt-1 flex flex-wrap gap-1 border-t border-[#DBEAFE]/60 pt-1.5" onClick={(e) => e.stopPropagation()}>
+          <div className="mt-2 flex flex-wrap gap-1 border-t border-[#DBEAFE]/60 pt-2" onClick={(e) => e.stopPropagation()}>
             {product.variants!.map((v) => {
               const isSelected = v.variant_key === selectedVariantKey;
               return (
@@ -404,29 +407,30 @@ function ProductCard({
             })}
           </div>
         )}
+      </div>
 
-        <div className="mt-auto pt-1">
-          <p className="text-[10px] text-slate-400">A partir de</p>
-          <div className="flex items-baseline gap-1">
-            {hasDiscount && <span className="text-xs text-slate-400 line-through">{formatBRL(activeMinPriceCents)}</span>}
-            <span className={`text-base font-black ${hasDiscount ? "text-red-600" : "text-[#2563EB]"}`}>
-              {formatBRL(activePriceCents)}
+      {/* Rodapé do Card: Preço e Botão */}
+      <div className="mt-3 border-t border-[#DBEAFE]/40 pt-2">
+        <p className="text-[10px] text-slate-400">A partir de</p>
+        <div className="flex items-baseline gap-1">
+          {hasDiscount && <span className="text-xs text-slate-400 line-through">{formatBRL(activeMinPriceCents)}</span>}
+          <span className={`text-base font-black ${hasDiscount ? "text-red-600" : "text-[#2563EB]"}`}>
+            {formatBRL(activePriceCents)}
+          </span>
+          {product.price_trend && product.price_change_pct && (
+            <span className={`flex items-center gap-0.5 text-[10px] font-bold ${product.price_trend === "down" ? "text-green-600" : "text-red-500"}`}>
+              {product.price_trend === "down" ? <TrendingDown size={10} /> : <TrendingUp size={10} />}
+              {product.price_change_pct.toFixed(1)}%
             </span>
-            {product.price_trend && product.price_change_pct && (
-              <span className={`flex items-center gap-0.5 text-[10px] font-bold ${product.price_trend === "down" ? "text-green-600" : "text-red-500"}`}>
-                {product.price_trend === "down" ? <TrendingDown size={10} /> : <TrendingUp size={10} />}
-                {product.price_change_pct.toFixed(1)}%
-              </span>
-            )}
-          </div>
-          <p className="text-[10px] text-slate-400">
-            {activeDistCount} distribuidora{activeDistCount !== 1 ? "s" : ""}
-          </p>
+          )}
         </div>
+        <p className="text-[10px] text-slate-400">
+          {activeDistCount} distribuidora{activeDistCount !== 1 ? "s" : ""}
+        </p>
 
         <button
           onClick={handleCardClick}
-          className="mt-2 flex items-center justify-center gap-1 rounded-xl border border-[#DBEAFE] bg-[#F5F7FB] py-1.5 text-[11px] font-semibold text-slate-500 transition-colors group-hover:border-[#2563EB]/30 group-hover:bg-[#EFF6FF] group-hover:text-[#2563EB] cursor-pointer"
+          className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl border border-[#DBEAFE] bg-[#F5F7FB] py-1.5 text-[11px] font-semibold text-slate-500 transition-colors group-hover:border-[#2563EB]/30 group-hover:bg-[#EFF6FF] group-hover:text-[#2563EB] cursor-pointer"
         >
           <ShoppingCart size={11} />Ver preços e cotar
         </button>
@@ -473,9 +477,11 @@ function CompareModal({ products, onClose, onOpenDetail }: {
                 {products.map((p) => (
                   <th key={p.key} className="py-3 px-3 text-center">
                     <button onClick={() => onOpenDetail(p)} className="flex flex-col items-center gap-1">
+                      {/* Imagem (comentada para teste sem fotos)
                       {p.image_url
                         ? <img src={p.image_url} alt={p.name} className="h-12 w-12 rounded-xl object-contain bg-[#F5F7FB]" />
                         : <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F5F7FB] text-slate-300"><ShoppingCart size={18} /></div>}
+                      */}
                       <span className="block max-w-[100px] truncate text-[11px] font-semibold text-[#0F172A]">{p.name}</span>
                       <span className="text-[10px] text-slate-400">{p.brand}</span>
                     </button>
@@ -518,25 +524,29 @@ function MiniCard({ product, onClick, wishlisted, onToggleWishlist }: {
       tabIndex={0}
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
-      className="group relative flex w-36 shrink-0 cursor-pointer flex-col rounded-xl border border-[#DBEAFE] bg-white p-3 text-left shadow-sm transition hover:border-[#2563EB]/40 hover:shadow-md"
+      className="group relative flex w-36 shrink-0 cursor-pointer flex-col justify-between rounded-xl border border-[#DBEAFE] bg-white p-3 text-left shadow-sm transition hover:border-[#2563EB]/40 hover:shadow-md"
     >
-      {onToggleWishlist && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onToggleWishlist(e); }}
-          className="absolute right-2 top-2 text-slate-300 hover:text-red-400"
-        >
-          <Heart size={12} className={wishlisted ? "fill-current text-red-500" : ""} />
-        </button>
-      )}
+      <div className="flex items-start justify-between gap-1">
+        <p className="truncate text-[10px] font-bold uppercase text-slate-400">{product.brand}</p>
+        {onToggleWishlist && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleWishlist(e); }}
+            className="text-slate-300 hover:text-red-400 shrink-0"
+          >
+            <Heart size={12} className={wishlisted ? "fill-current text-red-500" : ""} />
+          </button>
+        )}
+      </div>
+      {/* Imagem (comentada para teste sem fotos)
       <div className="mb-2 flex h-16 items-center justify-center rounded-lg bg-[#F5F7FB]">
         {product.image_url
           ? <img src={product.image_url} alt={product.name} className="h-14 w-14 object-contain" />
           : <ShoppingCart size={18} className="text-slate-300" />}
       </div>
-      <p className="truncate text-[10px] font-bold uppercase text-slate-400">{product.brand}</p>
-      <p className="truncate text-xs font-semibold text-[#0F172A]">{product.name}</p>
+      */}
+      <p className="mt-1 line-clamp-2 text-xs font-semibold text-[#0F172A]">{product.name}</p>
       {product.min_price_cents != null && (
-        <p className="mt-1 text-xs font-black text-[#2563EB]">{formatBRL(product.min_price_cents)}</p>
+        <p className="mt-2 text-xs font-black text-[#2563EB]">{formatBRL(product.min_price_cents)}</p>
       )}
     </div>
   );
@@ -1006,9 +1016,11 @@ export default function CatalogoPage() {
                   const discountedCents = Math.round(offer.product.price_cents * (1 - offer.discount_pct / 100));
                   return (
                     <div key={offer.id} className={`flex items-start gap-3 rounded-2xl border p-4 ${isUrgent ? "border-red-300 bg-red-50" : "border-orange-200 bg-orange-50"}`}>
+                      {/* Imagem (comentada para teste sem fotos)
                       {offer.product.image_url
                         ? <img src={offer.product.image_url} alt={offer.product.name} className="h-14 w-14 shrink-0 rounded-xl object-contain bg-white" loading="lazy" />
                         : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-slate-300"><ShoppingCart size={18} /></div>}
+                      */}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
