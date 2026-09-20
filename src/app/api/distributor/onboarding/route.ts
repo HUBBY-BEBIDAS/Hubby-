@@ -32,6 +32,9 @@ export const GET = withAuth(
         radius_freight_type: true,
         radius_freight_value_cents: true,
         radius_free_freight_above_cents: true,
+        lat: true,
+        lng: true,
+        address: true,
         _count: {
           select: {
             products: { where: { available: true } },
@@ -69,10 +72,15 @@ export const GET = withAuth(
       radius_freight_type:    distributor.radius_freight_type,
       radius_freight_value_cents: distributor.radius_freight_value_cents,
       radius_free_freight_above_cents: distributor.radius_free_freight_above_cents,
+      lat: distributor.lat,
+      lng: distributor.lng,
+      address: distributor.address,
     });
   },
   { roles: ["distributor_admin"] }
 );
+
+// ─── PATCH /api/distributor/onboarding ────────────────────────────────────────
 
 const patchSchema = z.object({
   step:      z.number().int().min(1).max(5).optional(),
@@ -91,6 +99,8 @@ const patchSchema = z.object({
   radius_freight_type:           z.enum(["free", "fixed", "by_weight", "by_value", "custom"]).optional(),
   radius_freight_value_cents:    z.number().int().min(0).optional().nullable(),
   radius_free_freight_above_cents: z.number().int().min(0).optional().nullable(),
+  lat:                           z.number().optional().nullable(),
+  lng:                           z.number().optional().nullable(),
 });
 
 export const PATCH = withAuth(
@@ -139,6 +149,8 @@ export const PATCH = withAuth(
       if (parsed.data.radius_freight_type           !== undefined) data.radius_freight_type           = parsed.data.radius_freight_type;
       if (parsed.data.radius_freight_value_cents    !== undefined) data.radius_freight_value_cents    = parsed.data.radius_freight_value_cents;
       if (parsed.data.radius_free_freight_above_cents !== undefined) data.radius_free_freight_above_cents = parsed.data.radius_free_freight_above_cents;
+      if (parsed.data.lat                           !== undefined) data.lat                           = parsed.data.lat;
+      if (parsed.data.lng                           !== undefined) data.lng                           = parsed.data.lng;
 
       await prisma.distributor.update({ where: { id: distributor.id }, data });
 

@@ -1,12 +1,25 @@
 "use client";
 
 import { useEffect, useRef, useState, FormEvent } from "react";
+import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/Button";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { Download, FolderOpen, FileText, MapPin } from "lucide-react";
+
+const DeliveryRadiusMap = dynamic(
+  () => import("@/components/DeliveryRadiusMap").then((m) => m.DeliveryRadiusMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[380px] w-full rounded-2xl bg-slate-100 flex items-center justify-center text-xs text-slate-400 animate-pulse">
+        Carregando mapa interativo...
+      </div>
+    ),
+  }
+);
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -524,6 +537,9 @@ export default function RegioesPage() {
   const [radiusCutoff, setRadiusCutoff] = useState<string>("16:00");
   const [radiusRouteDays, setRadiusRouteDays] = useState<string[]>(["monday", "tuesday", "wednesday", "thursday", "friday"]);
   const [radiusMinOrder, setRadiusMinOrder] = useState<number>(0);
+  const [distributorLat, setDistributorLat] = useState<number | null>(null);
+  const [distributorLng, setDistributorLng] = useState<number | null>(null);
+  const [distributorAddress, setDistributorAddress] = useState<string>("");
   const [savingRadius, setSavingRadius] = useState(false);
   const [radiusMsg, setRadiusMsg] = useState("");
 
@@ -550,6 +566,13 @@ export default function RegioesPage() {
           setRadiusCutoff(data.profile.radius_cutoff_time ?? "16:00");
           setRadiusRouteDays(data.profile.radius_route_days ?? ["monday", "tuesday", "wednesday", "thursday", "friday"]);
           setRadiusMinOrder((data.profile.radius_minimum_order_cents ?? 0) / 100);
+          if (data.profile.lat) setDistributorLat(data.profile.lat);
+          if (data.profile.lng) setDistributorLng(data.profile.lng);
+          if (data.profile.address) {
+            const addr = data.profile.address;
+            const hint = [addr.street, addr.number, addr.city, addr.state, addr.zipcode].filter(Boolean).join(", ");
+            setDistributorAddress(hint);
+          }
         }
       }
     } catch {
@@ -575,6 +598,8 @@ export default function RegioesPage() {
           radius_cutoff_time: radiusCutoff,
           radius_route_days: radiusRouteDays,
           radius_minimum_order_cents: Number(radiusMinOrder) * 100,
+          lat: distributorLat,
+          lng: distributorLng,
         }),
       });
       setSavingRadius(false);
@@ -775,39 +800,21 @@ export default function RegioesPage() {
               <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">Modo Raio Ativo</span>
             </div>
 
-            <form onSubmit={saveRadiusConfig} className="space-y-4 max-w-xl">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Raio Máximo em Quilômetros (KM)</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[10, 20, 30, 50].map((km) => (
-                    <button
-                      key={km}
-                      type="button"
-                      onClick={() => setRadiusKm(km)}
-                      className={`py-2 rounded-xl border text-xs font-bold transition ${
-                        radiusKm === km
-                          ? "border-[#22C55E] bg-[#22C55E] text-white"
-                          : "border-[#DBEAFE] bg-white text-slate-700 hover:bg-slate-50"
-                      }`}
-                    >
-                      {km} km
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-xs text-slate-500">Distância customizada (KM):</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={500}
-                    value={radiusKm}
-                    onChange={(e) => setRadiusKm(Number(e.target.value))}
-                    className="w-24 rounded-xl border border-[#DBEAFE] px-3 py-1.5 text-sm focus:border-[#22C55E] focus:outline-none"
-                  />
-                </div>
-              </div>
+            <form onSubmit={saveRadiusConfig} className="space-y-6 max-w-4xl">
+              {/* Mapa Interativo de Raio com Círculo e Geolocalização */}
+              <DeliveryRadiusMap
+                radiusKm={radiusKm}
+                onRadiusChange={setRadiusKm}
+                initialLat={distributorLat}
+                initialLng={distributorLng}
+                onLocationChange={(newLat, newLng) => {
+                  setDistributorLat(newLat);
+                  setDistributorLng(newLng);
+                }}
+                addressHint={distributorAddress}
+              />
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Prazo Padrão (dias úteis)</label>
                   <input
@@ -829,18 +836,47 @@ export default function RegioesPage() {
                     className="w-full rounded-xl border border-[#DBEAFE] px-3 py-2 text-sm focus:border-[#22C55E] focus:outline-none"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Pedido Mínimo (R$)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={radiusMinOrder}
+                    onChange={(e) => setRadiusMinOrder(Number(e.target.value))}
+                    className="w-full rounded-xl border border-[#DBEAFE] px-3 py-2 text-sm focus:border-[#22C55E] focus:outline-none"
+                    placeholder="0 para sem mínimo"
+                  />
+                </div>
               </div>
 
+              {/* Dias de Entrega */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Pedido Mínimo (R$)</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={radiusMinOrder}
-                  onChange={(e) => setRadiusMinOrder(Number(e.target.value))}
-                  className="w-full rounded-xl border border-[#DBEAFE] px-3 py-2 text-sm focus:border-[#22C55E] focus:outline-none"
-                  placeholder="0 para sem mínimo"
-                />
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Dias de entrega na semana
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {ROUTE_DAYS.map(({ value, label }) => {
+                    const active = radiusRouteDays.includes(value);
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() =>
+                          setRadiusRouteDays((prev) =>
+                            active ? prev.filter((d) => d !== value) : [...prev, value]
+                          )
+                        }
+                        className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition ${
+                          active
+                            ? "bg-[#16A34A] text-white shadow-sm"
+                            : "border border-[#DBEAFE] bg-[#F5F7FB] text-slate-600 hover:bg-slate-100"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {radiusMsg && (

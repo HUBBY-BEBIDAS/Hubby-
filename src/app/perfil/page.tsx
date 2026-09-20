@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -9,6 +10,18 @@ import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/Button";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { Check, X, AlertTriangle } from "lucide-react";
+
+const DeliveryRadiusMap = dynamic(
+  () => import("@/components/DeliveryRadiusMap").then((m) => m.DeliveryRadiusMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[380px] w-full rounded-2xl bg-slate-100 flex items-center justify-center text-xs text-slate-400 animate-pulse">
+        Carregando mapa interativo...
+      </div>
+    ),
+  }
+);
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -52,6 +65,8 @@ type DistributorProfile = {
   avg_response_time_minutes?: number | null;
   radius_cutoff_time?: string;
   radius_route_days?: string[];
+  lat?: number | null;
+  lng?: number | null;
   delivery_regions: DeliveryRegion[];
 };
 
@@ -164,6 +179,8 @@ export default function PerfilPage() {
   const [radiusRouteDays, setRadiusRouteDays] = useState<string[]>([
     "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"
   ]);
+  const [distributorLat, setDistributorLat] = useState<number | null>(null);
+  const [distributorLng, setDistributorLng] = useState<number | null>(null);
   const [radiusSaving, setRadiusSaving] = useState(false);
   const [radiusMsg, setRadiusMsg] = useState("");
   const [profileCepLoading, setProfileCepLoading] = useState(false);
@@ -300,6 +317,8 @@ export default function PerfilPage() {
       setMaxRadiusKm(p.max_delivery_radius_km ?? 20);
       setRadiusDaysBusiness(p.radius_delivery_days_business ?? 3);
       setRadiusCutoffTime(p.radius_cutoff_time ?? "16:00");
+      if (p.lat) setDistributorLat(p.lat);
+      if (p.lng) setDistributorLng(p.lng);
       setRadiusRouteDays(
         p.radius_route_days && p.radius_route_days.length > 0
           ? p.radius_route_days
@@ -438,6 +457,8 @@ export default function PerfilPage() {
           radius_delivery_days_business: Number(radiusDaysBusiness) || 1,
           radius_cutoff_time: (radiusCutoffTime || "16:00").slice(0, 5),
           radius_route_days: radiusRouteDays,
+          lat: distributorLat,
+          lng: distributorLng,
         }),
       });
       setRadiusSaving(false);
@@ -984,82 +1005,40 @@ export default function PerfilPage() {
 
           {/* Configurações quando o Modo por Raio está ativo */}
           {deliveryMode === "radius" && (
-            <div className="rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] p-5 space-y-5">
+            <div className="rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] p-5 space-y-6">
+              {/* Mapa Interativo de Raio com Círculo e Geolocalização */}
               <div>
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-[#0F172A]">
-                  Raio Máximo de Entrega (KM a partir da sua empresa)
+                  Visualização do Raio de Entrega no Mapa
                 </label>
-                
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  {[10, 20, 30, 50].map((km) => {
-                    const isSelected = Number(maxRadiusKm) === km;
-                    return (
-                      <button
-                        key={km}
-                        type="button"
-                        disabled={!isAdmin}
-                        onClick={() => setMaxRadiusKm(km)}
-                        className={`flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ${
-                          isSelected
-                            ? "bg-[#22C55E] text-white shadow-md shadow-green-500/20 ring-2 ring-[#22C55E]/40"
-                            : "bg-white border border-[#DBEAFE] text-slate-700 hover:bg-slate-50 hover:border-slate-300"
-                        }`}
-                      >
-                        {isSelected && <Check size={14} className="stroke-[3]" />}
-                        {km} km
-                      </button>
-                    );
-                  })}
+                <DeliveryRadiusMap
+                  radiusKm={Number(maxRadiusKm) || 20}
+                  onRadiusChange={(km) => setMaxRadiusKm(km)}
+                  initialLat={distributorLat}
+                  initialLng={distributorLng}
+                  onLocationChange={(newLat, newLng) => {
+                    setDistributorLat(newLat);
+                    setDistributorLng(newLng);
+                  }}
+                  addressHint={
+                    companyForm.city
+                      ? `${companyForm.street || ""}, ${companyForm.number || ""}, ${companyForm.city}, ${companyForm.state}`
+                      : undefined
+                  }
+                  readOnly={!isAdmin}
+                />
+              </div>
 
-                  {/* Opção de Raio Personalizado / Outro */}
-                  <button
-                    type="button"
-                    disabled={!isAdmin}
-                    onClick={() => {
-                      if ([10, 20, 30, 50].includes(Number(maxRadiusKm))) {
-                        setMaxRadiusKm(15);
-                      }
-                    }}
-                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ${
-                      !([10, 20, 30, 50].includes(Number(maxRadiusKm)))
-                        ? "bg-[#22C55E] text-white shadow-md shadow-green-500/20 ring-2 ring-[#22C55E]/40"
-                        : "bg-white border border-[#DBEAFE] text-slate-700 hover:bg-slate-50 hover:border-slate-300"
-                    }`}
-                  >
-                    {!([10, 20, 30, 50].includes(Number(maxRadiusKm))) && <Check size={14} className="stroke-[3]" />}
-                    Personalizado
-                  </button>
-
-                  <div className="flex items-center gap-1.5 ml-2">
-                    <span className="text-xs text-slate-500 font-medium">Outro:</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={maxRadiusKm}
-                      onChange={(e) => setMaxRadiusKm(e.target.value.replace(/\D/g, ""))}
-                      disabled={!isAdmin}
-                      placeholder="Ex: 25"
-                      className={`w-20 rounded-xl border px-3 py-2 text-xs font-extrabold text-[#0F172A] outline-none transition-all ${
-                        !([10, 20, 30, 50].includes(Number(maxRadiusKm)))
-                          ? "border-[#22C55E] bg-green-50/50 ring-2 ring-[#22C55E]/30"
-                          : "border-[#DBEAFE] bg-white focus:border-[#22C55E]"
-                      }`}
-                    />
-                    <span className="text-xs font-bold text-slate-600">km</span>
-                  </div>
-                </div>
-
-                {/* Badge Verdinho de Raio Ativo */}
-                <div className="flex items-center gap-2 rounded-xl border border-[#22C55E]/30 bg-[#22C55E]/10 px-4 py-2.5 text-xs font-bold text-[#16A34A]">
-                  <span className="relative flex h-2.5 w-2.5 shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#16A34A]"></span>
-                  </span>
-                  <span>Raio Selecionado: <strong className="text-emerald-800 text-sm font-extrabold">{maxRadiusKm || 0} KM</strong></span>
-                  <span className="text-[11px] font-medium text-slate-500 ml-auto">
-                    (Clientes a até {maxRadiusKm || 0} km verão seu catálogo)
-                  </span>
-                </div>
+              {/* Badge Verdinho de Raio Ativo */}
+              <div className="flex items-center gap-2 rounded-xl border border-[#22C55E]/30 bg-[#22C55E]/10 px-4 py-2.5 text-xs font-bold text-[#16A34A]">
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#16A34A]"></span>
+                </span>
+                <span>Raio Selecionado: <strong className="text-emerald-800 text-sm font-extrabold">{maxRadiusKm || 0} KM</strong></span>
+                <span className="text-[11px] font-medium text-slate-500 ml-auto">
+                  (Clientes a até {maxRadiusKm || 0} km verão seu catálogo)
+                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

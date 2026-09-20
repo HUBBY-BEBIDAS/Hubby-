@@ -236,6 +236,8 @@ const patchSchema = z.object({
   radius_freight_type: z.enum(FREIGHT_TYPES).optional(),
   radius_freight_value_cents: z.number().int().min(0).optional().nullable(),
   radius_free_freight_above_cents: z.number().int().min(0).optional().nullable(),
+  lat: z.number().optional().nullable(),
+  lng: z.number().optional().nullable(),
 });
 
 export const PATCH = withAuth(

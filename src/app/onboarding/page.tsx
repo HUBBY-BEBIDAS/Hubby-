@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, FormEvent } from "react";
+import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
@@ -9,6 +10,18 @@ import {
   Hand, Package, Map, CheckCircle, BarChart2, Pencil, Lightbulb,
   Download, FolderOpen, Sparkles, Check, AlertTriangle, MapPin,
 } from "lucide-react";
+
+const DeliveryRadiusMap = dynamic(
+  () => import("@/components/DeliveryRadiusMap").then((m) => m.DeliveryRadiusMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[380px] w-full rounded-2xl bg-slate-100 flex items-center justify-center text-xs text-slate-400 animate-pulse">
+        Carregando mapa interativo...
+      </div>
+    ),
+  }
+);
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -28,6 +41,9 @@ type OnboardingState = {
   radius_delivery_days_business?: number;
   radius_cutoff_time?: string;
   radius_route_days?: string[];
+  lat?: number | null;
+  lng?: number | null;
+  address?: any;
 };
 
 const TOTAL_STEPS = 5;
@@ -455,6 +471,8 @@ function Step3Regions({ token, state, onNext, onSkip }: {
   const [radiusRouteDays, setRadiusRouteDays] = useState<string[]>(
     state.radius_route_days || ["monday", "tuesday", "wednesday", "thursday", "friday"]
   );
+  const [distributorLat, setDistributorLat] = useState<number | null>(state.lat ?? null);
+  const [distributorLng, setDistributorLng] = useState<number | null>(state.lng ?? null);
   const [savingRadius, setSavingRadius] = useState(false);
   const [radiusMsg, setRadiusMsg] = useState("");
 
@@ -487,6 +505,8 @@ function Step3Regions({ token, state, onNext, onSkip }: {
           radius_cutoff_time: radiusCutoffTime,
           radius_route_days: radiusRouteDays,
           radius_minimum_order_cents: 0,
+          lat: distributorLat,
+          lng: distributorLng,
         }),
       });
       setSavingRadius(false);
@@ -673,36 +693,23 @@ function Step3Regions({ token, state, onNext, onSkip }: {
       <form onSubmit={handleSaveRadius} className="mt-6 space-y-6">
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-            1. Distância Máxima de Entrega (em KM)
+            1. Visualização e Ajuste do Raio no Mapa
           </label>
-          <div className="grid grid-cols-4 gap-2">
-            {[10, 20, 30, 50].map((km) => (
-              <button
-                key={km}
-                type="button"
-                onClick={() => setRadiusKm(km)}
-                className={`py-3 rounded-2xl border text-base font-extrabold transition ${
-                  radiusKm === km
-                    ? "border-[#22C55E] bg-[#22C55E] text-white shadow-md"
-                    : "border-[#DBEAFE] bg-[#F5F7FB] text-slate-700 hover:bg-slate-100"
-                }`}
-              >
-                {km} km
-              </button>
-            ))}
-          </div>
-          <div className="mt-3 flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-[#DBEAFE]">
-            <span className="text-xs text-slate-600 font-medium">Ou digite o raio desejado:</span>
-            <input
-              type="number"
-              min={1}
-              max={500}
-              value={radiusKm}
-              onChange={(e) => setRadiusKm(Number(e.target.value))}
-              className="w-24 rounded-xl border border-[#DBEAFE] px-3 py-1.5 text-sm font-bold focus:border-[#22C55E] focus:outline-none text-slate-800"
-            />
-            <span className="text-xs text-slate-500 font-bold">KM</span>
-          </div>
+          <DeliveryRadiusMap
+            radiusKm={Number(radiusKm) || 20}
+            onRadiusChange={(km) => setRadiusKm(km)}
+            initialLat={distributorLat}
+            initialLng={distributorLng}
+            onLocationChange={(newLat, newLng) => {
+              setDistributorLat(newLat);
+              setDistributorLng(newLng);
+            }}
+            addressHint={
+              state.address
+                ? [state.address.street, state.address.number, state.address.city, state.address.state].filter(Boolean).join(", ")
+                : undefined
+            }
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
