@@ -9,7 +9,7 @@ import { Navbar } from "@/components/Navbar";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { ClientDashboard } from "./client-dashboard";
 import {
-  Building2, CheckCircle, AlertTriangle, XCircle, Check, X, Phone, Eye, MessageSquare, Volume2, Bell,
+  Building2, CheckCircle, AlertTriangle, XCircle, Check, X, Phone, Eye, MessageSquare, Volume2, Bell, Clock,
 } from "lucide-react";
 import { soundNotifier, requestDesktopNotificationPermission } from "@/lib/audio";
 
@@ -64,6 +64,7 @@ type DashboardData = {
   new_orders_today: number;
   clients_today: number;
   approved_orders_today: number;
+  approved_revenue_today_cents?: number;
   pending_orders: number;
   last_price_update: string | null;
   active_products: number;
@@ -594,6 +595,15 @@ export default function PainelPage() {
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, status } : o))
       );
+      // Ao aprovar ou recusar, atualiza métricas e dados de receita imediatamente
+      apiFetch("/api/distributor/dashboard", { method: "GET", token })
+        .then((r) => r.json())
+        .then((d) => setDash(d as DashboardData))
+        .catch(() => {});
+      apiFetch(`/api/distributor/reports?period=${salesPeriod}`, { method: "GET", token })
+        .then((r) => r.json())
+        .then((d) => setReportsData(d as ReportData))
+        .catch(() => {});
     }
 
     setUpdating(null);
@@ -677,25 +687,25 @@ export default function PainelPage() {
             <div className="rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Receita Incremental</p>
               <p className="mt-1 font-display font-extrabold text-[28px] leading-none tracking-tight text-[#22C55E]">
-                {reportsData?.summary?.revenue_cents ? formatBRL(Math.round(reportsData.summary.revenue_cents * 0.15)) : "R$ 4.850,00"}
+                {formatBRL(Math.round((reportsData?.summary?.revenue_cents ?? 0) * 0.15))}
               </p>
-              <p className="mt-2 text-[10px] text-slate-400">Estimativa adicional pelo Hubby</p>
+              <p className="mt-2 text-[10px] text-slate-400">15% estimado sobre receita de cotações aprovadas</p>
             </div>
 
             <div className="rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Novos Compradores</p>
               <p className="mt-1 font-display font-extrabold text-[28px] leading-none tracking-tight text-[#0F172A]">
-                {reportsData?.summary?.active_clients_count ?? 4}
+                {reportsData?.summary?.active_clients_count ?? 0}
               </p>
-              <p className="mt-2 text-[10px] text-slate-400">Clientes ativos no período</p>
+              <p className="mt-2 text-[10px] text-slate-400">Clientes com compras aprovadas no período</p>
             </div>
 
             <div className="rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ticket Médio</p>
               <p className="mt-1 font-display font-extrabold text-[28px] leading-none tracking-tight text-[#0F172A]">
-                {reportsData?.summary?.avg_ticket_cents ? formatBRL(reportsData.summary.avg_ticket_cents) : "R$ 680,00"}
+                {reportsData?.summary?.avg_ticket_cents ? formatBRL(reportsData.summary.avg_ticket_cents) : "R$ 0,00"}
               </p>
-              <p className="mt-2 text-[10px] text-slate-400">Média por pedido aprovado</p>
+              <p className="mt-2 text-[10px] text-slate-400">Média por pedido aprovado no sistema</p>
             </div>
           </div>
         </div>
@@ -975,27 +985,34 @@ export default function PainelPage() {
             </div>
 
             {/* Métricas do Dia */}
-            <div className="mb-4">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Métricas Gerais de Hoje</h3>
+              <span className="text-[11px] font-semibold text-slate-400">
+                A receita é lançada no sistema somente após a aprovação
+              </span>
             </div>
             <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
               <MetricCard
-                label="Pedidos hoje"
+                label="Cotações hoje"
                 value={dash?.new_orders_today ?? 0}
+                sub="recebidas no dia"
                 accent={Boolean(dash?.new_orders_today)}
               />
               <MetricCard
                 label="Clientes hoje"
                 value={dash?.clients_today ?? 0}
+                sub="compradores ativos hoje"
               />
               <MetricCard
                 label="Aprovados hoje"
                 value={dash?.approved_orders_today ?? 0}
+                sub={dash?.approved_revenue_today_cents ? `${formatBRL(dash.approved_revenue_today_cents)} faturados` : "R$ 0,00 faturados"}
+                accent={Boolean(dash?.approved_orders_today)}
               />
               <MetricCard
                 label="Aguardando"
                 value={dash?.pending_orders ?? 0}
-                sub="sem resposta"
+                sub="pendentes de aprovação"
                 accent={Boolean(dash?.pending_orders)}
               />
             </div>
@@ -1537,18 +1554,28 @@ export default function PainelPage() {
               </div>
 
               {/* Action buttons footer */}
-              <div className="border-t border-slate-100 pt-4 mt-4 flex gap-3">
+              <div className="border-t border-slate-100 pt-4 mt-4 flex flex-wrap gap-2.5">
                 {selectedOrder.status === "sent" && (
                   <>
+                    <button
+                      disabled={updating === selectedOrder.id}
+                      onClick={async () => {
+                        await updateStatus(selectedOrder.id, "approved");
+                        setViewOrderId(null);
+                      }}
+                      className="flex-1 rounded-2xl bg-[#22C55E] py-3 text-sm font-bold text-white hover:bg-green-600 disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-sm transition-colors"
+                    >
+                      <CheckCircle size={16} /> Aprovar Pedido (Lançar Receita)
+                    </button>
                     <button
                       disabled={updating === selectedOrder.id}
                       onClick={async () => {
                         await updateStatus(selectedOrder.id, "viewed");
                         setViewOrderId(null);
                       }}
-                      className="flex-1 rounded-2xl bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      className="rounded-2xl border border-blue-200 bg-blue-50 py-3 px-4 text-sm font-bold text-[#2563EB] hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center gap-1.5 transition-colors"
                     >
-                      <Check size={16} /> Aceitar Pedido
+                      <Clock size={16} /> Em Preparo
                     </button>
                     <button
                       disabled={updating === selectedOrder.id}
@@ -1556,9 +1583,32 @@ export default function PainelPage() {
                         await updateStatus(selectedOrder.id, "rejected");
                         setViewOrderId(null);
                       }}
-                      className="flex-1 rounded-2xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      className="rounded-2xl bg-red-50 border border-red-200 py-3 px-4 text-sm font-bold text-red-600 hover:bg-red-100 disabled:opacity-50 flex items-center justify-center gap-1.5 transition-colors"
                     >
-                      <X size={16} /> Recusar Pedido
+                      <X size={16} /> Recusar
+                    </button>
+                  </>
+                )}
+                {selectedOrder.status === "viewed" && (
+                  <>
+                    <button
+                      disabled={updating === selectedOrder.id}
+                      onClick={async () => {
+                        await updateStatus(selectedOrder.id, "approved");
+                        setViewOrderId(null);
+                      }}
+                      className="flex-1 rounded-2xl bg-[#22C55E] py-3 text-sm font-bold text-white hover:bg-green-600 disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-sm transition-colors"
+                    >
+                      <CheckCircle size={16} /> Aprovar e Faturar
+                    </button>
+                    <button
+                      onClick={() => {
+                        setViewOrderId(null);
+                        setPrepOrderId(selectedOrder.id);
+                      }}
+                      className="flex-1 rounded-2xl bg-[#2563EB] py-3 text-sm font-bold text-white hover:bg-blue-700 flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <Check size={16} /> Checklist de Preparo
                     </button>
                   </>
                 )}
@@ -1721,18 +1771,27 @@ export default function PainelPage() {
                           </button>
 
                           {order.status === "sent" && (
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-1.5">
+                              <button
+                                disabled={updating === order.id}
+                                onClick={() => updateStatus(order.id, "approved")}
+                                className="rounded-xl bg-[#22C55E] hover:bg-green-600 px-3.5 py-1.5 text-xs font-bold text-white hover:shadow-sm disabled:opacity-50 flex items-center gap-1.5 transition-all shadow-xs"
+                                title="Aprovar pedido e lançar receita no sistema"
+                              >
+                                <CheckCircle size={13} /> Aprovar Pedido
+                              </button>
                               <button
                                 disabled={updating === order.id}
                                 onClick={() => updateStatus(order.id, "viewed")}
-                                className="rounded-xl bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700 disabled:opacity-50 flex items-center gap-1 shadow-sm"
+                                className="rounded-xl border border-blue-200 bg-blue-50 text-[#2563EB] hover:bg-blue-100 px-2.5 py-1.5 text-xs font-bold disabled:opacity-50 flex items-center gap-1 transition-colors"
+                                title="Mover para separação e preparo"
                               >
-                                <Check size={12} /> Aceitar
+                                <Clock size={12} /> Em Preparo
                               </button>
                               <button
                                 disabled={updating === order.id}
                                 onClick={() => updateStatus(order.id, "rejected")}
-                                className="rounded-xl bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 text-xs font-bold hover:bg-red-100 disabled:opacity-50 flex items-center gap-1 shadow-sm"
+                                className="rounded-xl bg-red-50 text-red-600 border border-red-200 px-2.5 py-1.5 text-xs font-bold hover:bg-red-100 disabled:opacity-50 flex items-center gap-1 shadow-xs transition-colors"
                               >
                                 <X size={12} /> Recusar
                               </button>
@@ -1740,12 +1799,22 @@ export default function PainelPage() {
                           )}
 
                           {order.status === "viewed" && (
-                            <button
-                              onClick={() => setPrepOrderId(order.id)}
-                              className="rounded-xl bg-[#2563EB] text-white px-4 py-1.5 text-xs font-bold hover:bg-blue-700 flex items-center gap-1 shadow-sm"
-                            >
-                              <Check size={12} /> Preparar
-                            </button>
+                            <div className="flex flex-wrap gap-1.5">
+                              <button
+                                disabled={updating === order.id}
+                                onClick={() => updateStatus(order.id, "approved")}
+                                className="rounded-xl bg-[#22C55E] hover:bg-green-600 text-white px-3 py-1.5 text-xs font-bold flex items-center gap-1 shadow-xs transition-colors"
+                                title="Aprovar pedido e contabilizar receita"
+                              >
+                                <CheckCircle size={12} /> Aprovar e Faturar
+                              </button>
+                              <button
+                                onClick={() => setPrepOrderId(order.id)}
+                                className="rounded-xl bg-[#2563EB] text-white px-3 py-1.5 text-xs font-bold hover:bg-blue-700 flex items-center gap-1 shadow-xs"
+                              >
+                                <Check size={12} /> Preparar
+                              </button>
+                            </div>
                           )}
 
                           {order.status === "approved" && (

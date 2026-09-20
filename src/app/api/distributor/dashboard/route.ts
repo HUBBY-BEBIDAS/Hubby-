@@ -44,11 +44,12 @@ export const GET = withAuth(
     const [
       newOrdersToday,
       approvedOrdersToday,
+      approvedRevenueToday,
       pendingOrders,
       productStats,
       lastPriceUpdate,
     ] = await Promise.all([
-      // Pedidos recebidos hoje
+      // Pedidos recebidos hoje (contagem imediata de cotações)
       prisma.order.findMany({
         where: { distributor_id: distId, sent_at: { gte: startOfTodayUTC } },
         select: { client_id: true },
@@ -58,9 +59,19 @@ export const GET = withAuth(
       prisma.order.count({
         where: {
           distributor_id: distId,
-          status: "approved",
+          status: { in: ["approved", "delivered"] },
           updated_at: { gte: startOfTodayUTC },
         },
+      }),
+
+      // Receita de pedidos aprovados/entregues hoje (somente após aprovação)
+      prisma.order.aggregate({
+        where: {
+          distributor_id: distId,
+          status: { in: ["approved", "delivered"] },
+          updated_at: { gte: startOfTodayUTC },
+        },
+        _sum: { total_cents: true },
       }),
 
       // Pedidos aguardando resposta
@@ -101,6 +112,7 @@ export const GET = withAuth(
       new_orders_today: newOrdersToday.length,
       clients_today: clientsToday,
       approved_orders_today: approvedOrdersToday,
+      approved_revenue_today_cents: approvedRevenueToday._sum.total_cents ?? 0,
       pending_orders: pendingOrders,
       last_price_update: lastPriceUpdate?.price_updated_at ?? null,
       active_products: activeProducts,

@@ -317,15 +317,23 @@ export default function DistribuidorPedidosPage() {
                           <>
                             <button
                               disabled={updatingId === order.id}
-                              onClick={() => updateStatus(order.id, "viewed")}
-                              className="rounded-xl bg-green-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-green-700 disabled:opacity-50 flex items-center gap-1 shadow-xs"
+                              onClick={() => updateStatus(order.id, "approved")}
+                              className="rounded-xl bg-[#22C55E] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-green-600 disabled:opacity-50 flex items-center gap-1 shadow-xs transition-colors"
+                              title="Aprovar pedido e lançar receita no sistema"
                             >
-                              <Check size={13} /> Aceitar
+                              <CheckCircle size={13} /> Aprovar Pedido
+                            </button>
+                            <button
+                              disabled={updatingId === order.id}
+                              onClick={() => updateStatus(order.id, "viewed")}
+                              className="rounded-xl border border-blue-200 bg-blue-50 text-[#2563EB] px-3 py-1.5 text-xs font-bold hover:bg-blue-100 disabled:opacity-50 flex items-center gap-1 shadow-xs transition-colors"
+                            >
+                              <Clock size={13} /> Em Preparo
                             </button>
                             <button
                               disabled={updatingId === order.id}
                               onClick={() => updateStatus(order.id, "rejected")}
-                              className="rounded-xl bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 text-xs font-bold hover:bg-red-100 disabled:opacity-50 flex items-center gap-1 shadow-xs"
+                              className="rounded-xl bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 text-xs font-bold hover:bg-red-100 disabled:opacity-50 flex items-center gap-1 shadow-xs transition-colors"
                             >
                               <X size={13} /> Recusar
                             </button>
@@ -424,7 +432,49 @@ export default function DistribuidorPedidosPage() {
                 </div>
               </div>
 
-              <div className="border-t border-slate-100 pt-4 mt-4 flex justify-end">
+              <div className="border-t border-slate-100 pt-4 mt-4 flex flex-wrap items-center justify-end gap-2">
+                {selectedOrder.status === "sent" && (
+                  <>
+                    <button
+                      disabled={updatingId === selectedOrder.id}
+                      onClick={async () => {
+                        await updateStatus(selectedOrder.id, "approved");
+                      }}
+                      className="rounded-2xl bg-[#22C55E] px-4 py-2.5 text-xs font-bold text-white hover:bg-green-600 transition flex items-center gap-1.5 shadow-sm"
+                    >
+                      <CheckCircle size={14} /> Aprovar Pedido (Lançar Receita)
+                    </button>
+                    <button
+                      disabled={updatingId === selectedOrder.id}
+                      onClick={async () => {
+                        await updateStatus(selectedOrder.id, "viewed");
+                      }}
+                      className="rounded-2xl border border-blue-200 bg-blue-50 text-[#2563EB] px-3.5 py-2.5 text-xs font-bold hover:bg-blue-100 transition flex items-center gap-1"
+                    >
+                      <Clock size={14} /> Em Preparo
+                    </button>
+                    <button
+                      disabled={updatingId === selectedOrder.id}
+                      onClick={async () => {
+                        await updateStatus(selectedOrder.id, "rejected");
+                      }}
+                      className="rounded-2xl border border-red-200 bg-red-50 text-red-600 px-3.5 py-2.5 text-xs font-bold hover:bg-red-100 transition flex items-center gap-1"
+                    >
+                      <X size={14} /> Recusar
+                    </button>
+                  </>
+                )}
+                {selectedOrder.status === "viewed" && (
+                  <button
+                    disabled={updatingId === selectedOrder.id}
+                    onClick={async () => {
+                      await updateStatus(selectedOrder.id, "approved");
+                    }}
+                    className="rounded-2xl bg-[#22C55E] px-4 py-2.5 text-xs font-bold text-white hover:bg-green-600 transition flex items-center gap-1.5 shadow-sm"
+                  >
+                    <CheckCircle size={14} /> Aprovar e Faturar
+                  </button>
+                )}
                 <button
                   onClick={() => setSelectedOrder(null)}
                   className="rounded-2xl border border-slate-200 px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
