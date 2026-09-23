@@ -116,3 +116,9 @@ a,
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+
+/* ─── Leaflet Hubby Pin Wrapper ────────────────────────────────────────── */
+.hubby-pin-wrapper {
+  background: transparent !important;
+  border: none !important;
+}
