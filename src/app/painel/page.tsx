@@ -9,7 +9,7 @@ import { Navbar } from "@/components/Navbar";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { ClientDashboard } from "./client-dashboard";
 import {
-  Building2, CheckCircle, AlertTriangle, XCircle, Check, X, Phone, Eye, MessageSquare, Volume2, Bell, Clock,
+  Building2, CheckCircle, AlertTriangle, XCircle, Check, X, Phone, Eye, MessageSquare, Volume2, Bell, Clock, Mail,
 } from "lucide-react";
 import { soundNotifier, requestDesktopNotificationPermission } from "@/lib/audio";
 
@@ -102,6 +102,7 @@ type OrderItem = {
     delivery_state: string;
     delivery_address_full: string | null;
     whatsapp: string;
+    email?: string | null;
   };
 };
 
@@ -1472,7 +1473,20 @@ export default function PainelPage() {
                     <p className="text-xs text-slate-500 mt-1">
                       CNPJ: <span className="font-mono">{selectedOrder.client.cnpj}</span>
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 mt-0.5 truncate">
+                      E-mail:{" "}
+                      {selectedOrder.client.email ? (
+                        <a
+                          href={`mailto:${selectedOrder.client.email}`}
+                          className="font-medium text-[#2563EB] hover:underline"
+                        >
+                          {selectedOrder.client.email}
+                        </a>
+                      ) : (
+                        <span className="text-slate-400">Não informado</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Tipo: {selectedOrder.client.establishment_type}
                     </p>
                   </div>
@@ -1487,16 +1501,26 @@ export default function PainelPage() {
                     <p className="text-xs text-slate-500 mt-1">
                       Data: <span className="font-mono">{formatDateTime(selectedOrder.sent_at)}</span>
                     </p>
-                    {selectedOrder.client.whatsapp && (
-                      <a
-                        href={`https://wa.me/55${selectedOrder.client.whatsapp.replace(/\D/g, "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-[#2563EB] hover:underline"
-                      >
-                        <Phone size={12} /> WhatsApp
-                      </a>
-                    )}
+                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                      {selectedOrder.client.whatsapp && (
+                        <a
+                          href={`https://wa.me/55${selectedOrder.client.whatsapp.replace(/\D/g, "")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-bold text-[#2563EB] hover:underline"
+                        >
+                          <Phone size={12} /> WhatsApp
+                        </a>
+                      )}
+                      {selectedOrder.client.email && (
+                        <a
+                          href={`mailto:${selectedOrder.client.email}`}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-[#2563EB] hover:underline"
+                        >
+                          <Mail size={12} /> E-mail
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
 

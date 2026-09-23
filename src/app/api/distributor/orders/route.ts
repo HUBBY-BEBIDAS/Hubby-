@@ -59,9 +59,15 @@ export const GET = withAuth(
               establishment_type: true,
               responsible_name: true,
               whatsapp: true,
+              invoice_email: true,
               delivery_city: true,
               delivery_state: true,
               delivery_address_full: true,
+              user: {
+                select: {
+                  email: true,
+                },
+              },
             },
           },
           quotation: {
@@ -72,8 +78,19 @@ export const GET = withAuth(
       prisma.order.count({ where }),
     ]);
 
+    const mappedOrders = orders.map((order) => {
+      const email = order.client.user?.email || order.client.invoice_email || null;
+      return {
+        ...order,
+        client: {
+          ...order.client,
+          email,
+        },
+      };
+    });
+
     return Response.json({
-      data: orders,
+      data: mappedOrders,
       pagination: {
         total,
         page,

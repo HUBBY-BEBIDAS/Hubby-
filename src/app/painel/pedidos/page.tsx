@@ -7,7 +7,7 @@ import { Navbar } from "@/components/Navbar";
 import { Badge } from "@/components/ui/Badge";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import {
-  ArrowLeft, Search, Eye, Check, X, CheckCircle, AlertTriangle, XCircle, Volume2, Clock, Filter,
+  ArrowLeft, Search, Eye, Check, X, CheckCircle, AlertTriangle, XCircle, Volume2, Clock, Filter, Mail,
 } from "lucide-react";
 
 type OrderItemSnapshot = {
@@ -37,6 +37,7 @@ type OrderItem = {
     establishment_type: string;
     responsible_name: string | null;
     whatsapp: string;
+    email?: string | null;
     delivery_city: string;
     delivery_state: string;
     delivery_address_full: string | null;
@@ -405,6 +406,19 @@ export default function DistribuidorPedidosPage() {
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Comprador e Entrega</p>
                   <p className="text-sm font-bold text-[#0F172A]">{selectedOrder.client.company_name}</p>
                   <p className="text-xs text-slate-500 mt-0.5">CNPJ: {selectedOrder.client.cnpj}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    E-mail:{" "}
+                    {selectedOrder.client.email ? (
+                      <a
+                        href={`mailto:${selectedOrder.client.email}`}
+                        className="font-medium text-[#2563EB] hover:underline"
+                      >
+                        {selectedOrder.client.email}
+                      </a>
+                    ) : (
+                      <span className="text-slate-400">Não informado</span>
+                    )}
+                  </p>
                   <p className="text-xs text-slate-500 mt-0.5">WhatsApp: {selectedOrder.client.whatsapp}</p>
                   <div className="mt-2 rounded-xl bg-slate-50 p-2.5 border border-slate-100">
                     <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Endereço de Entrega do Estabelecimento</p>
