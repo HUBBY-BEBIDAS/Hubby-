@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { CLIENT_ONBOARDING_QUESTIONS, DISTRIBUTOR_ONBOARDING_QUESTIONS } from "@/lib/onboarding";
+import BebbiLogo from "@/components/BebbiLogo";
 
 export default function OnboardingSurveyPage() {
   const { data: session, update } = useSession({ required: true });
@@ -103,14 +104,7 @@ export default function OnboardingSurveyPage() {
       <div className="flex min-h-screen flex-col items-center justify-start bg-[#F5F7FB] px-4 py-6">
         {/* Header com Logo */}
         <div className="mb-4 flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#22C55E]">
-            <svg className="h-3.5 w-3.5 text-white" viewBox="0 0 14 14" fill="none">
-              <rect x="1" y="1" width="5" height="8" rx="1" fill="currentColor" opacity="0.9" />
-              <rect x="8" y="1" width="5" height="4" rx="1" fill="currentColor" />
-              <rect x="8" y="7" width="5" height="6" rx="1" fill="currentColor" opacity="0.7" />
-            </svg>
-          </span>
-          <span className="text-sm font-black uppercase tracking-[0.2em] text-[#0F172A]">HUBBY</span>
+          <BebbiLogo variant="dark" height={32} showSicBadge />
         </div>
 
         <div className="w-full max-w-xl">
@@ -145,14 +139,7 @@ export default function OnboardingSurveyPage() {
     <div className="flex min-h-screen flex-col items-center justify-start bg-[#F5F7FB] px-4 py-6">
       {/* Header com Logo */}
       <div className="mb-4 flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#22C55E]">
-          <svg className="h-3.5 w-3.5 text-white" viewBox="0 0 14 14" fill="none">
-            <rect x="1" y="1" width="5" height="8" rx="1" fill="currentColor" opacity="0.9" />
-            <rect x="8" y="1" width="5" height="4" rx="1" fill="currentColor" />
-            <rect x="8" y="7" width="5" height="6" rx="1" fill="currentColor" opacity="0.7" />
-          </svg>
-        </span>
-        <span className="text-sm font-black uppercase tracking-[0.2em] text-[#0F172A]">HUBBY</span>
+        <BebbiLogo variant="dark" height={32} showSicBadge />
       </div>
 
       <div className="w-full max-w-xl">

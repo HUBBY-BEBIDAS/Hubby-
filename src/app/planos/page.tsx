@@ -209,7 +209,7 @@ export default function PlanosPage() {
                 )}
 
                 <p className={`text-[10px] font-bold uppercase tracking-[0.18em] ${isPro ? "text-[#22C55E]" : "text-slate-500"}`}>
-                  HUBBY {names[key]}
+                  bébbi {names[key]}
                 </p>
 
                 <div className="mt-3 leading-none">
@@ -259,12 +259,12 @@ export default function PlanosPage() {
         <div className="mb-16 rounded-2xl border border-white/10 bg-[#111827] px-6 py-6">
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600">HUBBY Enterprise</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600">bébbi Enterprise</p>
               <p className="mt-1 text-base font-bold text-white">Sob consulta — para operações de grande escala</p>
               <p className="mt-0.5 text-[13px] text-slate-500">Usuários e regiões ilimitados · SLA garantido · integração personalizada</p>
             </div>
             <a
-              href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20plano%20Enterprise%20da%20Hubby."
+              href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20plano%20Enterprise%20do%20b%C3%A9bbi."
               target="_blank"
               rel="noopener noreferrer"
               className="flex shrink-0 items-center gap-2 rounded-xl border border-white/20 bg-white/[0.04] px-5 py-2.5 text-[13px] font-bold text-slate-300 transition hover:border-white/40 hover:bg-white/[0.08] hover:text-white"

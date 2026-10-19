@@ -1520,7 +1520,7 @@ export default function PerfilPage() {
                     type="url"
                     value={erpForm.webhook_url}
                     onChange={(e) => setErpForm((f) => ({ ...f, webhook_url: e.target.value }))}
-                    placeholder="https://seu-erp.com.br/webhooks/hubby"
+                    placeholder="https://seu-erp.com.br/webhooks/bebbi"
                     className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3 py-2.5 text-sm text-[#0F172A] placeholder:text-slate-400 focus:border-[#22C55E] focus:outline-none focus:ring-2 focus:ring-[#DBEAFE]"
                   />
                 </div>
@@ -1534,7 +1534,7 @@ export default function PerfilPage() {
                     placeholder={erpConfig.webhook_secret_hint ? `Atual: ${erpConfig.webhook_secret_hint}` : "Defina um secret"}
                     className="w-full rounded-xl border border-[#DBEAFE] bg-white px-3 py-2.5 text-sm text-[#0F172A] placeholder:text-slate-400 focus:border-[#22C55E] focus:outline-none focus:ring-2 focus:ring-[#DBEAFE]"
                   />
-                  <p className="text-xs text-slate-400">Enviado como <code className="rounded bg-slate-100 px-1">X-Hubby-Signature: sha256=&lt;hmac&gt;</code> — deixe em branco para manter o atual</p>
+                  <p className="text-xs text-slate-400">Enviado como <code className="rounded bg-slate-100 px-1">X-Bebbi-Signature: sha256=&lt;hmac&gt;</code> — deixe em branco para manter o atual</p>
                 </div>
 
                 {erpMsg && (

@@ -325,7 +325,7 @@ export default function PatrocinioPage() {
           <p className="text-sm font-semibold text-[#0F172A]">Quer um pacote personalizado?</p>
           <p className="mt-1 text-xs text-slate-400">Nossa equipe comercial pode criar uma proposta sob medida para o seu volume.</p>
           <a
-            href="mailto:comercial@hubby.com.br?subject=Patrocínio Hubby"
+            href="mailto:comercial@bebbi.com.br?subject=Patrocínio bébbi"
             className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#1D4ED8]"
           >
             Falar com a equipe comercial →

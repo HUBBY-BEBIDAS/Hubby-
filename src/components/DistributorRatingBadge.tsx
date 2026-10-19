@@ -80,7 +80,7 @@ export function DistributorRatingBadge({
               </div>
               <div>
                 <h3 className="text-base font-bold text-[#0F172A]">Nota da Distribuidora</h3>
-                <p className="text-xs text-slate-500">Como a avaliação é calculada no Hubby</p>
+                <p className="text-xs text-slate-500">Como a avaliação é calculada no bébbi</p>
               </div>
             </div>
 

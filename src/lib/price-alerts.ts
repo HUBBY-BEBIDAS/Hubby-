@@ -162,13 +162,13 @@ function buildPriceDropEmail(opts: {
 }): string {
   return `<!DOCTYPE html>
 <html lang="pt-BR">
-<head><meta charset="UTF-8"><title>Queda de preço — Hubby</title></head>
+<head><meta charset="UTF-8"><title>Queda de preço — bébbi</title></head>
 <body style="margin:0;padding:0;background:#F5F7FB;font-family:system-ui,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
 <tr><td align="center">
 <table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;">
   <tr><td style="background:#0B1220;padding:28px 32px;text-align:center;">
-    <p style="margin:0;color:#22C55E;font-size:11px;font-weight:700;letter-spacing:0.2em;">HUBBY</p>
+    <p style="margin:0;color:#22C55E;font-size:11px;font-weight:700;letter-spacing:0.2em;">bébbi</p>
     <h1 style="margin:8px 0 0;color:#fff;font-size:20px;">Preco caiu!</h1>
     <p style="margin:4px 0 0;color:rgba(255,255,255,0.55);font-size:13px;">Oi, ${opts.name} — uma oportunidade para você</p>
   </td></tr>
@@ -178,12 +178,12 @@ function buildPriceDropEmail(opts: {
     <p style="margin:0;font-size:14px;color:#0f172a;">Novo preço: <strong>${opts.new_price}</strong> em ${opts.distributor_name}</p>
   </td></tr>
   <tr><td style="padding:24px 32px;text-align:center;">
-    <a href="${process.env.NEXTAUTH_URL ?? "https://app.hubby.com.br"}/cotacao"
+    <a href="${process.env.NEXTAUTH_URL ?? "https://app.bebbi.com.br"}/cotacao"
        style="display:inline-block;background:#22C55E;color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:700;">
       Cotar agora →
     </a>
     <p style="margin:16px 0 0;font-size:11px;color:#94a3b8;">
-      <a href="${process.env.NEXTAUTH_URL ?? "https://app.hubby.com.br"}/perfil/cliente?tab=notificacoes" style="color:#94a3b8;">Cancelar alertas de preço</a>
+      <a href="${process.env.NEXTAUTH_URL ?? "https://app.bebbi.com.br"}/perfil/cliente?tab=notificacoes" style="color:#94a3b8;">Cancelar alertas de preço</a>
     </p>
   </td></tr>
 </table>

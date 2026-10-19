@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { Check, CreditCard, Building2, AlertTriangle } from "lucide-react";
+import BebbiLogo from "@/components/BebbiLogo";
 
 type PlanKey    = "starter" | "pro" | "business";
 type PeriodKey  = "monthly" | "quarterly" | "semiannual" | "annual";
@@ -121,8 +122,8 @@ export default function CheckoutDistribuidoraClient() {
       <div className="mx-auto w-full max-w-4xl">
 
         {/* Logo */}
-        <div className="mb-8 text-center text-base font-black uppercase tracking-[0.22em] text-[#0F172A]">
-          HUBBY
+        <div className="mb-8 text-center">
+          <BebbiLogo variant="dark" height={36} showSicBadge />
         </div>
 
         <h1 className="mb-2 text-center text-2xl font-display font-bold text-[#0F172A]">Escolha seu plano</h1>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import BebbiLogo from "@/components/BebbiLogo";
 
 const navLinks: { label: string; id: string; href?: string }[] = [
   { label: "Como funciona", id: "como-funciona" },
@@ -45,18 +46,8 @@ export default function SiteNavbar({ trackSections = false }: { trackSections?: 
           <nav className="flex items-center justify-between rounded-2xl border border-white/[0.07] bg-[#0B1220]/90 px-4 py-3 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.04),0_8px_32px_0_rgba(0,0,0,0.32)]">
 
             {/* Logo */}
-            <a href="/" className="group flex items-center gap-2.5">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#22C55E] shadow-lg shadow-green-500/30 transition group-hover:shadow-green-500/50">
-                <svg className="h-3.5 w-3.5 text-white" viewBox="0 0 14 14" fill="none">
-                  <rect x="1" y="1" width="5" height="8" rx="1" fill="currentColor" opacity="0.9"/>
-                  <rect x="8" y="1" width="5" height="4" rx="1" fill="currentColor"/>
-                  <rect x="8" y="7" width="5" height="6" rx="1" fill="currentColor" opacity="0.7"/>
-                </svg>
-              </span>
-              <div className="flex items-baseline gap-1">
-                <span className="logo-hubby text-[20px] text-white leading-none">HUBBY</span>
-                <span className="font-mono text-[10px] font-medium text-[#22C55E] uppercase tracking-wider">SIC</span>
-              </div>
+            <a href="/" className="group flex items-center gap-2">
+              <BebbiLogo variant="white" height={26} showSicBadge />
             </a>
 
             {/* Links desktop */}
@@ -105,7 +96,7 @@ export default function SiteNavbar({ trackSections = false }: { trackSections?: 
           <div className="absolute inset-0 cursor-pointer touch-manipulation bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
           <div className="absolute right-0 top-0 h-full w-72 bg-[#0B1220] p-6 shadow-2xl">
             <div className="mb-8 flex items-center justify-between">
-              <span className="logo-hubby text-[18px] text-white leading-none">HUBBY</span>
+              <BebbiLogo variant="white" height={22} showSicBadge />
               <button
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex h-11 w-11 cursor-pointer select-none items-center justify-center rounded-xl bg-white/10 text-white touch-manipulation transition hover:bg-white/20"

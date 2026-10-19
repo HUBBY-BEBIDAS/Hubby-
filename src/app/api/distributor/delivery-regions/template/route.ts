@@ -25,7 +25,7 @@ export const GET = withAuth(async (_req: NextRequest, user) => {
   }
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Hubby";
+  wb.creator = "bébbi";
   wb.created = new Date();
 
   // ── Aba Roteiros ──────────────────────────────────────────────
@@ -144,7 +144,7 @@ export const GET = withAuth(async (_req: NextRequest, user) => {
     status: 200,
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": 'attachment; filename="modelo-roteiros-hubby.xlsx"',
+      "Content-Disposition": 'attachment; filename="modelo-roteiros-bebbi.xlsx"',
       "Cache-Control": "no-store",
     },
   });

@@ -57,7 +57,7 @@ export async function interpretarPlanilhaComGemini(dadosCsv: string): Promise<Ge
     model: anthropic("claude-sonnet-5"),
     schema: geminiProductImportSchema,
     prompt: `
-      Você é o motor de inteligência artificial da plataforma Hubby (SaaS B2B de bebidas).
+      Você é o motor de inteligência artificial da plataforma bébbi (SaaS B2B de bebidas).
       Sua tarefa é analisar o trecho de um arquivo CSV de uma planilha de produtos de uma distribuidora de bebidas.
       Identifique as informações dos produtos, seus preços e classifique-os segundo as regras do sistema.
 
@@ -127,7 +127,7 @@ export async function detectarLayoutComGemini(estruturaPlanilha: string): Promis
     model: anthropic("claude-sonnet-5"),
     schema: geminiLayoutSchema,
     prompt: `
-      Você é o motor de inteligência artificial da plataforma Hubby (SaaS B2B de bebidas).
+      Você é o motor de inteligência artificial da plataforma bébbi (SaaS B2B de bebidas).
       Sua tarefa é analisar a estrutura das primeiras 20 linhas de uma planilha Excel de uma distribuidora de bebidas e identificar o layout.
 
       Você deve determinar:
@@ -176,7 +176,7 @@ export async function detectarDeliveryLayoutComGemini(estruturaPlanilha: string)
     model: anthropic("claude-sonnet-5"),
     schema: geminiDeliveryLayoutSchema,
     prompt: `
-      Você é o motor de inteligência artificial da plataforma Hubby (SaaS B2B de bebidas).
+      Você é o motor de inteligência artificial da plataforma bébbi (SaaS B2B de bebidas).
       Sua tarefa é analisar a estrutura das primeiras 20 linhas de uma planilha Excel de rotas de entrega de uma distribuidora e identificar o layout.
 
       Você deve determinar:

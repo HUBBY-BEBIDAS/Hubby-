@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Eye, EyeOff } from "lucide-react";
+import BebbiLogo from "@/components/BebbiLogo";
 
 export default function LoginClient() {
   const router = useRouter();
@@ -93,11 +94,9 @@ export default function LoginClient() {
         {/* Logo */}
         <div className="mb-8 text-center">
           <Link href="/" className="inline-block">
-            <span className="text-sm font-black uppercase tracking-[0.16em] text-[#0F172A]">
-              SIC
-            </span>
+            <BebbiLogo variant="dark" height={36} showSicBadge />
           </Link>
-          <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-[#2563EB]">
+          <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
             Plataforma B2B de cotação de bebidas
           </p>
         </div>

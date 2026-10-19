@@ -84,7 +84,7 @@ function HubbyBadge({ score, status }: { score: number; status: string }) {
           <path d="M8 1.5L2 4v4c0 3.31 2.55 5.91 6 6.5 3.45-.59 6-3.19 6-6.5V4L8 1.5Z" fill="currentColor" opacity=".2" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
           <path d="M5.5 8l2 2 3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        {isWarn ? "Aprovado com aviso" : "Aprovado pela Hubby"}
+        {isWarn ? "Aprovado com aviso" : "Aprovado pelo bébbi"}
       </span>
       <span className={`text-xs font-bold ${hubbyScoreColor(score)}`}>
         Score {score} — {hubbyScoreLabel(score)}
@@ -268,7 +268,7 @@ export default function CredenciaisPage() {
                       )}
                     </div>
 
-                    {/* Hubby profile stats */}
+                    {/* bébbi profile stats */}
                     {profile && (
                       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                         <div className="rounded-xl border border-slate-200 p-3 text-center">

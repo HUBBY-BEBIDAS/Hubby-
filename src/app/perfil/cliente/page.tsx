@@ -704,7 +704,7 @@ export default function PerfilClientePage() {
             <p className="text-sm font-semibold text-[#0F172A]">Programa de indicação</p>
             {referralData?.is_ambassador && (
               <span className="flex items-center gap-1 rounded-full bg-[#22C55E]/10 px-2.5 py-1 text-[11px] font-bold text-[#16A34A]">
-                <Star size={10} />Embaixador Hubby
+                <Star size={10} />Embaixador bébbi
               </span>
             )}
           </div>

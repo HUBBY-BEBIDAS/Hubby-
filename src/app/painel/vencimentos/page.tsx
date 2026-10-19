@@ -196,7 +196,7 @@ export default function VencimentosPage() {
               ))}
             </ul>
             <a
-              href="mailto:comercial@hubby.com.br?subject=Interesse no plano Enterprise"
+              href="mailto:comercial@bebbi.com.br?subject=Interesse no plano Enterprise"
               className="mt-2 rounded-xl bg-[#0F172A] px-8 py-3 text-sm font-bold text-white transition hover:bg-[#1E293B]"
             >
               Conhecer o plano Enterprise →

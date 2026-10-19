@@ -3,7 +3,7 @@ import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
 import { ensureUniqueCode, rewardDays } from "@/lib/referral";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://hubby.com.br";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://bebbi.com.br";
 
 /**
  * GET /api/referrals

@@ -10,6 +10,7 @@ import { CityAutocomplete, type CityOption } from "@/components/ui/CityAutocompl
 import { StateSelect } from "@/components/ui/StateSelect";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { Check, Gift, Eye, EyeOff } from "lucide-react";
+import BebbiLogo from "@/components/BebbiLogo";
 
 type Role = "client" | "distributor_admin";
 
@@ -409,9 +410,7 @@ export default function RegisterClient() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B1220] px-4 py-12">
         <Link href="/" className="mb-10 inline-block">
-          <span className="text-sm font-extrabold tracking-tight uppercase text-white/90">
-            HUBBY
-          </span>
+          <BebbiLogo variant="white" height={32} showSicBadge />
         </Link>
         <h1 className="mb-2 text-center text-2xl font-extrabold tracking-tight text-white">
           Como você vai usar a plataforma?
@@ -499,9 +498,7 @@ export default function RegisterClient() {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <Link href="/" className="inline-block">
-            <span className="text-sm font-extrabold tracking-tight uppercase text-[#0F172A]">
-              HUBBY
-            </span>
+            <BebbiLogo variant="dark" height={32} showSicBadge />
           </Link>
           <p className="mt-2 text-[11px] font-bold tracking-widest uppercase text-[#22C55E]">
             {role === "client" ? "Passo 2 de 3 — Dados da conta" : "Cadastro de distribuidora"}
@@ -861,7 +858,7 @@ export default function RegisterClient() {
                   <a href="/privacidade" target="_blank" className="font-semibold text-[#22C55E] hover:underline">
                     Política de Privacidade
                   </a>{" "}
-                  da Hubby.
+                  da bébbi.
                 </span>
               </label>
             )}

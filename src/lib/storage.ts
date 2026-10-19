@@ -81,7 +81,7 @@ export async function getLogoUploadUrl(
 }
 
 /**
- * Gera uma URL assinada de leitura com expiração de 15 minutos.
+ * Gra uma URL assinada de leitura com expiração de 15 minutos.
  * Chamar a cada renderização que exiba a logo.
  */
 export async function getLogoSignedUrl(key: string): Promise<string> {
@@ -94,9 +94,6 @@ export async function getLogoSignedUrl(key: string): Promise<string> {
   return getSignedUrl(s3, command, { expiresIn: 900 }); // 15 minutos
 }
 
-/**
- * Remove a logo anterior do bucket ao substituir.
- */
 export async function deleteLogo(key: string): Promise<void> {
   const s3 = createS3Client();
   await s3.send(new DeleteObjectCommand({ Bucket: BUCKET(), Key: key }));

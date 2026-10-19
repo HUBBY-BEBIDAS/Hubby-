@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 
 function hubbyScoreLabel(score: number, hasHistory: boolean): string {
   if (!hasHistory) return "Cliente novo na plataforma";
-  if (score >= 600) return "Histórico excelente na Hubby";
-  if (score >= 400) return "Histórico regular na Hubby";
+  if (score >= 600) return "Histórico excelente na bébbi";
+  if (score >= 400) return "Histórico regular na bébbi";
   return "Histórico com ocorrências — verifique antes de aprovar";
 }
 

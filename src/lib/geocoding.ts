@@ -20,7 +20,7 @@ export async function geocodeCepOrAddress(params: {
   if (cleanCep.length === 8) {
     try {
       const res = await fetch(`https://brasilapi.com.br/api/cep/v2/${cleanCep}`, {
-        headers: { "User-Agent": "HubbySaaS/1.0" },
+        headers: { "User-Agent": "BebbiSaaS/1.0" },
         signal: AbortSignal.timeout(4000),
       });
 
@@ -49,7 +49,7 @@ export async function geocodeCepOrAddress(params: {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${query}`,
       {
-        headers: { "User-Agent": "HubbySaaS/1.0 (contact@hubby.com.br)" },
+        headers: { "User-Agent": "BebbiSaaS/1.0 (contato@bebbi.com.br)" },
         signal: AbortSignal.timeout(4000),
       }
     );
@@ -75,7 +75,7 @@ export async function geocodeCepOrAddress(params: {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${query}`,
         {
-          headers: { "User-Agent": "HubbySaaS/1.0 (contact@hubby.com.br)" },
+          headers: { "User-Agent": "BebbiSaaS/1.0 (contato@bebbi.com.br)" },
           signal: AbortSignal.timeout(4000),
         }
       );

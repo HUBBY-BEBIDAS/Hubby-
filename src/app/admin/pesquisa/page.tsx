@@ -22,7 +22,7 @@ const QUESTION_LABELS: Record<string, string> = {
   orders_per_month:    "Pedidos por mês",
   monthly_spend_range: "Gasto mensal em bebidas",
   distributors_count:  "Distribuidoras usadas hoje",
-  referral_source:     "Como ficou sabendo da Hubby",
+  referral_source:     "Como ficou sabendo da bébbi",
   main_pain:           "Maior dificuldade ao comprar",
   beverage_types:      "Tipos de bebida mais comprados",
 };

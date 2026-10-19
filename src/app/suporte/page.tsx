@@ -8,7 +8,7 @@ const FAQ = [
     a: "Acesse 'Nova Cotação', adicione os produtos desejados e clique em Enviar. A plataforma notifica automaticamente as distribuidoras da sua região.",
   },
   {
-    q: "A Hubby cobra comissão por venda?",
+    q: "O bébbi cobra comissão por venda?",
     a: "Nunca. Compradores usam a plataforma gratuitamente. Distribuidoras pagam apenas a mensalidade do plano — sem comissão por venda.",
   },
   {
@@ -58,7 +58,7 @@ export default function SuportePage() {
           {/* Canais de contato */}
           <div className="mb-10 grid gap-4 sm:grid-cols-2">
             <a
-              href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20preciso%20de%20suporte%20na%20Hubby"
+              href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20preciso%20de%20suporte%20no%20b%C3%A9bbi"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-start gap-4 rounded-2xl border border-[#DBEAFE] bg-white p-6 shadow-sm transition hover:border-[#22C55E] hover:shadow-md"
@@ -76,7 +76,7 @@ export default function SuportePage() {
             </a>
 
             <a
-              href="mailto:suporte@hubby.com.br"
+              href="mailto:suporte@bebbi.com.br"
               className="flex items-start gap-4 rounded-2xl border border-[#DBEAFE] bg-white p-6 shadow-sm transition hover:border-[#2563EB] hover:shadow-md"
             >
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#2563EB]/10 text-[#2563EB]">
@@ -87,7 +87,7 @@ export default function SuportePage() {
               </div>
               <div>
                 <p className="font-bold text-[#0F172A]">E-mail</p>
-                <p className="mt-0.5 text-sm text-slate-500">suporte@hubby.com.br</p>
+                <p className="mt-0.5 text-sm text-slate-500">suporte@bebbi.com.br</p>
                 <p className="mt-1 text-sm font-semibold text-[#2563EB]">Enviar e-mail →</p>
               </div>
             </a>

@@ -167,7 +167,7 @@ export async function sendMonthlyReportEmail(reportId: string): Promise<void> {
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Resumo ${mName} — Hubby</title></head>
+<title>Resumo ${mName} — bébbi</title></head>
 <body style="margin:0;padding:0;background:#F5F7FB;font-family:system-ui,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F7FB;padding:40px 0;">
 <tr><td align="center">
@@ -175,7 +175,7 @@ export async function sendMonthlyReportEmail(reportId: string): Promise<void> {
 
   <!-- Header -->
   <tr><td style="background:#0B1220;padding:32px 40px;text-align:center;">
-    <p style="margin:0;color:#22C55E;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;">HUBBY</p>
+    <p style="margin:0;color:#22C55E;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;">bébbi</p>
     <h1 style="margin:8px 0 0;color:#ffffff;font-size:22px;font-weight:800;">Seu resumo de ${mName}</h1>
     <p style="margin:6px 0 0;color:rgba(255,255,255,0.55);font-size:14px;">Oi, ${name} — aqui está o que aconteceu no mês</p>
   </td></tr>
@@ -218,12 +218,12 @@ export async function sendMonthlyReportEmail(reportId: string): Promise<void> {
 
   <!-- CTA -->
   <tr><td style="padding:32px 40px;text-align:center;">
-    <a href="${process.env.NEXTAUTH_URL ?? "https://app.hubby.com.br"}/historico"
+    <a href="${process.env.NEXTAUTH_URL ?? "https://app.bebbi.com.br"}/historico"
        style="display:inline-block;background:#22C55E;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:12px;font-weight:700;font-size:15px;">
       Ver histórico completo →
     </a>
     <p style="margin:20px 0 0;color:#94a3b8;font-size:12px;">
-      <a href="${process.env.NEXTAUTH_URL ?? "https://app.hubby.com.br"}/perfil/cliente?tab=notificacoes" style="color:#94a3b8;">
+      <a href="${process.env.NEXTAUTH_URL ?? "https://app.bebbi.com.br"}/perfil/cliente?tab=notificacoes" style="color:#94a3b8;">
         Cancelar recebimento deste e-mail
       </a>
     </p>
@@ -237,7 +237,7 @@ export async function sendMonthlyReportEmail(reportId: string): Promise<void> {
 
   await sendMail({
     to:      report.client.user.email,
-    subject: `Seu resumo de ${mName} na Hubby — você economizou ${savings}`,
+    subject: `Seu resumo de ${mName} na bébbi — você economizou ${savings}`,
     html,
   });
 

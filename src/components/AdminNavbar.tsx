@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import BebbiLogo from "@/components/BebbiLogo";
 
 export interface AdminNavbarProps {
   pendingCount?: number;
@@ -49,9 +50,7 @@ export function AdminNavbar({ pendingCount = 0 }: AdminNavbarProps) {
 
         {/* ── Logo ── */}
         <Link href="/admin" className="flex shrink-0 items-center">
-          <span className="font-extrabold tracking-tight text-[20px] uppercase text-white leading-none">
-            HUBBY
-          </span>
+          <BebbiLogo variant="white" height={22} />
           <span className="ml-1.5 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white leading-none">
             ADMIN
           </span>

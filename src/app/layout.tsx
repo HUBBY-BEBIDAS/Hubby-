@@ -18,7 +18,7 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HUBBY — SIC · Sistema Integrado de Cotações",
+  title: "bébbi — SIC · Sistema Integrado de Cotações",
   description: "Plataforma B2B de cotação e distribuição de bebidas para bares, restaurantes e adegas.",
 };
 

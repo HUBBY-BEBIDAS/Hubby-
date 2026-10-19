@@ -53,8 +53,8 @@ const faqsCompradores = [
   { q: "Preciso instalar algum aplicativo?", a: "Não — a plataforma funciona direto pelo navegador do celular ou computador. O app para iOS e Android está em desenvolvimento e chegará em breve." },
   { q: "Como as distribuidoras sabem que sou confiável?", a: "Quando você aciona uma distribuidora pela primeira vez, o sistema faz uma análise de crédito automática pelo seu CNPJ via bureau de crédito (Serasa). O resultado vai para a distribuidora, que decide se aprova ou não. Você só precisa enviar seus documentos uma vez." },
   { q: "Quanto tempo leva para receber as cotações?", a: "O ranking de preços aparece instantaneamente — as distribuidoras já cadastram seus preços na plataforma. Você não precisa esperar ninguém responder para ver os valores." },
-  { q: "A Hubby cobra comissão por venda?", a: "Nunca. A Hubby cobra mensalidade apenas das distribuidoras. Para o comprador, o plano básico é gratuito para sempre e não há comissão sobre nenhuma venda." },
-  { q: "Como funciona o pagamento e a nota fiscal?", a: "O pagamento e a nota fiscal são negociados diretamente entre você e a distribuidora escolhida. A Hubby faz a ponte — mas não intermedia o pagamento nem emite notas fiscais." },
+  { q: "A bébbi cobra comissão por venda?", a: "Nunca. A bébbi cobra mensalidade apenas das distribuidoras. Para o comprador, o plano básico é gratuito para sempre e não há comissão sobre nenhuma venda." },
+  { q: "Como funciona o pagamento e a nota fiscal?", a: "O pagamento e a nota fiscal são negociados diretamente entre você e a distribuidora escolhida. A bébbi faz a ponte — mas não intermedia o pagamento nem emite notas fiscais." },
   { q: "Posso cotar com distribuidoras de outras cidades?", a: "No plano gratuito, você cota com distribuidoras que atendem sua região cadastrada. No plano Pro, você pode expandir para qualquer região do Brasil." },
 ];
 
@@ -65,7 +65,7 @@ const faqsDistribuidoras = [
   { q: "Como funciona a análise de crédito dos clientes?", a: "Quando um cliente novo te aciona pela primeira vez, o sistema consulta automaticamente o bureau de crédito pelo CNPJ dele. Você vê o score e decide se aprova ou não. Você também pode configurar critérios próprios de aprovação automática." },
   { q: "Posso escolher quais regiões atendo?", a: "Sim. Você configura exatamente as cidades e estados que atende, os dias de rota e o horário de corte para cada região. O sistema filtra automaticamente — seu perfil só aparece para compradores da sua área de entrega." },
   { q: "Existe fidelidade ou contrato mínimo?", a: "Não há fidelidade obrigatória. Você pode assinar mensalmente e cancelar quando quiser. Oferecemos planos trimestrais, semestrais e anuais com desconto de até 20% para quem prefere um compromisso maior." },
-  { q: "A Hubby cobra comissão por venda fechada?", a: "Nunca. Você paga apenas a mensalidade do plano escolhido. Não importa quantos pedidos você fechar pela plataforma — nenhuma comissão é cobrada." },
+  { q: "A bébbi cobra comissão por venda fechada?", a: "Nunca. Você paga apenas a mensalidade do plano escolhido. Não importa quantos pedidos você fechar pela plataforma — nenhuma comissão é cobrada." },
   { q: "Posso integrar com meu sistema de gestão (ERP)?", a: "Sim, no plano Enterprise. A integração é feita via webhook e API própria — quando um pedido chega, seu ERP é notificado automaticamente. Você também pode sincronizar o estoque em tempo real." },
 ];
 
@@ -679,7 +679,7 @@ export default function Home() {
         <section id="beneficios" className="bg-white py-16 lg:py-20">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mb-12 text-center">
-              <span className="text-xs font-bold uppercase tracking-widest text-[#22C55E]">Para quem é a HUBBY</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-[#22C55E]">Para quem é o bébbi</span>
               <h2 className="mt-3 font-display text-[40px] font-bold text-[#0F172A]">Benefícios para cada lado.</h2>
             </div>
 
@@ -761,7 +761,7 @@ export default function Home() {
               <span className="text-xs font-bold uppercase tracking-widest text-[#22C55E]">Depoimentos</span>
               <h2 className="mt-3 font-display text-[40px] font-bold text-white">Quem já usa, não volta atrás.</h2>
               <p className="mt-4 text-slate-400 text-sm max-w-md mx-auto">
-                Veja o que os estabelecimentos e adegas dizem sobre negociar pela Hubby.
+                Veja o que os estabelecimentos e adegas dizem sobre negociar pelo bébbi.
               </p>
             </div>
 
@@ -890,7 +890,7 @@ export default function Home() {
                       )}
 
                       <p className={`text-[10px] font-bold uppercase tracking-[0.18em] ${isPro ? "text-[#22C55E]" : "text-slate-500"}`}>
-                        HUBBY {names[planKey]}
+                        bébbi {names[planKey]}
                       </p>
 
                       <div className="mt-3 leading-none">
@@ -938,12 +938,12 @@ export default function Home() {
               <div className="mt-4 rounded-2xl border border-white/10 bg-[#111827] px-6 py-5">
                 <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600">HUBBY Enterprise</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600">bébbi Enterprise</p>
                     <p className="mt-1 text-sm font-bold text-white">Sob consulta — para operações de grande escala</p>
                     <p className="mt-0.5 text-[13px] text-slate-500">Usuários ilimitados · SLA garantido · integração sob medida</p>
                   </div>
                   <a
-                    href="mailto:comercial@hubby.com.br"
+                    href="mailto:comercial@bebbi.com.br"
                     className="shrink-0 rounded-lg border border-white/20 px-5 py-2.5 text-[13px] font-bold text-slate-400 transition hover:border-white/40 hover:text-white"
                   >
                     Falar com vendas →
@@ -1001,7 +1001,7 @@ export default function Home() {
                 <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-[#22C55E]/30 bg-[#22C55E]/[0.05] p-5 sm:flex-row sm:items-center">
                   <div>
                     <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="text-sm font-bold text-white">HUBBY Pro</span>
+                      <span className="text-sm font-bold text-white">bébbi Pro</span>
                       <span className="font-mono text-sm font-medium text-[#22C55E]">{formatBRL(BUYER_MONTHLY[period])}/mês</span>
                       {period !== "monthly" && (
                         <span className="text-[10px] text-slate-500">
@@ -1037,7 +1037,7 @@ export default function Home() {
                 Indique uma distribuidora.<br />Ganhe meses grátis.
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-[15px] leading-[1.65] text-slate-400">
-                Conhece uma distribuidora que deveria estar na Hubby? Indique e ganhe até 90 dias do plano Pro gratuitamente.
+                Conhece uma distribuidora que deveria estar no bébbi? Indique e ganhe até 90 dias do plano Pro gratuitamente.
               </p>
             </div>
 
@@ -1046,7 +1046,7 @@ export default function Home() {
               {[
                 { n: "1",   days: "30 dias",  desc: "1ª conversão",      highlight: false, extra: null },
                 { n: "2",   days: "60 dias",  desc: "2ª conversão",      highlight: true,  extra: null },
-                { n: "3+",  days: "90 dias",  desc: "3ª+ conversão",     highlight: false, extra: "Badge Embaixador Hubby" },
+                { n: "3+",  days: "90 dias",  desc: "3ª+ conversão",     highlight: false, extra: "Badge Embaixador bébbi" },
               ].map((card) => (
                 <div
                   key={card.n}
@@ -1113,7 +1113,7 @@ export default function Home() {
 
         {/* ══ WHATSAPP FLUTUANTE ════════════════════════════════════════════════ */}
         <a
-          href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20saber%20mais%20sobre%20a%20HUBBY"
+          href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20saber%20mais%20sobre%20o%20b%C3%A9bbi"
           target="_blank"
           rel="noopener noreferrer"
           title="Falar no WhatsApp"

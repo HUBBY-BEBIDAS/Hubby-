@@ -28,7 +28,7 @@ export const POST = withAuth(
       distributor_id: distributor.id,
       event: "test",
       data: {
-        message: "Teste de integração Hubby ERP",
+        message: "Teste de integração bébbi ERP",
         order_id: "00000000-0000-0000-0000-000000000000",
         client_name: "Cliente Teste",
         total_cents: 150000,

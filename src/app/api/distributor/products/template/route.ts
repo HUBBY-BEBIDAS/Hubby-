@@ -39,7 +39,7 @@ export const GET = withAuth(async (_req: NextRequest, user) => {
   }
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Hubby";
+  wb.creator = "bébbi";
   wb.created = new Date();
 
   // ── Aba Produtos ──────────────────────────────────────────────
@@ -150,7 +150,7 @@ export const GET = withAuth(async (_req: NextRequest, user) => {
     status: 200,
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": 'attachment; filename="modelo-produtos-hubby.xlsx"',
+      "Content-Disposition": 'attachment; filename="modelo-produtos-bebbi.xlsx"',
       "Cache-Control": "no-store",
     },
   });

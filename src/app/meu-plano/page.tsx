@@ -95,7 +95,7 @@ const BUYER_GAINS = [
   "Múltiplos endereços de entrega cadastrados",
 ];
 
-const WA_ENTERPRISE = "https://wa.me/5511999999999?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20plano%20Enterprise%20da%20Hubby.";
+const WA_ENTERPRISE = "https://wa.me/5511999999999?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20plano%20Enterprise%20do%20b%C3%A9bbi.";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

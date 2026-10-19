@@ -77,9 +77,9 @@ export function DeliveryRadiusMap({
         maxZoom: 19,
       }).addTo(map);
 
-      // Ícone estilizado moderno em HTML DivIcon (verde Hubby com pino e pulso)
+      // Ícone estilizado moderno em HTML DivIcon (verde bébbi com pino e pulso)
       const customPinIcon = L.divIcon({
-        className: "hubby-pin-wrapper",
+        className: "bebbi-pin-wrapper",
         html: `
           <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: 0; padding: 0;">
             <div style="position: absolute; width: 42px; height: 42px; border-radius: 9999px; background: rgba(34, 197, 94, 0.35); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
@@ -279,7 +279,7 @@ export function DeliveryRadiusMap({
         const encoded = encodeURIComponent(`${query}, Brasil`);
         const r = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encoded}`,
-          { headers: { "User-Agent": "HubbySaaS/1.0 (contact@hubby.com.br)" } }
+          { headers: { "User-Agent": "BebbiSaaS/1.0 (contato@bebbi.com.br)" } }
         );
         if (r.ok) {
           const resArr = await r.json();

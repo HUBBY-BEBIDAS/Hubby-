@@ -3,9 +3,9 @@ import SiteFooter from "@/components/SiteFooter";
 import { Eye, Zap, Users } from "lucide-react";
 
 export const metadata = {
-  title: "Sobre nós | Hubby",
+  title: "Sobre nós | bébbi",
   description:
-    "A Hubby nasceu para ser a infraestrutura de distribuição de bebidas do Brasil.",
+    "O bébbi nasceu para ser a infraestrutura de distribuição de bebidas do Brasil.",
 };
 
 export default function SobrePage() {
@@ -23,7 +23,7 @@ export default function SobrePage() {
             Sobre nós
           </span>
           <h1 className="mt-4 font-display text-4xl font-extrabold tracking-tight leading-tight text-[#0F172A] md:text-5xl lg:text-6xl">
-            Por que a Hubby existe
+            Por que o bébbi existe
           </h1>
           <p className="mt-6 text-lg font-medium leading-relaxed text-slate-500">
             A tecnologia que conecta quem precisa comprar com quem tem para vender.
@@ -39,7 +39,7 @@ export default function SobrePage() {
             {/* Texto */}
             <div className="space-y-7 text-[17px] leading-[1.85] text-slate-600">
               <p className="font-medium">
-                A <strong className="text-[#0F172A]">Hubby</strong> nasceu para resolver um problema simples:
+                O <strong className="text-[#0F172A]">bébbi</strong> nasceu para resolver um problema simples:
                 comprar e vender bebidas ainda é um processo lento, descentralizado e pouco eficiente.
               </p>
               <p className="font-medium">
@@ -47,7 +47,7 @@ export default function SobrePage() {
                 Ao mesmo tempo, distribuidoras investem horas respondendo solicitações repetitivas e acabam perdendo oportunidades.
               </p>
               <p className="font-medium">
-                A Hubby centraliza esse processo em uma única plataforma. Com uma única solicitação,
+                O bébbi centraliza esse processo em uma única plataforma. Com uma única solicitação,
                 compradores recebem diferentes cotações de forma rápida e organizada, enquanto distribuidoras
                 ganham eficiência, ampliam sua visibilidade e atendem mais clientes com menos esforço.
               </p>
@@ -77,7 +77,7 @@ export default function SobrePage() {
                 </blockquote>
                 <div className="mt-6 h-px w-full bg-white/10" />
                 <p className="mt-6 text-sm font-semibold uppercase tracking-widest text-slate-400">
-                  HUBBY · São Paulo, 2026
+                  bébbi · São Paulo, 2026
                 </p>
               </div>
             </div>

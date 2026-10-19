@@ -322,7 +322,7 @@ function ImportModal({ token, onClose, onImported }: {
           <h3 className="text-base font-display font-semibold text-[#0F172A]">Importar planilha</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl">×</button>
         </div>
-        <a href="/api/distributor/products/template" download="modelo-produtos-hubby.xlsx"
+        <a href="/api/distributor/products/template" download="modelo-produtos-bebbi.xlsx"
           className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#2563EB] hover:underline">
           <Download size={14} className="inline mr-1" />Baixar modelo de planilha
         </a>
@@ -537,7 +537,7 @@ function PriceImportModal({ token, onClose, onApplied }: {
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl">×</button>
         </div>
 
-        <a href="/api/distributor/products/price-template" download="modelo-precos-hubby.xlsx"
+        <a href="/api/distributor/products/price-template" download="modelo-precos-bebbi.xlsx"
           className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-purple-600 hover:underline">
           <Download size={14} className="inline mr-1" />Baixar modelo de planilha de preços
         </a>
@@ -913,7 +913,7 @@ export default function ProdutosPage() {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <a href="/api/distributor/products/template" download="modelo-produtos-hubby.xlsx">
+            <a href="/api/distributor/products/template" download="modelo-produtos-bebbi.xlsx">
               <Button variant="outline" size="sm"><Download size={14} className="inline mr-1" />Baixar modelo</Button>
             </a>
             <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>

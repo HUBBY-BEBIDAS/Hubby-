@@ -53,9 +53,9 @@ export async function fireWebhook(opts: {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Hubby-Signature": signature,
-        "X-Hubby-Event": opts.event,
-        "User-Agent": "Hubby-Webhook/1.0",
+        "X-Bebbi-Signature": signature,
+        "X-Bebbi-Event": opts.event,
+        "User-Agent": "Bebbi-Webhook/1.0",
       },
       body,
       signal: controller.signal,

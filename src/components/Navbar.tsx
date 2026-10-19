@@ -8,6 +8,7 @@ import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { ShoppingCart, LogOut, MessageSquare } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { soundNotifier, sendDesktopNotification, requestDesktopNotificationPermission } from "@/lib/audio";
+import BebbiLogo from "@/components/BebbiLogo";
 
 type NavLink = { href: string; label: string; roles: string[] };
 
@@ -216,8 +217,7 @@ export function Navbar() {
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-1.5">
-            <span className="font-extrabold tracking-tight text-[20px] uppercase text-white leading-none">HUBBY</span>
-            <span className="font-mono text-[10px] font-medium text-[#22C55E] uppercase tracking-wider leading-none mt-0.5">SIC</span>
+            <BebbiLogo variant="white" height={22} showSicBadge />
           </Link>
 
           {/* Right side: cart + bell + avatar + menu */}
@@ -400,8 +400,7 @@ export function Navbar() {
       <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-[#0F172A] text-white flex-col border-r border-[#1E293B] z-40 p-5 shadow-2xl">
         {/* Logo */}
         <div className="mb-6 flex items-center gap-1.5">
-          <span className="font-extrabold tracking-tight text-[22px] uppercase text-white leading-none">HUBBY</span>
-          <span className="font-mono text-[10px] font-medium text-[#22C55E] uppercase tracking-wider leading-none mt-0.5">SIC</span>
+          <BebbiLogo variant="white" height={26} showSicBadge />
         </div>
 
         {/* User Info Block */}

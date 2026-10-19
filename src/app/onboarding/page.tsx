@@ -10,6 +10,7 @@ import {
   Hand, Package, Map, CheckCircle, BarChart2, Pencil, Lightbulb,
   Download, FolderOpen, Sparkles, Check, AlertTriangle, MapPin,
 } from "lucide-react";
+import BebbiLogo from "@/components/BebbiLogo";
 
 const DeliveryRadiusMap = dynamic(
   () => import("@/components/DeliveryRadiusMap").then((m) => m.DeliveryRadiusMap),
@@ -140,7 +141,7 @@ function Step1Welcome({ state, onNext }: { state: OnboardingState; onNext: () =>
       <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#22C55E]/10">
         <Hand size={32} className="text-[#22C55E]" />
       </div>
-      <StepTitle>Bem-vinda à Hubby,<br />{state.company_name}!</StepTitle>
+      <StepTitle>Bem-vinda ao bébbi,<br />{state.company_name}!</StepTitle>
       <StepSubtitle>
         Vamos configurar seu perfil em 4 passos rápidos para você já começar a receber cotações.
       </StepSubtitle>
@@ -285,7 +286,7 @@ function Step2Products({ token, state, onNext, onSkip }: {
         <Lightbulb size={14} className="inline mr-1" />Baixe o{" "}
         <a
           href="/api/distributor/products/template"
-          download="modelo-produtos-hubby.xlsx"
+          download="modelo-produtos-bebbi.xlsx"
           className="font-bold underline"
         >
           modelo de planilha
@@ -303,7 +304,7 @@ function Step2Products({ token, state, onNext, onSkip }: {
       <StepSubtitle>Selecione seu arquivo .xlsx com os produtos.</StepSubtitle>
       <a
         href="/api/distributor/products/template"
-        download="modelo-produtos-hubby.xlsx"
+        download="modelo-produtos-bebbi.xlsx"
         className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#2563EB] hover:underline"
       >
         <Download size={14} className="inline mr-1" />Baixar modelo de planilha
@@ -671,7 +672,7 @@ function Step3Regions({ token, state, onNext, onSkip }: {
       <div className="mt-4 rounded-xl border border-[#DBEAFE] bg-[#EFF6FF] px-4 py-3 text-xs text-[#2563EB]">
         <a
           href="/api/distributor/delivery-regions/template"
-          download="modelo-roteiros-hubby.xlsx"
+          download="modelo-roteiros-bebbi.xlsx"
           className="font-bold underline"
         >
           modelo de planilha de roteiros
@@ -784,7 +785,7 @@ function Step3Regions({ token, state, onNext, onSkip }: {
       <StepTitle>Importar roteiro</StepTitle>
       <a
         href="/api/distributor/delivery-regions/template"
-        download="modelo-roteiros-hubby.xlsx"
+        download="modelo-roteiros-bebbi.xlsx"
         className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#22C55E] hover:underline"
       >
         <Download size={14} className="inline mr-1" />Baixar modelo de planilha
@@ -1143,14 +1144,7 @@ export default function OnboardingPage() {
 
       {/* Logo */}
       <div className="mb-8 flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#22C55E]">
-          <svg className="h-3.5 w-3.5 text-white" viewBox="0 0 14 14" fill="none">
-            <rect x="1" y="1" width="5" height="8" rx="1" fill="currentColor" opacity="0.9"/>
-            <rect x="8" y="1" width="5" height="4" rx="1" fill="currentColor"/>
-            <rect x="8" y="7" width="5" height="6" rx="1" fill="currentColor" opacity="0.7"/>
-          </svg>
-        </span>
-        <span className="text-sm font-black uppercase tracking-[0.2em] text-[#0F172A]">HUBBY</span>
+        <BebbiLogo variant="dark" height={32} showSicBadge />
       </div>
 
       <div className="w-full max-w-xl">

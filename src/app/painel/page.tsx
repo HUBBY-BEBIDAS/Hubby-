@@ -807,7 +807,7 @@ export default function PainelPage() {
             <p className="mt-1 font-display font-extrabold text-[28px] leading-none tracking-tight text-[#0F172A]">
               4.8x
             </p>
-            <p className="mt-2 text-[10px] text-slate-400">Retorno sobre assinatura da Hubby</p>
+            <p className="mt-2 text-[10px] text-slate-400">Retorno sobre assinatura do bébbi</p>
           </div>
         </div>
       </div>
@@ -888,7 +888,7 @@ export default function PainelPage() {
               </div>
               <p className="mt-4 text-xs text-slate-400">
                 Dúvidas? Fale com o suporte via{" "}
-                <a href="mailto:suporte@hubby.com.br" className="underline">suporte@hubby.com.br</a>
+                <a href="mailto:suporte@bebbi.com.br" className="underline">suporte@bebbi.com.br</a>
               </p>
             </div>
           </div>
@@ -1096,7 +1096,7 @@ export default function PainelPage() {
                       </p>
                       {fb.order.client.hubby_score !== 0 && (
                         <p className={`mt-0.5 text-xs font-medium ${fb.order.client.hubby_score > 0 ? "text-green-600" : "text-red-600"}`}>
-                          Histórico Hubby:{" "}
+                          Histórico bébbi:{" "}
                           {fb.order.client.hubby_score > 0 ? (
                             <><Check size={12} className="inline mr-1" />{fb.order.client.hubby_score} pedidos sem problemas</>
                           ) : (
@@ -1757,7 +1757,7 @@ export default function PainelPage() {
                             <path d="M8 1.5L2 4v4c0 3.31 2.55 5.91 6 6.5 3.45-.59 6-3.19 6-6.5V4L8 1.5Z" fill="#16A34A" opacity=".2" stroke="#16A34A" strokeWidth="1.2" strokeLinejoin="round" />
                             <path d="M5.5 8l2 2 3-3" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
-                          CNPJ verificado pela Hubby
+                          CNPJ verificado pelo bébbi
                         </span>
                         <p className="mt-1.5 text-xs text-slate-500">
                           {order.client.delivery_city} — {order.client.delivery_state} ·{" "}

@@ -13,9 +13,9 @@ function sanitizeEmail(email: string): string {
 }
 
 function getFromAddress(): string {
-  const from = process.env.EMAIL_FROM ?? "contato@hubby.com.br";
+  const from = process.env.EMAIL_FROM ?? "contato@bebbi.com.br";
   if (from.includes("<")) return from;
-  return `"HUBBY" <${from}>`;
+  return `"bébbi" <${from}>`;
 }
 
 function createTransporter() {
@@ -113,7 +113,7 @@ Acesse o painel para responder: ${panelUrl}
 <body style="margin:0;padding:0;background:#F5F7FB;font-family:system-ui,sans-serif;">
   <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:16px;border:1px solid #DBEAFE;overflow:hidden;">
     <div style="background:#2563EB;padding:24px 32px;">
-      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#93C5FD;">HUBBY</p>
+      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#93C5FD;">bébbi</p>
       <h1 style="margin:8px 0 0;font-size:22px;font-weight:900;color:#fff;">Nova cotação recebida</h1>
     </div>
     <div style="padding:24px 32px;">
@@ -149,7 +149,7 @@ Acesse o painel para responder: ${panelUrl}
       </a>
     </div>
     <div style="padding:16px 32px;border-top:1px solid #DBEAFE;font-size:12px;color:#94A3B8;">
-      HUBBY — Plataforma B2B de cotação de bebidas
+      bébbi — Plataforma B2B de cotação de bebidas
     </div>
   </div>
 </body>
@@ -196,7 +196,7 @@ export async function sendPaymentFeedbackEmail({
   const panelUrl = `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/painel`;
 
   const text = `
-HUBBY — Feedback de pagamento
+bébbi — Feedback de pagamento
 
 Olá, ${distributorName}!
 
@@ -216,7 +216,7 @@ Se não houver resposta em 7 dias, o sistema registrará automaticamente como "s
 <body style="margin:0;padding:0;background:#F5F7FB;font-family:system-ui,sans-serif;">
   <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:16px;border:1px solid #DBEAFE;overflow:hidden;">
     <div style="background:#2563EB;padding:24px 32px;">
-      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#93C5FD;">HUBBY</p>
+      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#93C5FD;">bébbi</p>
       <h1 style="margin:8px 0 0;font-size:20px;font-weight:900;color:#fff;">Feedback de pagamento</h1>
     </div>
     <div style="padding:24px 32px;">
@@ -239,7 +239,7 @@ Se não houver resposta em 7 dias, o sistema registrará automaticamente como "s
       </p>
     </div>
     <div style="padding:16px 32px;border-top:1px solid #DBEAFE;font-size:12px;color:#94A3B8;">
-      HUBBY — Plataforma B2B de cotação de bebidas
+      bébbi — Plataforma B2B de cotação de bebidas
     </div>
   </div>
 </body>
@@ -272,9 +272,9 @@ export async function sendPasswordResetEmail(
   const safeEmail = sanitizeEmail(to);
 
   const text = `
-HUBBY — Redefinição de Senha
+bébbi — Redefinição de Senha
 
-Você solicitou a redefinição de senha da sua conta no HUBBY.
+Você solicitou a redefinição de senha da sua conta no bébbi.
 
 Clique no link abaixo para cadastrar uma nova senha (válido por 30 minutos):
 ${resetUrl}
@@ -289,12 +289,12 @@ Se você não solicitou essa alteração, nenhuma ação é necessária. Sua sen
 <body style="margin:0;padding:0;background:#F5F7FB;font-family:system-ui,sans-serif;">
   <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:16px;border:1px solid #DBEAFE;overflow:hidden;">
     <div style="background:#2563EB;padding:24px 32px;">
-      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#93C5FD;">HUBBY</p>
+      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#93C5FD;">bébbi</p>
       <h1 style="margin:8px 0 0;font-size:22px;font-weight:900;color:#fff;">Redefinição de Senha</h1>
     </div>
     <div style="padding:24px 32px;">
       <p style="margin:0 0 16px;color:#0F172A;font-size:15px;">
-        Recebemos uma solicitação para redefinir a senha da sua conta no <strong>HUBBY</strong>.
+        Recebemos uma solicitação para redefinir a senha da sua conta no <strong>bébbi</strong>.
       </p>
       <p style="margin:0 0 24px;color:#475569;font-size:14px;">
         Clique no botão abaixo para escolher uma nova senha. Este link é válido por <strong>30 minutos</strong>.
@@ -318,7 +318,7 @@ Se você não solicitou essa alteração, nenhuma ação é necessária. Sua sen
       </p>
     </div>
     <div style="padding:16px 32px;border-top:1px solid #DBEAFE;font-size:12px;color:#94A3B8;">
-      HUBBY — Plataforma B2B de cotação de bebidas
+      bébbi — Plataforma B2B de cotação de bebidas
     </div>
   </div>
 </body>
@@ -328,7 +328,7 @@ Se você não solicitou essa alteração, nenhuma ação é necessária. Sua sen
   await transporter.sendMail({
     from: getFromAddress(),
     to: safeEmail,
-    subject: "Redefinição de senha — HUBBY",
+    subject: "Redefinição de senha — bébbi",
     text,
     html,
   });
@@ -351,9 +351,9 @@ export async function sendEmailVerificationEmail(
   const safeEmail = sanitizeEmail(to);
 
   const text = `
-HUBBY — Confirmação de E-mail
+bébbi — Confirmação de E-mail
 
-Obrigado por se cadastrar no HUBBY!
+Obrigado por se cadastrar no bébbi!
 
 Para ativar totalmente sua conta e garantir seu acesso, confirme seu e-mail clicando no link abaixo (válido por 24 horas):
 ${verifyUrl}
@@ -368,12 +368,12 @@ Se você não criou esta conta, nenhuma ação é necessária.
 <body style="margin:0;padding:0;background:#F5F7FB;font-family:system-ui,sans-serif;">
   <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:16px;border:1px solid #DBEAFE;overflow:hidden;">
     <div style="background:#2563EB;padding:24px 32px;">
-      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#93C5FD;">HUBBY</p>
+      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#93C5FD;">bébbi</p>
       <h1 style="margin:8px 0 0;font-size:22px;font-weight:900;color:#fff;">Confirme seu e-mail</h1>
     </div>
     <div style="padding:24px 32px;">
       <p style="margin:0 0 16px;color:#0F172A;font-size:15px;">
-        Bem-vindo ao <strong>HUBBY</strong>!
+        Bem-vindo ao <strong>bébbi</strong>!
       </p>
       <p style="margin:0 0 24px;color:#475569;font-size:14px;">
         Para garantir a segurança da sua conta e ter acesso completo à plataforma B2B de cotação de bebidas, confirme seu endereço de e-mail clicando no botão abaixo:
@@ -393,11 +393,11 @@ Se você não criou esta conta, nenhuma ação é necessária.
       </p>
 
       <p style="margin:0;font-size:12px;color:#94A3B8;">
-        Este link expira em 24 horas. Se você não criou uma conta no HUBBY, ignore esta mensagem.
+        Este link expira em 24 horas. Se você não criou uma conta no bébbi, ignore esta mensagem.
       </p>
     </div>
     <div style="padding:16px 32px;border-top:1px solid #DBEAFE;font-size:12px;color:#94A3B8;">
-      HUBBY — Plataforma B2B de cotação de bebidas
+      bébbi — Plataforma B2B de cotação de bebidas
     </div>
   </div>
 </body>
@@ -407,7 +407,7 @@ Se você não criou esta conta, nenhuma ação é necessária.
   await transporter.sendMail({
     from: getFromAddress(),
     to: safeEmail,
-    subject: "Confirme seu e-mail — HUBBY",
+    subject: "Confirme seu e-mail — bébbi",
     text,
     html,
   });

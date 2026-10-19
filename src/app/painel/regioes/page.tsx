@@ -337,7 +337,7 @@ function ImportModal({ token, onClose, onImported }: {
     const href = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = href;
-    a.download = "modelo-roteiros-hubby.xlsx";
+    a.download = "modelo-roteiros-bebbi.xlsx";
     a.click();
     URL.revokeObjectURL(href);
   }

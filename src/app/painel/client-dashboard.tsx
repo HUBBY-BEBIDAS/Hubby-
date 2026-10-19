@@ -364,7 +364,7 @@ export function ClientDashboard() {
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Ranking das Distribuidoras mais Rápidas</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
-                  { name: "Distribuidora Guadalupe", time: "5 min", score: "9.9/10" },
+                  { name: "Distribuidora Modelo", time: "5 min", score: "9.9/10" },
                   { name: "Distribuidora Pinheiros", time: "8 min", score: "9.6/10" },
                   { name: "Comercial Central Bebidas", time: "10 min", score: "9.2/10" },
                 ].map((dist, idx) => (
@@ -420,7 +420,7 @@ export function ClientDashboard() {
             <p className="mt-1 font-display font-extrabold text-[16px] leading-none tracking-tight text-[#0F172A] mt-2 truncate">
               {formatBRL(data.total_saved_cents)} + {((data.order_count ?? 0) * 1.5).toFixed(0)}h
             </p>
-            <p className="mt-2 text-[10px] text-slate-400">Retorno combinado no Hubby</p>
+            <p className="mt-2 text-[10px] text-slate-400">Retorno combinado no bébbi</p>
           </div>
 
           <div className="rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
@@ -477,7 +477,7 @@ export function ClientDashboard() {
       {/* Title */}
       <div>
         <h1 className="text-2xl font-extrabold tracking-tight text-[#0F172A]">Painel do Comprador</h1>
-        <p className="mt-1 text-sm font-medium text-slate-500">Acompanhe seu desempenho e economia utilizando o Hubby</p>
+        <p className="mt-1 text-sm font-medium text-slate-500">Acompanhe seu desempenho e economia utilizando o bébbi</p>
       </div>
 
       {/* Seção do Perfil Vencedor Único */}

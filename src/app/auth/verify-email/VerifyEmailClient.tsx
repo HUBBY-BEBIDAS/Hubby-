@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { CheckCircle2, AlertCircle, Mail, Loader2 } from "lucide-react";
+import BebbiLogo from "@/components/BebbiLogo";
 
 export default function VerifyEmailClient() {
   const searchParams = useSearchParams();
@@ -85,11 +86,9 @@ export default function VerifyEmailClient() {
         {/* Logo Header */}
         <div className="mb-8 text-center">
           <Link href="/" className="inline-block">
-            <span className="text-sm font-black uppercase tracking-[0.16em] text-[#0F172A]">
-              HUBBY
-            </span>
+            <BebbiLogo variant="dark" height={36} showSicBadge />
           </Link>
-          <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-[#2563EB]">
+          <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
             Plataforma B2B de cotação de bebidas
           </p>
         </div>
@@ -116,7 +115,7 @@ export default function VerifyEmailClient() {
                 E-mail verificado com sucesso!
               </h1>
               <p className="mb-6 text-sm text-slate-600 leading-relaxed">
-                Sua conta no HUBBY foi ativada. Você já pode fazer login e utilizar todos os recursos da plataforma.
+                Sua conta no bébbi foi ativada. Você já pode fazer login e utilizar todos os recursos da plataforma.
               </p>
               <Button onClick={() => router.push("/auth/login")} fullWidth size="lg">
                 Fazer Login

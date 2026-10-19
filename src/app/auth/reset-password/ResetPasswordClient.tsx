@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Check, CheckCircle2, Eye, EyeOff, XCircle } from "lucide-react";
+import BebbiLogo from "@/components/BebbiLogo";
 
 export default function ResetPasswordClient() {
   const searchParams = useSearchParams();
@@ -68,11 +69,9 @@ export default function ResetPasswordClient() {
         {/* Logo Header */}
         <div className="mb-8 text-center">
           <Link href="/" className="inline-block">
-            <span className="text-sm font-black uppercase tracking-[0.16em] text-[#0F172A]">
-              HUBBY
-            </span>
+            <BebbiLogo variant="dark" height={36} showSicBadge />
           </Link>
-          <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-[#2563EB]">
+          <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
             Plataforma B2B de cotação de bebidas
           </p>
         </div>
@@ -99,7 +98,7 @@ export default function ResetPasswordClient() {
                 Criar nova senha
               </h1>
               <p className="mb-6 text-sm text-slate-500">
-                Cadastre sua nova senha de acesso ao HUBBY.
+                Cadastre sua nova senha de acesso ao bébbi.
               </p>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">

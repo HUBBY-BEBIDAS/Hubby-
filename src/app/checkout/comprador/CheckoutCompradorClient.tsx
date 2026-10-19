@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
 import { Check } from "lucide-react";
+import BebbiLogo from "@/components/BebbiLogo";
 
 const PRO_FEATURES = [
   "Cotação em qualquer região do Brasil",
@@ -72,8 +73,8 @@ export default function CheckoutCompradorClient() {
       <div className="mx-auto w-full max-w-lg px-4 py-16">
 
         {/* Logo */}
-        <div className="mb-8 text-center text-base font-black uppercase tracking-[0.22em] text-[#0F172A]">
-          HUBBY
+        <div className="mb-8 text-center">
+          <BebbiLogo variant="dark" height={36} showSicBadge />
         </div>
 
         <div className="rounded-[2rem] border border-[#DBEAFE] bg-white p-8 shadow-xl">

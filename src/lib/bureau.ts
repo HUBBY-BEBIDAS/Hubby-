@@ -104,7 +104,7 @@ export const HUBBY_SCORE_WARN = 500;
  */
 export const HUBBY_REJECTION_MESSAGE =
   "Não foi possível completar seu cadastro. Seu CNPJ está com situação irregular junto à Receita Federal " +
-  "(inapto, suspenso ou baixado). Regularize a situação e tente novamente. Dúvidas: contato@hubby.com.br";
+  "(inapto, suspenso ou baixado). Regularize a situação e tente novamente. Dúvidas: contato@bebbi.com.br";
 
 export type HubbyEntryDecision =
   | { outcome: "rejected"; reason: string }

@@ -52,7 +52,7 @@ export default function PrivacidadePage() {
               </Link>
             </div>
             <h1 className="mt-4 text-3xl font-display font-extrabold sm:text-4xl">
-              HUBBY — Política de Privacidade
+              bébbi — Política de Privacidade
             </h1>
             <p className="mt-2 text-sm text-slate-400">
               Sistema Integrado de Cotações (SIC) · Versão 1.0 · Vigência: Julho de 2026
@@ -62,12 +62,12 @@ export default function PrivacidadePage() {
             <div className="mt-8 grid grid-cols-1 gap-4 rounded-2xl bg-slate-800/60 p-5 text-xs sm:grid-cols-3 sm:gap-6">
               <div>
                 <span className="text-slate-400">Controlador dos Dados:</span>
-                <p className="font-semibold text-white">HUBBY TECNOLOGIA LTDA</p>
+                <p className="font-semibold text-white">BÉBBI TECNOLOGIA LTDA</p>
                 <p className="text-slate-400">São Paulo, SP — Brasil</p>
               </div>
               <div>
                 <span className="text-slate-400">Encarregado de Dados (DPO):</span>
-                <p className="font-semibold text-[#22C55E]">privacidade@hubby.com.br</p>
+                <p className="font-semibold text-[#22C55E]">privacidade@bebbi.com.br</p>
                 <p className="text-slate-400">Resposta em até 15 dias úteis</p>
               </div>
               <div>
@@ -107,7 +107,7 @@ export default function PrivacidadePage() {
                 {/* Intro */}
                 <div className="rounded-2xl bg-blue-50/60 p-5 border border-blue-100 text-slate-700">
                   <p>
-                    Esta Política de Privacidade descreve como a <strong>Hubby (SIC — Sistema Integrado de Cotações)</strong> coleta, usa, armazena, compartilha e protege os dados pessoais e empresariais dos usuários da plataforma, em conformidade com a <strong>Lei Geral de Proteção de Dados (LGPD — Lei 13.709/2018)</strong> e demais legislações aplicáveis.
+                    Esta Política de Privacidade descreve como a <strong>bébbi (SIC — Sistema Integrado de Cotações)</strong> coleta, usa, armazena, compartilha e protege os dados pessoais e empresariais dos usuários da plataforma, em conformidade com a <strong>Lei Geral de Proteção de Dados (LGPD — Lei 13.709/2018)</strong> e demais legislações aplicáveis.
                   </p>
                 </div>
 
@@ -115,10 +115,10 @@ export default function PrivacidadePage() {
                 <section id="s1">
                   <SectionHeader number="1" title="Quem somos e como nos contatar" />
                   <p className="mb-4">
-                    A Hubby (SIC — Sistema Integrado de Cotações) é uma plataforma de tecnologia B2B que conecta compradores de bebidas (bares, restaurantes, adegas, hotéis e estabelecimentos similares) com distribuidoras de bebidas no Brasil.
+                    O bébbi (SIC — Sistema Integrado de Cotações) é uma plataforma de tecnologia B2B que conecta compradores de bebidas (bares, restaurantes, adegas, hotéis e estabelecimentos similares) com distribuidoras de bebidas no Brasil.
                   </p>
                   <p className="mb-4">
-                    Para fins desta Política de Privacidade, a Hubby atua como <strong>Controladora de Dados</strong> — ou seja, é a responsável pelas decisões sobre como os dados pessoais e empresariais são coletados, tratados e utilizados dentro da plataforma.
+                    Para fins desta Política de Privacidade, o bébbi atua como <strong>Controladora de Dados</strong> — ou seja, é a responsável pelas decisões sobre como os dados pessoais e empresariais são coletados, tratados e utilizados dentro da plataforma.
                   </p>
                   <div className="overflow-x-auto rounded-xl border border-slate-200 mt-4">
                     <table className="w-full text-xs">
@@ -129,20 +129,20 @@ export default function PrivacidadePage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
-                        <tr><td className="p-3 font-medium">Razão social</td><td className="p-3">HUBBY TECNOLOGIA LTDA (CNPJ a ser registrado)</td></tr>
+                        <tr><td className="p-3 font-medium">Razão social</td><td className="p-3">BÉBBI TECNOLOGIA LTDA (CNPJ a ser registrado)</td></tr>
                         <tr><td className="p-3 font-medium">Endereço</td><td className="p-3">São Paulo, SP — Brasil</td></tr>
-                        <tr><td className="p-3 font-medium">E-mail geral</td><td className="p-3"><a href="mailto:contato@hubby.com.br" className="text-[#2563EB] hover:underline">contato@hubby.com.br</a></td></tr>
-                        <tr><td className="p-3 font-medium">E-mail privacidade (DPO)</td><td className="p-3"><a href="mailto:privacidade@hubby.com.br" className="text-[#2563EB] hover:underline">privacidade@hubby.com.br</a></td></tr>
-                        <tr><td className="p-3 font-medium">Site oficial</td><td className="p-3"><a href="https://hubby.com.br" target="_blank" rel="noreferrer" className="text-[#2563EB] hover:underline">https://hubby.com.br</a></td></tr>
-                        <tr><td className="p-3 font-medium">Política de Privacidade</td><td className="p-3"><Link href="/privacidade" className="text-[#2563EB] hover:underline">https://hubby.com.br/privacidade</Link></td></tr>
-                        <tr><td className="p-3 font-medium">Termos de Uso</td><td className="p-3"><Link href="/termos" className="text-[#2563EB] hover:underline">https://hubby.com.br/termos</Link></td></tr>
+                        <tr><td className="p-3 font-medium">E-mail geral</td><td className="p-3"><a href="mailto:contato@bebbi.com.br" className="text-[#2563EB] hover:underline">contato@bebbi.com.br</a></td></tr>
+                        <tr><td className="p-3 font-medium">E-mail privacidade (DPO)</td><td className="p-3"><a href="mailto:privacidade@bebbi.com.br" className="text-[#2563EB] hover:underline">privacidade@bebbi.com.br</a></td></tr>
+                        <tr><td className="p-3 font-medium">Site oficial</td><td className="p-3"><a href="https://bebbi.com.br" target="_blank" rel="noreferrer" className="text-[#2563EB] hover:underline">https://bebbi.com.br</a></td></tr>
+                        <tr><td className="p-3 font-medium">Política de Privacidade</td><td className="p-3"><Link href="/privacidade" className="text-[#2563EB] hover:underline">https://bebbi.com.br/privacidade</Link></td></tr>
+                        <tr><td className="p-3 font-medium">Termos de Uso</td><td className="p-3"><Link href="/termos" className="text-[#2563EB] hover:underline">https://bebbi.com.br/termos</Link></td></tr>
                       </tbody>
                     </table>
                   </div>
                   <div className="mt-4 rounded-xl bg-slate-50 p-4 border border-slate-200">
                     <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Encarregado de Dados (DPO)</h4>
                     <p className="mt-1 text-xs text-slate-600">
-                      Nós indicamos um Encarregado pelo Tratamento de Dados Pessoais (DPO — Data Protection Officer) conforme exigido pelo Art. 41 da LGPD. Para qualquer dúvida, solicitação ou exercício de direitos relacionados a esta Política, entre em contato pelo e-mail: <a href="mailto:privacidade@hubby.com.br" className="font-semibold text-[#2563EB] hover:underline">privacidade@hubby.com.br</a>. Respondemos em até 15 dias úteis.
+                      Nós indicamos um Encarregado pelo Tratamento de Dados Pessoais (DPO — Data Protection Officer) conforme exigido pelo Art. 41 da LGPD. Para qualquer dúvida, solicitação ou exercício de direitos relacionados a esta Política, entre em contato pelo e-mail: <a href="mailto:privacidade@bebbi.com.br" className="font-semibold text-[#2563EB] hover:underline">privacidade@bebbi.com.br</a>. Respondemos em até 15 dias úteis.
                     </p>
                   </div>
                 </section>
@@ -160,11 +160,11 @@ export default function PrivacidadePage() {
                       </thead>
                       <tbody className="divide-y divide-slate-200">
                         <tr><td className="p-3 font-medium text-slate-900">Dado pessoal</td><td className="p-3">Qualquer informação relacionada a pessoa natural identificada ou identificável (Art. 5º, I, LGPD). Ex: nome, e-mail, CPF, telefone.</td></tr>
-                        <tr><td className="p-3 font-medium text-slate-900">Dado pessoal sensível</td><td className="p-3">Dado pessoal sobre origem racial, convicção religiosa, opinião política, saúde, vida sexual, dado genético ou biométrico. A Hubby não coleta dados sensíveis intencionalmente.</td></tr>
+                        <tr><td className="p-3 font-medium text-slate-900">Dado pessoal sensível</td><td className="p-3">Dado pessoal sobre origem racial, convicção religiosa, opinião política, saúde, vida sexual, dado genético ou biométrico. O bébbi não coleta dados sensíveis intencionalmente.</td></tr>
                         <tr><td className="p-3 font-medium text-slate-900">Dado empresarial</td><td className="p-3">Informações sobre pessoas jurídicas (CNPJ, razão social, faturamento). Não são dados pessoais pela LGPD, mas são protegidos por sigilo comercial e contratual.</td></tr>
                         <tr><td className="p-3 font-medium text-slate-900">Consentimento</td><td className="p-3">Manifestação livre, informada e inequívoca do titular concordando com o tratamento dos seus dados.</td></tr>
-                        <tr><td className="p-3 font-medium text-slate-900">Titular</td><td className="p-3">Pessoa natural a quem os dados pessoais se referem. Na Hubby: representantes legais, sócios e colaboradores das empresas cadastradas.</td></tr>
-                        <tr><td className="p-3 font-medium text-slate-900">Controlador</td><td className="p-3">Pessoa ou empresa que decide como os dados serão tratados. A Hubby é a Controladora.</td></tr>
+                        <tr><td className="p-3 font-medium text-slate-900">Titular</td><td className="p-3">Pessoa natural a quem os dados pessoais se referem. No bébbi: representantes legais, sócios e colaboradores das empresas cadastradas.</td></tr>
+                        <tr><td className="p-3 font-medium text-slate-900">Controlador</td><td className="p-3">Pessoa ou empresa que decide como os dados serão tratados. O bébbi é a Controladora.</td></tr>
                         <tr><td className="p-3 font-medium text-slate-900">Operador</td><td className="p-3">Empresa que trata dados em nome do Controlador. Ex: SendGrid (e-mails), AWS/Supabase (banco de dados).</td></tr>
                         <tr><td className="p-3 font-medium text-slate-900">Tratamento</td><td className="p-3">Qualquer operação com dados: coleta, armazenamento, uso, compartilhamento, exclusão.</td></tr>
                         <tr><td className="p-3 font-medium text-slate-900">LGPD</td><td className="p-3">Lei Geral de Proteção de Dados — Lei 13.709/2018. Legislação brasileira de proteção de dados pessoais.</td></tr>
@@ -262,14 +262,14 @@ export default function PrivacidadePage() {
                 <section id="s4">
                   <SectionHeader number="4" title="Base legal para o tratamento dos dados" />
                   <p className="mb-4">
-                    Todo tratamento de dados na Hubby possui uma base legal prevista na LGPD (Art. 7º e Art. 11). Não tratamos dados sem fundamento legal.
+                    Todo tratamento de dados no bébbi possui uma base legal prevista na LGPD (Art. 7º e Art. 11). Não tratamos dados sem fundamento legal.
                   </p>
                   <div className="overflow-x-auto rounded-xl border border-slate-200 mb-4">
                     <table className="w-full text-xs">
                       <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
                         <tr>
                           <th className="p-3 text-left w-1/3">Base legal</th>
-                          <th className="p-3 text-left">Quando se aplica e Exemplos na Hubby</th>
+                          <th className="p-3 text-left">Quando se aplica e Exemplos no bébbi</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
@@ -372,7 +372,7 @@ export default function PrivacidadePage() {
                     <div className="rounded-xl border border-slate-200 p-4 bg-slate-50">
                       <strong className="text-slate-900 text-xs font-bold">Distribuidora → Comprador (Execução do contrato):</strong>
                       <p className="text-xs text-slate-600 mt-1">
-                        O comprador vê no ranking: nome da distribuidora, preços, prazo de entrega, pedido mínimo, frete, nota média de avaliação e badge de certificação Hubby. Telefone e e-mail da distribuidora não são exibidos diretamente — o contato ocorre pelo chat interno.
+                        O comprador vê no ranking: nome da distribuidora, preços, prazo de entrega, pedido mínimo, frete, nota média de avaliação e badge de certificação bébbi. Telefone e e-mail da distribuidora não são exibidos diretamente — o contato ocorre pelo chat interno.
                       </p>
                     </div>
                     <div className="rounded-xl border border-slate-200 p-4 bg-slate-50">
@@ -476,7 +476,7 @@ export default function PrivacidadePage() {
                 <section id="s9">
                   <SectionHeader number="9" title="Seus direitos como titular dos dados" />
                   <p className="mb-4">
-                    A LGPD garante a você, como titular dos dados, os seguintes direitos (Art. 18). Todos podem ser exercidos através do e-mail <a href="mailto:privacidade@hubby.com.br" className="text-[#2563EB] font-semibold hover:underline">privacidade@hubby.com.br</a>. Respondemos em até 15 dias úteis.
+                    A LGPD garante a você, como titular dos dados, os seguintes direitos (Art. 18). Todos podem ser exercidos através do e-mail <a href="mailto:privacidade@bebbi.com.br" className="text-[#2563EB] font-semibold hover:underline">privacidade@bebbi.com.br</a>. Respondemos em até 15 dias úteis.
                   </p>
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -548,7 +548,7 @@ export default function PrivacidadePage() {
                     </table>
                   </div>
                   <p className="text-xs text-slate-600">
-                    <strong>Como gerenciar seus cookies:</strong> Você pode gerenciar ou desativar cookies não essenciais a qualquer momento nas configurações do seu navegador ou pelo painel de preferências da Hubby. A desativação de cookies essenciais pode impedir o funcionamento da plataforma.
+                    <strong>Como gerenciar seus cookies:</strong> Você pode gerenciar ou desativar cookies não essenciais a qualquer momento nas configurações do seu navegador ou pelo painel de preferências do bébbi. A desativação de cookies essenciais pode impedir o funcionamento da plataforma.
                   </p>
                 </section>
 
@@ -580,7 +580,7 @@ export default function PrivacidadePage() {
 
                   <div className="mt-4 rounded-xl bg-slate-50 p-4 border border-slate-200 text-xs">
                     <strong className="text-slate-900 block mb-1">Em caso de incidente de segurança:</strong>
-                    Em caso de violação de dados que possa acarretar risco ou dano relevante aos titulares, a Hubby notificará a ANPD e os titulares afetados em prazo razoável (de até 72 horas), conforme exigido pelo Art. 48 da LGPD, com informações sobre a natureza do incidente, os dados envolvidos e as medidas tomadas.
+                    Em caso de violação de dados que possa acarretar risco ou dano relevante aos titulares, o bébbi notificará a ANPD e os titulares afetados em prazo razoável (de até 72 horas), conforme exigido pelo Art. 48 da LGPD, com informações sobre a natureza do incidente, os dados envolvidos e as medidas tomadas.
                   </div>
                 </section>
 
@@ -588,7 +588,7 @@ export default function PrivacidadePage() {
                 <section id="s12">
                   <SectionHeader number="12" title="Dados de menores de idade" />
                   <p>
-                    A Hubby é uma plataforma exclusivamente B2B destinada a empresas e seus representantes legais. <strong>Não coletamos intencionalmente dados de menores de 18 anos.</strong> O cadastro na plataforma exige CNPJ válido e ativo na Receita Federal, o que implica que o usuário deve ser representante legal de uma pessoa jurídica — o que pressupõe capacidade civil plena (idade mínima de 18 anos). Se tomarmos conhecimento de que coletamos inadvertidamente dados de menor de idade, deletaremos essas informações imediatamente. Em caso de suspeita, entre em contato pelo e-mail <a href="mailto:privacidade@hubby.com.br" className="text-[#2563EB] hover:underline">privacidade@hubby.com.br</a>.
+                    O bébbi é uma plataforma exclusivamente B2B destinada a empresas e seus representantes legais. <strong>Não coletamos intencionalmente dados de menores de 18 anos.</strong> O cadastro na plataforma exige CNPJ válido e ativo na Receita Federal, o que implica que o usuário deve ser representante legal de uma pessoa jurídica — o que pressupõe capacidade civil plena (idade mínima de 18 anos). Se tomarmos conhecimento de que coletamos inadvertidamente dados de menor de idade, deletaremos essas informações imediatamente. Em caso de suspeita, entre em contato pelo e-mail <a href="mailto:privacidade@bebbi.com.br" className="text-[#2563EB] hover:underline">privacidade@bebbi.com.br</a>.
                   </p>
                 </section>
 
@@ -596,7 +596,7 @@ export default function PrivacidadePage() {
                 <section id="s13">
                   <SectionHeader number="13" title="Score de crédito e análise de risco" />
                   <p className="mb-4">
-                    A Hubby utiliza um sistema de score de crédito para auxiliar as distribuidoras na avaliação dos compradores. Esta seção descreve como esse sistema funciona e os direitos dos titulares.
+                    O bébbi utiliza um sistema de score de crédito para auxiliar as distribuidoras na avaliação dos compradores. Esta seção descreve como esse sistema funciona e os direitos dos titulares.
                   </p>
                   
                   <div className="overflow-x-auto rounded-xl border border-slate-200 mb-4">
@@ -609,7 +609,7 @@ export default function PrivacidadePage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
-                        <tr><td className="p-3 font-medium">Score Hubby interno</td><td className="p-3">Calculado com base no histórico de pagamentos reportado pelas próprias distribuidoras na plataforma. Inicia em 500 e varia com feedbacks.</td><td className="p-3 text-slate-500">Proteção ao crédito (Art. 7º, X) + Interesse legítimo</td></tr>
+                        <tr><td className="p-3 font-medium">Score bébbi interno</td><td className="p-3">Calculado com base no histórico de pagamentos reportado pelas próprias distribuidoras na plataforma. Inicia em 500 e varia com feedbacks.</td><td className="p-3 text-slate-500">Proteção ao crédito (Art. 7º, X) + Interesse legítimo</td></tr>
                         <tr><td className="p-3 font-medium">Consulta à Receita Federal</td><td className="p-3">Situação cadastral do CNPJ, data de abertura, porte da empresa. Realizada no cadastro e periodicamente.</td><td className="p-3 text-slate-500">Execução de contrato + obrigação legal</td></tr>
                         <tr><td className="p-3 font-medium">Consulta a bureau externo (Serasa/BigDataCorp)</td><td className="p-3">Protestos, restrições financeiras, score de mercado. Realizada no primeiro contato do comprador com uma distribuidora.</td><td className="p-3 text-slate-500">Proteção ao crédito (Art. 7º, X)</td></tr>
                       </tbody>
@@ -617,12 +617,12 @@ export default function PrivacidadePage() {
                   </div>
 
                   <p className="mb-4 text-xs text-slate-600">
-                    <strong>Como o score é utilizado:</strong> O score é exibido para as distribuidoras como um indicador — verde, amarelo ou vermelho — para auxiliar na decisão de conceder crédito. A decisão final é sempre da distribuidora. A Hubby não bloqueia automaticamente compradores com base no score externo — apenas impede cadastros com CNPJ inapto, suspenso ou baixado.
+                    <strong>Como o score é utilizado:</strong> O score é exibido para as distribuidoras como um indicador — verde, amarelo ou vermelho — para auxiliar na decisão de conceder crédito. A decisão final é sempre da distribuidora. O bébbi não bloqueia automaticamente compradores com base no score externo — apenas impede cadastros com CNPJ inapto, suspenso ou baixado.
                   </p>
 
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 text-xs">
-                    <div className="p-3 rounded-lg border border-slate-200 bg-slate-50"><strong>Conhecer o score:</strong> O comprador pode solicitar seu score interno Hubby e os feedbacks que o compõem.</div>
-                    <div className="p-3 rounded-lg border border-slate-200 bg-slate-50"><strong>Contestar informações:</strong> O comprador pode contestar feedbacks incorretos junto à Hubby, que irá apurar junto à distribuidora.</div>
+                    <div className="p-3 rounded-lg border border-slate-200 bg-slate-50"><strong>Conhecer o score:</strong> O comprador pode solicitar seu score interno bébbi e os feedbacks que o compõem.</div>
+                    <div className="p-3 rounded-lg border border-slate-200 bg-slate-50"><strong>Contestar informações:</strong> O comprador pode contestar feedbacks incorretos junto à bébbi, que irá apurar junto à distribuidora.</div>
                     <div className="p-3 rounded-lg border border-slate-200 bg-slate-50"><strong>Revisão humana:</strong> O comprador pode solicitar revisão humana do score e da análise de crédito (Art. 20 LGPD).</div>
                     <div className="p-3 rounded-lg border border-slate-200 bg-slate-50"><strong>Atualização:</strong> Dados de bureau externo são atualizados a cada 30 dias ou mediante solicitação.</div>
                   </div>
@@ -651,7 +651,7 @@ export default function PrivacidadePage() {
                     </table>
                   </div>
                   <p className="text-xs text-slate-600">
-                    <strong>Descadastro:</strong> Para se descadastrar de comunicações de marketing, você pode: (1) clicar em "Descadastrar" no rodapé de qualquer e-mail, (2) desativar notificações nas configurações do perfil na plataforma, (3) enviar e-mail para <a href="mailto:privacidade@hubby.com.br" className="text-[#2563EB] hover:underline">privacidade@hubby.com.br</a>. E-mails transacionais essenciais ao serviço não podem ser desativados.
+                    <strong>Descadastro:</strong> Para se descadastrar de comunicações de marketing, você pode: (1) clicar em "Descadastrar" no rodapé de qualquer e-mail, (2) desativar notificações nas configurações do perfil na plataforma, (3) enviar e-mail para <a href="mailto:privacidade@bebbi.com.br" className="text-[#2563EB] hover:underline">privacidade@bebbi.com.br</a>. E-mails transacionais essenciais ao serviço não podem ser desativados.
                   </p>
                 </section>
 
@@ -685,11 +685,11 @@ export default function PrivacidadePage() {
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 mb-6 text-xs space-y-3">
                     <div>
                       <span className="text-slate-400 font-semibold block">E-mail do DPO (Canal preferencial):</span>
-                      <a href="mailto:privacidade@hubby.com.br" className="text-base font-bold text-[#2563EB] hover:underline">privacidade@hubby.com.br</a>
+                      <a href="mailto:privacidade@bebbi.com.br" className="text-base font-bold text-[#2563EB] hover:underline">privacidade@bebbi.com.br</a>
                     </div>
                     <div>
                       <span className="text-slate-400 font-semibold block">E-mail geral:</span>
-                      <a href="mailto:contato@hubby.com.br" className="font-semibold text-slate-700 hover:underline">contato@hubby.com.br</a>
+                      <a href="mailto:contato@bebbi.com.br" className="font-semibold text-slate-700 hover:underline">contato@bebbi.com.br</a>
                     </div>
                     <div>
                       <span className="text-slate-400 font-semibold block">Prazo de resposta:</span>
@@ -738,7 +738,7 @@ export default function PrivacidadePage() {
                 {/* Footer Legal Notes */}
                 <div className="mt-12 border-t border-slate-200 pt-6 text-xs text-slate-400 flex flex-col sm:flex-row justify-between gap-4">
                   <div>
-                    <p className="font-bold text-slate-700">HUBBY — Sistema Integrado de Cotações</p>
+                    <p className="font-bold text-slate-700">bébbi — Sistema Integrado de Cotações</p>
                     <p>Esta Política de Privacidade é regida pela legislação brasileira. Fica eleito o foro da Comarca de São Paulo/SP para dirimir quaisquer controvérsias.</p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">

@@ -80,7 +80,7 @@ export const CLIENT_ONBOARDING_QUESTIONS = [
   },
   {
     key: "weekly_usage_driver",
-    title: "O que faria você usar a Hubby toda semana?",
+    title: "O que faria você usar o bébbi toda semana?",
     subtitle: "Selecione uma das opções abaixo.",
     type: "single",
     options: [
@@ -151,7 +151,7 @@ export const DISTRIBUTOR_ONBOARDING_QUESTIONS = [
   },
   {
     key: "success_measurement",
-    title: "Como medirá o sucesso da Hubby?",
+    title: "Como medirá o sucesso do bébbi?",
     subtitle: "Selecione uma das opções abaixo.",
     type: "single",
     options: [

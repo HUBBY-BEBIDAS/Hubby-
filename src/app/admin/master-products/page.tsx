@@ -111,7 +111,7 @@ export default function AdminMasterProductsPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 border-b border-slate-800 pb-6">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <span>📦 Catálogo Oficial Hubby</span>
+            <span>📦 Catálogo Oficial bébbi</span>
             <span className="text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-mono">
               MasterProducts
             </span>
@@ -300,7 +300,7 @@ export default function AdminMasterProductsPage() {
                 <label className="block text-xs font-medium text-slate-400 mb-1">URL da Foto Oficial (S3 / CDN)</label>
                 <input
                   type="url"
-                  placeholder="https://cdn.hubby.com/master-products/heineken-330ml.webp"
+                  placeholder="https://cdn.bebbi.com.br/master-products/heineken-330ml.webp"
                   value={form.primary_image_url}
                   onChange={(e) => setForm({ ...form, primary_image_url: e.target.value })}
                   className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-sm text-white font-mono"
