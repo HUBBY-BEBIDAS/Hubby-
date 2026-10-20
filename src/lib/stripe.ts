@@ -43,32 +43,34 @@ export const stripe: Stripe = new Proxy({} as Stripe, {
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-export type DistributorPlanKey = "starter" | "pro" | "business";
+export type DistributorPlanKey = "starter" | "pro" | "business" | "enterprise";
 export type PeriodKey = "monthly" | "quarterly" | "semiannual" | "annual";
 export type BuyerPeriodKey = PeriodKey;
 
 // ─── Preços em centavos (exibição e metadados) ────────────────────────────────
 
 /** Valor cobrado de uma só vez por combinação plano+período (em centavos) */
-export const DISTRIBUTOR_PRICES_CENTS: Record<DistributorPlanKey, Record<PeriodKey, number>> = {
-  starter:  { monthly: 29900,  quarterly: 80700,   semiannual: 152400,  annual: 286800  },
-  pro:      { monthly: 79900,  quarterly: 215700,  semiannual: 407400,  annual: 766800  },
-  business: { monthly: 149900, quarterly: 404700,  semiannual: 764400,  annual: 1438800 },
+export const DISTRIBUTOR_PRICES_CENTS: Record<string, Record<PeriodKey, number>> = {
+  starter:    { monthly: 29900,  quarterly: 80700,   semiannual: 152400,  annual: 286800 },
+  pro:        { monthly: 59900,  quarterly: 161700,  semiannual: 305400,  annual: 574800 },
+  business:   { monthly: 149900, quarterly: 404700,  semiannual: 764400,  annual: 1438800 },
+  enterprise: { monthly: 0,      quarterly: 0,       semiannual: 0,       annual: 0 },
 };
 
 /** Preço mensal equivalente por período (para exibição) */
-export const DISTRIBUTOR_MONTHLY_DISPLAY: Record<DistributorPlanKey, Record<PeriodKey, number>> = {
-  starter:  { monthly: 29900, quarterly: 26900, semiannual: 25400, annual: 23900 },
-  pro:      { monthly: 79900, quarterly: 71900, semiannual: 67900, annual: 63900 },
-  business: { monthly: 149900, quarterly: 134900, semiannual: 127400, annual: 119900 },
+export const DISTRIBUTOR_MONTHLY_DISPLAY: Record<string, Record<PeriodKey, number>> = {
+  starter:    { monthly: 29900, quarterly: 26900, semiannual: 25400, annual: 23900 },
+  pro:        { monthly: 59900, quarterly: 53900, semiannual: 50900, annual: 47900 },
+  business:   { monthly: 149900, quarterly: 134900, semiannual: 127400, annual: 119900 },
+  enterprise: { monthly: 0,     quarterly: 0,     semiannual: 0,     annual: 0 },
 };
 
 export const BUYER_PRICES_CENTS: Record<BuyerPeriodKey, number> = {
-  monthly: 9900, quarterly: 26700, semiannual: 50400, annual: 94800,
+  monthly: 1990, quarterly: 5370, semiannual: 10140, annual: 17880,
 };
 
 export const BUYER_MONTHLY_DISPLAY: Record<BuyerPeriodKey, number> = {
-  monthly: 9900, quarterly: 8900, semiannual: 8400, annual: 7900,
+  monthly: 1990, quarterly: 1790, semiannual: 1690, annual: 1490,
 };
 
 /** Desconto % em relação ao mensal para cada período */
@@ -86,32 +88,32 @@ export const PERIOD_MONTHS: Record<PeriodKey, number> = {
 
 // ─── Price IDs do Stripe ──────────────────────────────────────────────────────
 
-export const DISTRIBUTOR_PRICE_IDS: Record<DistributorPlanKey, Record<PeriodKey, string>> = {
+export const DISTRIBUTOR_PRICE_IDS: Record<string, Partial<Record<PeriodKey, string>>> = {
   starter: {
-    monthly:    process.env.STRIPE_PRICE_STARTER_MONTHLY!,
-    quarterly:  process.env.STRIPE_PRICE_STARTER_QUARTERLY!,
-    semiannual: process.env.STRIPE_PRICE_STARTER_SEMIANNUAL!,
-    annual:     process.env.STRIPE_PRICE_STARTER_ANNUAL!,
+    monthly:    process.env.STRIPE_PRICE_STARTER_MONTHLY,
+    quarterly:  process.env.STRIPE_PRICE_STARTER_QUARTERLY,
+    semiannual: process.env.STRIPE_PRICE_STARTER_SEMIANNUAL,
+    annual:     process.env.STRIPE_PRICE_STARTER_ANNUAL,
   },
   pro: {
-    monthly:    process.env.STRIPE_PRICE_PRO_MONTHLY!,
-    quarterly:  process.env.STRIPE_PRICE_PRO_QUARTERLY!,
-    semiannual: process.env.STRIPE_PRICE_PRO_SEMIANNUAL!,
-    annual:     process.env.STRIPE_PRICE_PRO_ANNUAL!,
+    monthly:    process.env.STRIPE_PRICE_PRO_MONTHLY,
+    quarterly:  process.env.STRIPE_PRICE_PRO_QUARTERLY,
+    semiannual: process.env.STRIPE_PRICE_PRO_SEMIANNUAL,
+    annual:     process.env.STRIPE_PRICE_PRO_ANNUAL,
   },
   business: {
-    monthly:    process.env.STRIPE_PRICE_BUSINESS_MONTHLY!,
-    quarterly:  process.env.STRIPE_PRICE_BUSINESS_QUARTERLY!,
-    semiannual: process.env.STRIPE_PRICE_BUSINESS_SEMIANNUAL!,
-    annual:     process.env.STRIPE_PRICE_BUSINESS_ANNUAL!,
+    monthly:    process.env.STRIPE_PRICE_BUSINESS_MONTHLY,
+    quarterly:  process.env.STRIPE_PRICE_BUSINESS_QUARTERLY,
+    semiannual: process.env.STRIPE_PRICE_BUSINESS_SEMIANNUAL,
+    annual:     process.env.STRIPE_PRICE_BUSINESS_ANNUAL,
   },
 };
 
-export const BUYER_PRICE_IDS: Record<BuyerPeriodKey, string> = {
-  monthly:    process.env.STRIPE_PRICE_BUYER_PRO_MONTHLY!,
-  quarterly:  process.env.STRIPE_PRICE_BUYER_PRO_QUARTERLY!,
-  semiannual: process.env.STRIPE_PRICE_BUYER_PRO_SEMIANNUAL!,
-  annual:     process.env.STRIPE_PRICE_BUYER_PRO_ANNUAL!,
+export const BUYER_PRICE_IDS: Partial<Record<BuyerPeriodKey, string>> = {
+  monthly:    process.env.STRIPE_PRICE_BUYER_PRO_MONTHLY,
+  quarterly:  process.env.STRIPE_PRICE_BUYER_PRO_QUARTERLY,
+  semiannual: process.env.STRIPE_PRICE_BUYER_PRO_SEMIANNUAL,
+  annual:     process.env.STRIPE_PRICE_BUYER_PRO_ANNUAL,
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

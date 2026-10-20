@@ -4,17 +4,11 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
-import { Check } from "lucide-react";
+import { Check, CreditCard, Sparkles } from "lucide-react";
 import BebbiLogo from "@/components/BebbiLogo";
+import { BUYER_PLANS, formatBRLDecimals } from "@/config/plans";
 
-const PRO_FEATURES = [
-  "Cotação em qualquer região do Brasil",
-  "Até 10 usuários na mesma conta",
-  "Histórico ilimitado + relatórios de economia mensal",
-  "Listas salvas ilimitadas",
-  "Alertas de queda de preço por produto",
-  "Suporte prioritário por WhatsApp",
-];
+type BuyerPeriod = "annual" | "monthly";
 
 export default function CheckoutCompradorClient() {
   const { data: session, status } = useSession();
@@ -23,7 +17,9 @@ export default function CheckoutCompradorClient() {
   const token = useApiToken();
 
   const cancelled = searchParams.get("cancelado") === "1";
+  const initialPeriod = searchParams.get("period") === "monthly" ? "monthly" : "annual";
 
+  const [period, setPeriod] = useState<BuyerPeriod>(initialPeriod);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -44,6 +40,7 @@ export default function CheckoutCompradorClient() {
       const res = await apiFetch("/api/billing/buyer/checkout", {
         method: "POST",
         token,
+        body: JSON.stringify({ period }),
       });
       const data = await res.json();
 
@@ -68,53 +65,107 @@ export default function CheckoutCompradorClient() {
     );
   }
 
+  const proConfig = BUYER_PLANS.pro;
+
   return (
     <div className="flex min-h-screen flex-col bg-[#F5F7FB]">
       <div className="mx-auto w-full max-w-lg px-4 py-16">
-
         {/* Logo */}
         <div className="mb-8 text-center">
-          <BebbiLogo variant="dark" height={36} showSicBadge />
+          <BebbiLogo variant="dark" height={36} />
         </div>
 
         <div className="rounded-[2rem] border border-[#DBEAFE] bg-white p-8 shadow-xl">
-
           {/* Header */}
           <div className="mb-6 text-center">
-            <span className="inline-flex rounded-full bg-[#22C55E]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#22C55E]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#22C55E]/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#1ea850]">
+              <Sparkles size={13} />
               Plano Pro — Comprador
             </span>
-            <div className="mt-3 flex items-baseline justify-center gap-1">
-              <span className="text-4xl font-display font-extrabold text-[#0F172A]">R$ 99</span>
-              <span className="text-slate-500">/mês</span>
+
+            {/* Seletor de Período (Anual padrão vs Mensal) */}
+            <div className="mt-5 flex justify-center">
+              <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+                <button
+                  type="button"
+                  onClick={() => setPeriod("annual")}
+                  className={`rounded-lg px-4 py-1.5 text-xs font-bold transition ${
+                    period === "annual"
+                      ? "bg-[#22C55E] text-black shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Anual (-25%)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPeriod("monthly")}
+                  className={`rounded-lg px-4 py-1.5 text-xs font-bold transition ${
+                    period === "monthly"
+                      ? "bg-[#22C55E] text-black shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Mensal
+                </button>
+              </div>
             </div>
-            <p className="mt-1 text-sm text-slate-500">
-              Para redes, grupos e compradores de alto volume
+
+            <div className="mt-4 flex items-baseline justify-center gap-1">
+              {period === "annual" ? (
+                <>
+                  <span className="text-4xl font-display font-extrabold text-[#0F172A]">
+                    R$ 14,90
+                  </span>
+                  <span className="text-sm text-slate-500">/mês no anual</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-4xl font-display font-extrabold text-[#0F172A]">
+                    R$ 19,90
+                  </span>
+                  <span className="text-sm text-slate-500">/mês</span>
+                </>
+              )}
+            </div>
+
+            <p className="mt-1 text-xs text-slate-500">
+              {period === "annual"
+                ? "Cobrança anual única de R$ 178,80 (equivalente a R$ 14,90/mês)"
+                : "Cobrança mês a mês · Cancele quando quiser"}
             </p>
           </div>
 
           {/* Features */}
-          <ul className="mb-8 space-y-3">
-            {PRO_FEATURES.map((f) => (
+          <ul className="mb-8 space-y-3 border-t border-b border-slate-100 py-6">
+            {proConfig.featureList.map((f) => (
               <li key={f} className="flex items-start gap-3 text-sm text-slate-700">
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#22C55E]/15 text-[#22C55E]">
                   <Check size={12} />
                 </span>
-                {f}
+                <span>{f}</span>
               </li>
             ))}
           </ul>
 
+          {/* Forma de pagamento informada */}
+          <div className="mb-6 rounded-2xl bg-slate-50 p-4 border border-slate-200">
+            <div className="flex items-center gap-2.5 text-xs text-slate-600 font-medium">
+              <CreditCard size={18} className="text-[#2563EB]" />
+              <span>Pagamento exclusivo via Cartão de Crédito ou Pix recorrente</span>
+            </div>
+          </div>
+
           {/* Cancelamento anterior */}
           {cancelled && (
-            <div className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
-              Checkout cancelado. Sem cobrança. Você pode tentar novamente quando quiser.
+            <div className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700 border border-amber-200">
+              Checkout cancelado. Nenhuma cobrança foi efetuada.
             </div>
           )}
 
           {/* Erro */}
           {error && (
-            <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 border border-red-200">
               {error}
             </div>
           )}
@@ -122,8 +173,12 @@ export default function CheckoutCompradorClient() {
           {/* Já é Pro */}
           {isPro ? (
             <div className="rounded-2xl bg-[#22C55E]/10 px-4 py-4 text-center">
-              <p className="font-bold text-[#22C55E]"><Check size={14} className="inline mr-1" />Você já tem o plano Pro ativo</p>
+              <p className="font-bold text-[#22C55E]">
+                <Check size={14} className="inline mr-1" />
+                Você já tem o plano Pro ativo
+              </p>
               <button
+                type="button"
                 onClick={() => router.push("/cotacao")}
                 className="mt-3 text-sm font-medium text-slate-600 underline"
               >
@@ -133,27 +188,31 @@ export default function CheckoutCompradorClient() {
           ) : (
             <>
               <button
+                type="button"
                 onClick={handleCheckout}
                 disabled={loading || !token}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#22C55E] py-4 text-base font-bold text-white shadow-lg shadow-green-500/25 transition hover:bg-green-500 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#22C55E] py-4 text-base font-bold text-black shadow-lg shadow-[#22C55E]/25 transition hover:bg-[#1ea850] disabled:opacity-60"
               >
                 {loading ? (
                   <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Aguarde…
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
+                    Processando…
                   </>
+                ) : period === "annual" ? (
+                  "Assinar Pro Anual — R$ 178,80/ano"
                 ) : (
-                  "Assinar Pro — R$ 99/mês"
+                  "Assinar Pro Mensal — R$ 19,90/mês"
                 )}
               </button>
               <p className="mt-3 text-center text-xs text-slate-400">
-                Pagamento seguro via Stripe · Cancele quando quiser
+                Pagamento seguro processado via Stripe · Cancele quando quiser
               </p>
             </>
           )}
         </div>
 
         <button
+          type="button"
           onClick={() => router.back()}
           className="mt-6 w-full text-center text-sm text-slate-400 hover:text-slate-600"
         >

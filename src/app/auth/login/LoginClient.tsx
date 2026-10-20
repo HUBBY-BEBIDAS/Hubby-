@@ -94,7 +94,7 @@ export default function LoginClient() {
         {/* Logo */}
         <div className="mb-8 text-center">
           <Link href="/" className="inline-block">
-            <BebbiLogo variant="dark" height={36} showSicBadge />
+            <BebbiLogo variant="dark" height={36} />
           </Link>
           <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
             Plataforma B2B de cotação de bebidas

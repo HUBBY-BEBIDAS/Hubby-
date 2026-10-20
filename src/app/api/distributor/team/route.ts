@@ -3,7 +3,7 @@ import { z } from "zod";
 import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
 
-const PLAN_ALLOWS_TEAM = ["pro", "business", "enterprise"];
+import { getDistributorPlanFlags } from "@/config/plans";
 
 const inviteSchema = z.object({
   invited_email:              z.string().email().toLowerCase().trim(),
@@ -28,7 +28,8 @@ export const GET = withAuth(
       });
       if (!distributor) return Response.json({ error: "Distribuidora não encontrada" }, { status: 404 });
 
-      const planAllows = PLAN_ALLOWS_TEAM.includes(distributor.plan);
+      const flags = getDistributorPlanFlags(distributor.plan);
+      const planAllows = flags.hasTeamPermissions;
 
       const members = await prisma.distributorTeamMember.findMany({
         where:   { distributor_id: distributor.id },
@@ -154,9 +155,22 @@ export const POST = withAuth(
     });
     if (!distributor) return Response.json({ error: "Distribuidora não encontrada" }, { status: 404 });
 
-    if (!PLAN_ALLOWS_TEAM.includes(distributor.plan)) {
+    const flags = getDistributorPlanFlags(distributor.plan);
+
+    if (!flags.hasTeamPermissions) {
       return Response.json(
-        { error: "Gestão de equipe disponível a partir do plano Pro" },
+        { error: "Gestão de equipe e múltiplos usuários disponível a partir do plano Pro.", feature: "hasTeamPermissions" },
+        { status: 403 }
+      );
+    }
+
+    const currentCount = await prisma.distributorTeamMember.count({
+      where: { distributor_id: distributor.id },
+    });
+
+    if (currentCount >= flags.maxUsers) {
+      return Response.json(
+        { error: `Seu plano (${distributor.plan}) permite até ${flags.maxUsers} usuários. Faça upgrade para o Enterprise para usuários ilimitados.` },
         { status: 403 }
       );
     }

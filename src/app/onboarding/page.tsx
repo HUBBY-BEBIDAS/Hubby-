@@ -1144,7 +1144,7 @@ export default function OnboardingPage() {
 
       {/* Logo */}
       <div className="mb-8 flex items-center gap-2">
-        <BebbiLogo variant="dark" height={32} showSicBadge />
+        <BebbiLogo variant="dark" height={32} />
       </div>
 
       <div className="w-full max-w-xl">

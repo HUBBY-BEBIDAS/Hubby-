@@ -4,36 +4,16 @@ import { useState, useEffect, useRef } from "react";
 import SiteNavbar from "@/components/SiteNavbar";
 import SiteFooter from "@/components/SiteFooter";
 import { Check, Star, Calendar, Sparkles, MessageSquare, X } from "lucide-react";
-// ─── Tabela de preços ─────────────────────────────────────────────────────────
+import {
+  DISTRIBUTOR_PLANS,
+  BUYER_PLANS,
+  PERIOD_LABELS,
+  PERIOD_DISCOUNTS,
+  PlanPeriod,
+  DistributorPlanKey,
+  formatBRL,
+} from "@/config/plans";
 
-type PeriodKey = "monthly" | "quarterly" | "semiannual" | "annual";
-
-const PERIOD_LABELS: Record<PeriodKey, string> = {
-  monthly: "Mensal", quarterly: "Trimestral", semiannual: "Semestral", annual: "Anual",
-};
-const PERIOD_MONTHS: Record<PeriodKey, number> = {
-  monthly: 1, quarterly: 3, semiannual: 6, annual: 12,
-};
-const DIST_MONTHLY: Record<string, Record<PeriodKey, number>> = {
-  starter:  { monthly: 29900, quarterly: 26900, semiannual: 25400, annual: 23900 },
-  pro:      { monthly: 79900, quarterly: 71900, semiannual: 67900, annual: 63900 },
-  business: { monthly: 149900, quarterly: 134900, semiannual: 127400, annual: 119900 },
-};
-const DIST_TOTAL: Record<string, Record<PeriodKey, number>> = {
-  starter:  { monthly: 29900, quarterly: 80700,  semiannual: 152400,  annual: 286800  },
-  pro:      { monthly: 79900, quarterly: 215700, semiannual: 407400,  annual: 766800  },
-  business: { monthly: 149900, quarterly: 404700, semiannual: 764400, annual: 1438800 },
-};
-const BUYER_MONTHLY: Record<PeriodKey, number> = {
-  monthly: 9900, quarterly: 8900, semiannual: 8400, annual: 7900,
-};
-const BUYER_TOTAL: Record<PeriodKey, number> = {
-  monthly: 9900, quarterly: 26700, semiannual: 50400, annual: 94800,
-};
-
-function formatBRL(cents: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(cents / 100);
-}
 
 // ─── Dados ────────────────────────────────────────────────────────────────────
 
@@ -49,7 +29,7 @@ const testimonials = [
 ];
 
 const faqsCompradores = [
-  { q: "Quanto custa para o comprador?", a: "O plano básico é gratuito para sempre. Você cota, compara preços e envia pedidos sem pagar nada. Se quiser expandir para outras regiões, ter múltiplos usuários ou acessar relatórios avançados, temos o plano Pro a partir de R$ 79/mês no plano anual." },
+  { q: "Quanto custa para o comprador?", a: "O plano básico é gratuito para sempre. Você cota, compara preços e envia pedidos sem pagar nada. Se quiser expandir para múltiplas regiões, alertas e relatórios completos de economia, temos o plano Pro a partir de R$ 14,90/mês no plano anual." },
   { q: "Preciso instalar algum aplicativo?", a: "Não — a plataforma funciona direto pelo navegador do celular ou computador. O app para iOS e Android está em desenvolvimento e chegará em breve." },
   { q: "Como as distribuidoras sabem que sou confiável?", a: "Quando você aciona uma distribuidora pela primeira vez, o sistema faz uma análise de crédito automática pelo seu CNPJ via bureau de crédito (Serasa). O resultado vai para a distribuidora, que decide se aprova ou não. Você só precisa enviar seus documentos uma vez." },
   { q: "Quanto tempo leva para receber as cotações?", a: "O ranking de preços aparece instantaneamente — as distribuidoras já cadastram seus preços na plataforma. Você não precisa esperar ninguém responder para ver os valores." },
@@ -188,7 +168,7 @@ function FaqSection() {
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function Home() {
-  const [period, setPeriod] = useState<PeriodKey>("monthly");
+  const [period, setPeriod] = useState<PlanPeriod>("annual");
 
   return (
     <div className="overflow-hidden">
@@ -822,151 +802,168 @@ export default function Home() {
             {/* Toggle de período */}
             <div className="mb-8 flex flex-col items-center gap-3">
               <div className="flex flex-wrap justify-center rounded-xl border border-white/10 bg-[#1f2937] p-1 gap-1">
-                {(["monthly", "quarterly", "semiannual", "annual"] as PeriodKey[]).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPeriod(p)}
-                    className={[
-                      "relative min-h-[44px] cursor-pointer select-none rounded-lg px-4 py-2.5 text-[13px] font-semibold touch-manipulation transition-all duration-200",
-                      period === p ? "bg-[#22C55E] text-black shadow-sm" : "text-slate-400 hover:text-white",
-                    ].join(" ")}
-                  >
-                    {PERIOD_LABELS[p]}
-                  </button>
-                ))}
+                {(["monthly", "semiannual", "annual"] as PlanPeriod[]).map((p) => {
+                  const disc = PERIOD_DISCOUNTS[p];
+                  const isSelected = period === p;
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setPeriod(p)}
+                      className={[
+                        "relative min-h-[44px] cursor-pointer select-none rounded-lg px-5 py-2 text-[13px] font-semibold touch-manipulation transition-all duration-200",
+                        isSelected
+                          ? "bg-[#22C55E] text-black shadow-md font-bold"
+                          : "text-slate-400 hover:text-white",
+                      ].join(" ")}
+                    >
+                      {PERIOD_LABELS[p]}
+                      {disc > 0 && (
+                        <span
+                          className={`ml-1.5 text-[10px] font-bold ${
+                            isSelected ? "text-black/70" : "text-[#22C55E]"
+                          }`}
+                        >
+                          -{disc}%
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-              {period === "annual" && (
-                <span className="rounded-full bg-[#22C55E] px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-black">
-                  ECONOMIZE 20%
+              {period !== "monthly" && (
+                <span className="rounded-full bg-[#22C55E]/15 border border-[#22C55E]/30 px-3.5 py-1 text-[11px] font-bold uppercase tracking-widest text-[#22C55E]">
+                  ECONOMIZE {PERIOD_DISCOUNTS[period]}% no plano {PERIOD_LABELS[period].toLowerCase()}
                 </span>
               )}
             </div>
 
-            {/* Cards distribuidoras */}
+            {/* Cards distribuidoras (3 Cards Lado a Lado) */}
             <div>
               <div className="mb-6 flex items-end justify-between gap-4 border-b border-white/[0.06] pb-5">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-600">Para</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Para</p>
                   <h3 className="font-display text-[28px] font-bold text-white">Distribuidoras</h3>
                 </div>
-                <p className="text-right text-[11px] text-slate-500">
+                <p className="text-right text-[11px] text-slate-400">
                   {period === "monthly" ? "14 dias grátis · " : ""}cancele quando quiser · sem comissão
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-3">
-                {(["starter", "pro", "business"] as const).map((planKey) => {
-                  const isPro = planKey === "pro";
-                  const names = { starter: "Starter", pro: "Pro", business: "Business" };
-                  const descs = {
-                    starter: "Presença garantida onde os compradores estão.",
-                    pro: "Para equipes que querem vender mais e perder menos.",
-                    business: "Para distribuidoras que querem escalar com controle total.",
-                  };
-                  const features: Record<string, string[]> = {
-                    starter: ["Perfil e portfólio na plataforma", "Cotações via painel e WhatsApp", "Painel com métricas básicas", "1 contato comercial"],
-                    pro: ["Tudo do Starter", "Mais usuários com permissões", "Destaque comercial no ranking", "Prioridade em empate técnico", "Histórico completo de cotações", "Selo de distribuidora verificada"],
-                    business: ["Tudo do Pro", "Usuários ilimitados", "Hierarquia de equipes", "Integração ERP via webhook", "Relatórios avançados", "Onboarding e suporte dedicados"],
-                  };
-                  const monthly = DIST_MONTHLY[planKey][period];
-                  const total   = DIST_TOTAL[planKey][period];
-                  const months  = PERIOD_MONTHS[period];
+              <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-3">
+                {(["starter", "pro", "enterprise"] as DistributorPlanKey[]).map((planKey) => {
+                  const plan = DISTRIBUTOR_PLANS[planKey];
+                  const isPro = plan.highlight;
+                  const isEnterprise = plan.isCustomQuote;
+
+                  const monthlyEquiv =
+                    period === "monthly"
+                      ? plan.monthlyEquivalents.monthlyCents
+                      : period === "semiannual"
+                      ? plan.monthlyEquivalents.semiannualCents
+                      : plan.monthlyEquivalents.annualCents;
+
+                  const totalPeriod =
+                    period === "monthly"
+                      ? plan.prices.monthlyCents
+                      : period === "semiannual"
+                      ? plan.prices.semiannualCents
+                      : plan.prices.annualCents;
 
                   return (
                     <div
                       key={planKey}
                       className={[
-                        "relative flex flex-col rounded-2xl px-6 py-6",
+                        "relative flex flex-col rounded-2xl px-6 py-6 transition-all duration-200",
                         isPro
-                          ? "border-2 border-[#22C55E] bg-[#111827]"
-                          : "border border-white/10 bg-[#111827]",
+                          ? "border-2 border-[#22C55E] bg-[#111827] shadow-xl shadow-[#22C55E]/15 md:scale-[1.03] z-10"
+                          : "border border-white/10 bg-[#111827] hover:border-white/20",
                       ].join(" ")}
-                      style={isPro ? { boxShadow: "0 0 40px rgba(34,197,94,0.15)" } : undefined}
                     >
+                      {/* Badge Mais Escolhido no Pro */}
                       {isPro && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#22C55E] px-4 py-0.5 text-[10px] font-bold uppercase tracking-widest text-black">
-                          Mais popular
+                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#22C55E] px-3.5 py-1 text-[11px] font-black uppercase tracking-wider text-black shadow-md flex items-center gap-1.5">
+                          <Sparkles size={12} className="fill-black" />
+                          {plan.badge ?? "Mais escolhido"}
                         </div>
                       )}
 
-                      <p className={`text-[10px] font-bold uppercase tracking-[0.18em] ${isPro ? "text-[#22C55E]" : "text-slate-500"}`}>
-                        bébbi {names[planKey]}
-                      </p>
-
-                      <div className="mt-3 leading-none">
-                        <div className="flex items-end gap-1">
-                          <span className="font-display text-[2rem] font-bold text-white">{formatBRL(monthly)}</span>
-                          <span className="mb-0.5 text-xs text-slate-500">/mês</span>
-                        </div>
-                        <p className="mt-1 text-[11px] text-slate-500">
-                          {period === "monthly"
-                            ? "cobrança mês a mês"
-                            : `${formatBRL(total)} cobrados ${months === 3 ? "a cada 3 meses" : months === 6 ? "a cada 6 meses" : "anualmente"}`}
+                      <div className="flex items-center justify-between">
+                        <p className={`text-[11px] font-bold uppercase tracking-[0.2em] ${isPro ? "text-[#22C55E]" : "text-slate-400"}`}>
+                          bébbi {plan.name}
                         </p>
+                        {isEnterprise && (
+                          <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-400 border border-blue-500/20">
+                            Grande porte
+                          </span>
+                        )}
                       </div>
 
-                      <p className="mt-3 text-[13px] leading-[1.65] text-slate-400">{descs[planKey]}</p>
+                      {/* Preço */}
+                      <div className="mt-3 leading-none">
+                        {isEnterprise ? (
+                          <div className="py-1">
+                            <span className="font-display text-2xl font-bold text-white">Sob consulta</span>
+                            <p className="mt-1.5 text-[11px] text-slate-400">Plano customizado para alto volume</p>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="flex items-end gap-1">
+                              <span className="font-display text-[2rem] font-bold text-white">{formatBRL(monthlyEquiv)}</span>
+                              <span className="mb-0.5 text-xs text-slate-400">/mês</span>
+                            </div>
+                            <p className="mt-1 text-[11px] text-slate-400">
+                              {period === "monthly"
+                                ? "cobrança mês a mês"
+                                : `${formatBRL(totalPeriod)} cobrados ${period === "semiannual" ? "semestralmente" : "anualmente"}`}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      <p className="mt-3 text-[13px] leading-[1.6] text-slate-300 min-h-[42px]">{plan.tagline}</p>
 
                       <div className="my-5 h-px bg-white/[0.06]" />
 
-                      <ul className="space-y-2.5 text-[13px] text-slate-400">
-                        {features[planKey].map((f) => (
+                      <ul className="space-y-2.5 text-[13px] text-slate-300 flex-1">
+                        {plan.featureList.slice(0, 7).map((f) => (
                           <li key={f} className="flex items-start gap-2.5">
-                            <Check size={12} className={`mt-px shrink-0 ${isPro ? "text-[#22C55E]" : "text-slate-500"}`} />
-                            {f}
+                            <Check size={13} className={`mt-0.5 shrink-0 ${isPro ? "text-[#22C55E]" : "text-slate-400"}`} />
+                            <span className="leading-snug">{f}</span>
                           </li>
                         ))}
                       </ul>
 
-                      <div className="mt-auto border-t border-white/[0.06] pt-6">
-                        <a
-                          href={`/auth/register?plan=${planKey}&period=${period}`}
-                          className={[
-                            "flex w-full items-center justify-center rounded-lg py-3 text-[13px] font-bold transition",
-                            isPro ? "bg-[#22C55E] text-black hover:opacity-90" : "border border-white/15 text-slate-400 hover:border-white/30 hover:text-white",
-                          ].join(" ")}
-                        >
-                          {period === "monthly" ? "Começar teste grátis" : "Começar agora"}
-                        </a>
+                      <div className="mt-6 border-t border-white/[0.06] pt-5">
+                        {isEnterprise ? (
+                          <a
+                            href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20plano%20Enterprise%20do%20b%C3%A9bbi."
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/[0.04] py-3 text-[13px] font-bold text-white transition hover:border-[#22C55E] hover:text-[#22C55E]"
+                          >
+                            Falar com vendas →
+                          </a>
+                        ) : (
+                          <a
+                            href={`/checkout/distribuidora?plan=${planKey}&period=${period}`}
+                            className={[
+                              "flex w-full items-center justify-center rounded-xl py-3 text-[13px] font-bold transition",
+                              isPro
+                                ? "bg-[#22C55E] text-black hover:bg-[#1ea850] shadow-md shadow-[#22C55E]/20"
+                                : "border border-white/15 text-slate-300 hover:border-white/30 hover:text-white",
+                            ].join(" ")}
+                          >
+                            {period === "monthly" ? "Começar teste grátis" : "Começar agora"}
+                          </a>
+                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Enterprise */}
-              <div className="mt-4 rounded-2xl border border-white/10 bg-[#111827] px-6 py-5">
-                <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600">bébbi Enterprise</p>
-                    <p className="mt-1 text-sm font-bold text-white">Sob consulta — para operações de grande escala</p>
-                    <p className="mt-0.5 text-[13px] text-slate-500">Usuários ilimitados · SLA garantido · integração sob medida</p>
-                  </div>
-                  <a
-                    href="mailto:comercial@bebbi.com.br"
-                    className="shrink-0 rounded-lg border border-white/20 px-5 py-2.5 text-[13px] font-bold text-slate-400 transition hover:border-white/40 hover:text-white"
-                  >
-                    Falar com vendas →
-                  </a>
-                </div>
-                <div className="mt-4 border-t border-white/[0.06] pt-4">
-                  <p className="mb-2.5 text-[11px] font-bold uppercase tracking-widest text-slate-600">Exclusivo Enterprise</p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] text-slate-500">
-                    {[
-                      "Gestão automática de vencimentos — integra com ERP e cria promoções automaticamente antes do estoque vencer. Nunca mais perca dinheiro com produto vencido.",
-                      "Webhook ERP para sincronização de lotes e datas de vencimento em tempo real",
-                      "Notificação automática a compradores da região quando produto entra em modo urgente",
-                    ].map((f) => (
-                      <span key={f} className="flex items-start gap-1.5">
-                        <span className="mt-0.5 shrink-0 text-[#22C55E]">✓</span>{f}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <p className="mt-5 text-center text-[11px] text-slate-600">
-                Ranking calculado por preço, prazo e disponibilidade. Planos superiores ganham destaque comercial em empates técnicos.
+              <p className="mt-6 text-center text-[12px] text-slate-400">
+                Ranking calculado por menor preço, prazo de entrega e disponibilidade total dos itens.
               </p>
             </div>
 
@@ -974,26 +971,26 @@ export default function Home() {
             <div className="mt-10 rounded-2xl border border-white/[0.08] bg-[#111827] p-6">
               <div className="mb-5 flex flex-col items-start justify-between gap-3 border-b border-white/[0.06] pb-4 sm:flex-row sm:items-end">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-600">Para</p>
-                  <h3 className="font-display text-lg font-bold text-white">Compradores</h3>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Para</p>
+                  <h3 className="font-display text-lg font-bold text-white">Bares e Restaurantes</h3>
                 </div>
-                <p className="text-[11px] text-slate-500">Acesso gratuito para sempre · upgrade quando precisar</p>
+                <p className="text-[11px] text-slate-400">Acesso gratuito para sempre · upgrade quando precisar</p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-white/[0.08] bg-[#1a2332] p-5 sm:flex-row sm:items-center">
                   <div>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-sm font-bold text-white">Grátis</span>
-                      <span className="text-[11px] text-slate-500">para sempre · sem cartão</span>
+                      <span className="text-base font-bold text-white">Grátis</span>
+                      <span className="text-[11px] text-slate-400">para sempre · sem cartão</span>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
-                      {["Distribuidoras da região", "Cotações ilimitadas", "Histórico básico"].map((f) => (
-                        <span key={f} className="text-[11px] text-slate-500">{f}</span>
+                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                      {["Cotação na região", "Ranking automático", "Histórico de compras"].map((f) => (
+                        <span key={f} className="text-[12px] text-slate-400">• {f}</span>
                       ))}
                     </div>
                   </div>
-                  <a href="/auth/register" className="shrink-0 rounded-lg border border-white/20 bg-white/[0.05] px-4 py-2 text-[12px] font-bold text-slate-300 transition hover:bg-white/10 hover:text-white">
+                  <a href="/auth/register?role=client" className="shrink-0 rounded-lg border border-white/20 bg-white/[0.05] px-4 py-2 text-[12px] font-bold text-slate-200 transition hover:bg-white/10 hover:text-white">
                     Criar conta grátis
                   </a>
                 </div>
@@ -1001,21 +998,17 @@ export default function Home() {
                 <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-[#22C55E]/30 bg-[#22C55E]/[0.05] p-5 sm:flex-row sm:items-center">
                   <div>
                     <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="text-sm font-bold text-white">bébbi Pro</span>
-                      <span className="font-mono text-sm font-medium text-[#22C55E]">{formatBRL(BUYER_MONTHLY[period])}/mês</span>
-                      {period !== "monthly" && (
-                        <span className="text-[10px] text-slate-500">
-                          ({formatBRL(BUYER_TOTAL[period])} {PERIOD_MONTHS[period] === 3 ? "tri" : PERIOD_MONTHS[period] === 6 ? "sem" : "ano"})
-                        </span>
-                      )}
+                      <span className="text-base font-bold text-white">bébbi Pro Comprador</span>
+                      <span className="font-mono text-sm font-bold text-[#22C55E]">R$ 14,90/mês</span>
+                      <span className="text-[11px] text-slate-400">(no anual)</span>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
-                      {["Múltiplas regiões de SP", "Até 10 usuários", "Histórico ilimitado", "Alertas de preço"].map((f) => (
-                        <span key={f} className="text-[11px] text-slate-500">{f}</span>
+                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                      {["Histórico completo", "Recompra 1 clique", "Alertas de preço", "Relatório economia"].map((f) => (
+                        <span key={f} className="text-[12px] text-slate-300">• {f}</span>
                       ))}
                     </div>
                   </div>
-                  <a href={`/checkout/comprador?period=${period}`} className="shrink-0 rounded-lg bg-[#22C55E] px-4 py-2 text-[12px] font-bold text-black transition hover:opacity-90">
+                  <a href="/checkout/comprador" className="shrink-0 rounded-lg bg-[#22C55E] px-4 py-2 text-[12px] font-bold text-black transition hover:bg-[#1ea850]">
                     Assinar Pro
                   </a>
                 </div>

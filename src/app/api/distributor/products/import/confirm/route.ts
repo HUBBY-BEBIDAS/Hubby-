@@ -7,6 +7,7 @@ import { getImportQueue, previewKey } from "@/lib/queue";
 import { markDistributorProductsUpdated } from "@/lib/ranking-cache";
 import type { ProductCategory, PackagingType } from "@prisma/client";
 import type { ParsedRow } from "@/lib/excel-parser";
+import { hasDistributorFeature } from "@/config/plans";
 
 const confirmSchema = z.object({
   token: z.string().uuid("Token inválido").optional(),
@@ -68,10 +69,17 @@ export const POST = withAuth(
 
     const distributor = await prisma.distributor.findUnique({
       where: { user_id: user.userId },
-      select: { id: true },
+      select: { id: true, plan: true },
     });
     if (!distributor) {
       return Response.json({ error: "Perfil não encontrado" }, { status: 404 });
+    }
+
+    if (!hasDistributorFeature(distributor.plan, "canImportBulkCatalog")) {
+      return Response.json(
+        { error: "Importação em massa por planilha disponível a partir do plano Pro.", feature: "canImportBulkCatalog" },
+        { status: 403 }
+      );
     }
 
     let productsToImport: any[] = [];

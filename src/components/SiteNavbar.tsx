@@ -5,11 +5,11 @@ import BebbiLogo from "@/components/BebbiLogo";
 
 const navLinks: { label: string; id: string; href?: string }[] = [
   { label: "Como funciona", id: "como-funciona" },
-  { label: "Benefícios",    id: "beneficios"    },
-  { label: "Planos",        id: "planos"        },
-  { label: "Indicação",     id: "indicacao"     },
-  { label: "FAQ",           id: "faq"           },
-  { label: "Sobre nós",     id: "sobre-nos",    href: "/sobre" },
+  { label: "Benefícios", id: "beneficios" },
+  { label: "Planos", id: "planos" },
+  { label: "Indicação", id: "indicacao" },
+  { label: "FAQ", id: "faq" },
+  { label: "Sobre nós", id: "sobre-nos", href: "/sobre" },
 ];
 
 export default function SiteNavbar({ trackSections = false }: { trackSections?: boolean }) {
@@ -47,7 +47,8 @@ export default function SiteNavbar({ trackSections = false }: { trackSections?: 
 
             {/* Logo */}
             <a href="/" className="group flex items-center gap-2">
-              <BebbiLogo variant="white" height={26} showSicBadge />
+              <BebbiLogo variant="white" height={26} />
+
             </a>
 
             {/* Links desktop */}
@@ -56,11 +57,10 @@ export default function SiteNavbar({ trackSections = false }: { trackSections?: 
                 <a
                   key={id}
                   href={href ?? (trackSections ? `#${id}` : `/#${id}`)}
-                  className={`rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200 ${
-                    !href && activeSection === id
+                  className={`rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200 ${!href && activeSection === id
                       ? "bg-white/15 text-white"
                       : "text-white/75 hover:bg-white/10 hover:text-white"
-                  }`}
+                    }`}
                 >
                   {label}
                 </a>
@@ -96,7 +96,7 @@ export default function SiteNavbar({ trackSections = false }: { trackSections?: 
           <div className="absolute inset-0 cursor-pointer touch-manipulation bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
           <div className="absolute right-0 top-0 h-full w-72 bg-[#0B1220] p-6 shadow-2xl">
             <div className="mb-8 flex items-center justify-between">
-              <BebbiLogo variant="white" height={22} showSicBadge />
+              <BebbiLogo variant="white" height={22} />
               <button
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex h-11 w-11 cursor-pointer select-none items-center justify-center rounded-xl bg-white/10 text-white touch-manipulation transition hover:bg-white/20"
@@ -113,11 +113,10 @@ export default function SiteNavbar({ trackSections = false }: { trackSections?: 
                   key={id}
                   href={href ?? (trackSections ? `#${id}` : `/#${id}`)}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`rounded-xl px-4 py-3 text-base font-medium transition ${
-                    !href && activeSection === id
+                  className={`rounded-xl px-4 py-3 text-base font-medium transition ${!href && activeSection === id
                       ? "bg-white/15 text-white"
                       : "text-white/80 hover:bg-white/10 hover:text-white"
-                  }`}
+                    }`}
                 >
                   {label}
                 </a>

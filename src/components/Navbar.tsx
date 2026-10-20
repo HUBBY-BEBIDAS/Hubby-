@@ -122,9 +122,9 @@ export function Navbar() {
       const res = await apiFetch("/api/notifications?limit=10", { method: "GET", token });
       if (!res.ok) return;
       const json = await res.json() as { data: Notification[]; unread_count: number };
-      
+
       const newItems = json.data || [];
-      
+
       // Verifica se chegaram notificações novas que ainda não foram tocadas
       let hasNewOrder = false;
       let newestOrderNotif: Notification | null = null;
@@ -172,7 +172,7 @@ export function Navbar() {
   function toggleBell() {
     setBellOpen((v) => {
       if (!v) {
-        requestDesktopNotificationPermission().catch(() => {});
+        requestDesktopNotificationPermission().catch(() => { });
       }
       return !v;
     });
@@ -217,7 +217,7 @@ export function Navbar() {
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-1.5">
-            <BebbiLogo variant="white" height={22} showSicBadge />
+            <BebbiLogo variant="white" height={22} />
           </Link>
 
           {/* Right side: cart + bell + avatar + menu */}
@@ -400,7 +400,7 @@ export function Navbar() {
       <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-[#0F172A] text-white flex-col border-r border-[#1E293B] z-40 p-5 shadow-2xl">
         {/* Logo */}
         <div className="mb-6 flex items-center gap-1.5">
-          <BebbiLogo variant="white" height={26} showSicBadge />
+          <BebbiLogo variant="white" height={26} />
         </div>
 
         {/* User Info Block */}

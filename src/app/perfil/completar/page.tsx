@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { CityAutocomplete, type CityOption } from "@/components/ui/CityAutocomplete";
 import { StateSelect } from "@/components/ui/StateSelect";
 import { useApiToken, apiFetch } from "@/hooks/useApiToken";
+import BebbiLogo from "@/components/BebbiLogo";
 
 const ESTABLISHMENT_TYPES = [
   { value: "bar",         label: "Bar" },
@@ -164,7 +165,7 @@ export default function CompletarPerfilPage() {
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <div className="w-full max-w-lg">
         <div className="mb-8 text-center">
-          <span className="text-3xl font-bold text-[#2563EB]">SIC</span>
+          <BebbiLogo variant="dark" height={36} />
         </div>
 
         {/* Aviso */}

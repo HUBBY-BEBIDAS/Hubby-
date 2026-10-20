@@ -11,6 +11,8 @@ import {
   AlertTriangle, Download, FolderOpen, FileText, BarChart2,
   Pencil, Trash2,
 } from "lucide-react";
+import { PlanFeatureGate } from "@/components/PlanFeatureGate";
+import { hasDistributorFeature } from "@/config/plans";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -257,9 +259,10 @@ function ProductModal({ form, setForm, onSave, onClose, saving, title, error }: 
 
 // ─── Modal de importação de planilha ─────────────────────────────────────────
 
-function ImportModal({ token, onClose, onImported }: {
-  token: string | null; onClose: () => void; onImported: () => void;
+function ImportModal({ token, plan, onClose, onImported }: {
+  token: string | null; plan?: string; onClose: () => void; onImported: () => void;
 }) {
+  const allowed = hasDistributorFeature(plan, "canImportBulkCatalog");
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -316,25 +319,43 @@ function ImportModal({ token, onClose, onImported }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
       <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-display font-semibold text-[#0F172A]">Importar planilha</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl">×</button>
+          <h3 className="text-base font-display font-semibold text-[#0F172A]">Importar catálogo em lote</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl font-bold">×</button>
         </div>
-        <a href="/api/distributor/products/template" download="modelo-produtos-bebbi.xlsx"
-          className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#2563EB] hover:underline">
-          <Download size={14} className="inline mr-1" />Baixar modelo de planilha
-        </a>
-        <input ref={fileRef} type="file" accept=".xlsx" className="hidden" onChange={handleFile} />
-        {!preview ? (
-          <button onClick={() => fileRef.current?.click()} disabled={uploading}
-            className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[#DBEAFE] bg-[#F5F7FB] py-10 text-sm font-medium text-slate-500 hover:border-[#2563EB]/40 disabled:opacity-50">
-            {uploading
-              ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" /> Processando…</>
-              : <><FolderOpen size={20} className="inline mr-1" />Clique para selecionar o arquivo .xlsx</>}
-          </button>
+
+        {!allowed ? (
+          <div>
+            <PlanFeatureGate
+              currentPlan={plan}
+              feature="canImportBulkCatalog"
+              title="Importação em massa por planilha"
+              description="A importação de múltiplos produtos por planilha (CSV/XLSX) é um recurso exclusivo dos planos Pro e Enterprise. No Starter, o cadastro e edição de produtos é realizado item a item."
+              minPlanName="Pro"
+            >
+              <div />
+            </PlanFeatureGate>
+            <div className="mt-5 flex justify-end">
+              <Button variant="outline" size="sm" onClick={onClose}>Fechar</Button>
+            </div>
+          </div>
         ) : (
+          <>
+            <a href="/api/distributor/products/template" download="modelo-produtos-bebbi.xlsx"
+              className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#2563EB] hover:underline">
+              <Download size={14} className="inline mr-1" />Baixar modelo de planilha
+            </a>
+            <input ref={fileRef} type="file" accept=".xlsx" className="hidden" onChange={handleFile} />
+            {!preview ? (
+              <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[#DBEAFE] bg-[#F5F7FB] py-10 text-sm font-medium text-slate-500 hover:border-[#2563EB]/40 disabled:opacity-50">
+                {uploading
+                  ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" /> Processando…</>
+                  : <><FolderOpen size={20} className="inline mr-1" />Clique para selecionar o arquivo .xlsx</>}
+              </button>
+            ) : (
           <div className="flex flex-col gap-4">
             <div className="rounded-2xl border border-[#DBEAFE] bg-[#F5F7FB] p-4">
               <p className="font-semibold text-[#0F172A]">Resumo da planilha</p>
@@ -396,8 +417,9 @@ function ImportModal({ token, onClose, onImported }: {
               </button>
             </div>
           </div>
+            {msg && <p className="mt-3 text-sm text-red-600">{msg}</p>}
+          </>
         )}
-        {msg && <p className="mt-3 text-sm text-red-600">{msg}</p>}
       </div>
     </div>
   );

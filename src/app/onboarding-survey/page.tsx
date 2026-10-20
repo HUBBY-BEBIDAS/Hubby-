@@ -104,7 +104,7 @@ export default function OnboardingSurveyPage() {
       <div className="flex min-h-screen flex-col items-center justify-start bg-[#F5F7FB] px-4 py-6">
         {/* Header com Logo */}
         <div className="mb-4 flex items-center gap-2">
-          <BebbiLogo variant="dark" height={32} showSicBadge />
+          <BebbiLogo variant="dark" height={32} />
         </div>
 
         <div className="w-full max-w-xl">
@@ -139,7 +139,7 @@ export default function OnboardingSurveyPage() {
     <div className="flex min-h-screen flex-col items-center justify-start bg-[#F5F7FB] px-4 py-6">
       {/* Header com Logo */}
       <div className="mb-4 flex items-center gap-2">
-        <BebbiLogo variant="dark" height={32} showSicBadge />
+        <BebbiLogo variant="dark" height={32} />
       </div>
 
       <div className="w-full max-w-xl">

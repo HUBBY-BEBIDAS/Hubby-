@@ -40,6 +40,12 @@ enum ClientPlan {
   pro
 }
 
+enum OnboardingStatus {
+  PENDENTE
+  EM_ANDAMENTO
+  CONCLUIDO
+}
+
 enum OrderStatus {
   sent
   viewed
@@ -320,6 +326,7 @@ model Distributor {
   referral_code_used            String?    // código de indicação usado no cadastro
   onboarding_completed          Boolean    @default(false)
   onboarding_step               Int        @default(1)
+  onboarding_status             OnboardingStatus @default(PENDENTE) // Visível apenas para admin Bébbi
   average_rating                Float?
   review_count                  Int        @default(0)
   avg_response_time_minutes     Int?       @default(15) // Média de tempo em minutos para responder cotação

@@ -45,16 +45,25 @@ function productLookupKey(
  *   errors:       [{ row, field, message }] — primeiros 50 erros
  *   expires_in:   30 (minutos)
  */
+import { hasDistributorFeature } from "@/config/plans";
+
 export const POST = withAuth(
   async (req: NextRequest, user) => {
     const distributor = await prisma.distributor.findUnique({
       where: { user_id: user.userId },
-      select: { id: true },
+      select: { id: true, plan: true },
     });
     if (!distributor) {
       return Response.json(
         { error: "Complete o cadastro do perfil antes de importar produtos" },
         { status: 404 }
+      );
+    }
+
+    if (!hasDistributorFeature(distributor.plan, "canImportBulkCatalog")) {
+      return Response.json(
+        { error: "Importação em massa por planilha disponível a partir do plano Pro.", feature: "canImportBulkCatalog" },
+        { status: 403 }
       );
     }
 

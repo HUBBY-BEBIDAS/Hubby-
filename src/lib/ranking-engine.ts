@@ -55,8 +55,12 @@ export type RankedItem = {
   } | null;
 };
 
-// Peso de desempate por plano: planos superiores ficam à frente em empate técnico
-const PLAN_RANK: Record<string, number> = { enterprise: 0, operacional: 1, vitrine: 2 };
+// Prioridade de desempate por plano em caso de empate técnico
+const PLAN_RANK: Record<string, number> = {
+  enterprise: 0,
+  pro:        1,
+  starter:    2,
+};
 
 export type RankedDistributor = {
   distributor_id: string;
@@ -484,7 +488,7 @@ export async function computeRanking(
   //    1° distribuidoras com catálogo completo antes das parciais
   //    2° menor preço total
   //    3° menor número de dias úteis (tiebreaker)
-  //    4° plano superior (enterprise > operacional > vitrine) — destaque comercial em empate técnico
+  //    4° plano superior (enterprise > pro > starter) — prioridade em empate técnico
   //    5° ordem alfabética (tiebreaker final)
   ranked.sort((a, b) => {
     if (a.all_items_available !== b.all_items_available) return a.all_items_available ? -1 : 1;
