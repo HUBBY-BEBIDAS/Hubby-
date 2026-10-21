@@ -1018,7 +1018,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* -- INDICACAO -- */}
+        {/* -- INDICACAO (COMENTADO TEMPORARIAMENTE) -- */}
+        {/*
         <section id="indicacao" className="bg-[#0B1220] py-16 lg:py-20">
           <div className="mx-auto max-w-5xl px-6 lg:px-8">
 
@@ -1034,7 +1035,7 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Cards escalonados */}
+            {/* Cards escalonados *\/}
             <div className="mb-12 grid gap-4 sm:grid-cols-3">
               {[
                 { n: "1",   days: "30 dias",  desc: "1ª conversão",      highlight: false, extra: null },
@@ -1067,7 +1068,7 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Como funciona */}
+            {/* Como funciona *\/}
             <div className="mb-12 grid gap-4 sm:grid-cols-3 text-center">
               {[
                 { step: "1", title: "Crie sua conta", desc: "Cadastre-se como comprador — grátis para sempre." },
@@ -1082,7 +1083,7 @@ export default function Home() {
               ))}
             </div>
 
-            {/* CTA */}
+            {/* CTA *\/}
             <div className="text-center">
               <a
                 href="/auth/register"
@@ -1098,6 +1099,7 @@ export default function Home() {
 
           </div>
         </section>
+        */}
 
         {/* -- FAQ -- */}
         <FaqSection />
