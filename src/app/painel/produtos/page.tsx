@@ -417,9 +417,10 @@ function ImportModal({ token, plan, onClose, onImported }: {
               </button>
             </div>
           </div>
-            {msg && <p className="mt-3 text-sm text-red-600">{msg}</p>}
-          </>
         )}
+        {msg && <p className="mt-3 text-sm text-red-600">{msg}</p>}
+      </>
+    )}
       </div>
     </div>
   );

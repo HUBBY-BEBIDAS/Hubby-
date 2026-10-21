@@ -258,24 +258,35 @@ export default function AdminDistribuidorasPage() {
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [importTarget, setImportTarget] = useState<Distributor | null>(null);
 
+  const [apiError, setApiError] = useState<string | null>(null);
+
   function load() {
     if (!token) return;
     setLoading(true);
+    setApiError(null);
     const params = new URLSearchParams();
-    if (filterPlan)   params.set("plan",   filterPlan);
-    if (filterStatus) params.set("status", filterStatus);
-    if (filterCity)   params.set("city",   filterCity);
-    apiFetch(`/api/admin/distribuidoras?${params}`, { method: "GET", token })
+    if (filterPlan)    params.set("plan",   filterPlan);
+    if (filterStatus)  params.set("status", filterStatus);
+    if (filterCity)    params.set("city",   filterCity);
+    apiFetch(`/api/admin/distribuidoras?${params}`, { method: "GET", token: token as string })
       .then(async (r) => {
-        if (r.ok) {
-          const d = await r.json() as { distributors: Distributor[] };
-          setList(d.distributors);
+        const data = await r.json() as { distributors?: Distributor[]; error?: string };
+        if (r.ok && data.distributors) {
+          setList(data.distributors);
+        } else {
+          console.error("[AdminDistribuidoras] Erro na API:", r.status, data);
+          setApiError(data.error ?? `Erro ${r.status} ao carregar distribuidoras. Veja o console.`);
         }
+      })
+      .catch((err) => {
+        console.error("[AdminDistribuidoras] Falha de rede:", err);
+        setApiError("Falha de rede ao carregar distribuidoras.");
       })
       .finally(() => setLoading(false));
   }
 
   useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   async function approve(id: string) {
     if (!token) return;

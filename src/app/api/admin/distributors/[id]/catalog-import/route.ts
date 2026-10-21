@@ -54,8 +54,9 @@ const BATCH_SIZE = 100;
  * - Requer role platform_admin.
  */
 export const POST = withAuth(
-  async (req: NextRequest, user, { params }: { params: { id: string } }) => {
-    const { id } = params;
+  async (req: NextRequest, user, context) => {
+    const id = context?.params.id;
+    if (!id) return Response.json({ error: "ID não fornecido" }, { status: 400 });
 
     let body: unknown;
     try {
