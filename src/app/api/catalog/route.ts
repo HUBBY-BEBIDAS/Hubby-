@@ -3,6 +3,7 @@ import { withAuth } from "@/lib/with-auth";
 import { prisma } from "@/lib/prisma";
 import { normalizeCityName } from "@/lib/coverage";
 import { buildPrismaProductSearchWhere } from "@/lib/search-engine";
+import { PACKAGING_LABEL_MAP, getFamilyProductInfo } from "@/lib/catalog-family";
 
 // ─── Helper de patrocínio ─────────────────────────────────────────────────────
 
@@ -56,16 +57,6 @@ type CatalogEntry = {
   variants?: CatalogVariant[];
 };
 
-const PACKAGING_LABEL_MAP: Record<string, string> = {
-  garrafa: "Garrafa",
-  lata: "Lata",
-  barril: "Barril",
-  caixa: "Caixa",
-  fardo: "Fardo",
-  tetra_pak: "Tetra Pak",
-  other: "Outro",
-};
-
 function formatVariantLabel(packagingType: string, volumeMl: number): string {
   if (packagingType === "garrafa" && volumeMl === 330) {
     return "Long Neck 330ml";
@@ -79,27 +70,6 @@ function formatVariantLabel(packagingType: string, volumeMl: number): string {
     return `${formattedLiters}L`;
   }
   return `${volumeMl}ml`;
-}
-
-function getFamilyProductInfo(name: string, brand: string, packagingType: string): { familyName: string; familyKey: string } {
-  const typeLabel = PACKAGING_LABEL_MAP[packagingType] ?? packagingType;
-
-  // Remapeia nome de produto removendo qualificadores de embalagem e volume para obter a sublinha pura
-  let subline = name
-    .replace(/\b(long\s+neck|lata|latão|garrafa|barril|caixa|fardo|tetra\s+pak|retornável|ks)\b/gi, "")
-    .replace(/\b(\d+\.?\d*\s*(ml|l|litros?))\b/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (!subline || subline.toLowerCase() === brand.toLowerCase()) {
-    subline = brand;
-  }
-
-  // Nome unificado da família incluindo a embalagem (ex: "Heineken Garrafa", "Heineken Lata")
-  const familyName = `${subline} ${typeLabel}`;
-  const familyKey = `${brand.toLowerCase()}|${subline.toLowerCase()}|${packagingType.toLowerCase()}`;
-
-  return { familyName, familyKey };
 }
 
 async function injectSponsoredCatalog(

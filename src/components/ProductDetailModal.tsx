@@ -58,6 +58,7 @@ export type ProductVariantData = {
 };
 
 export type ProductModalData = {
+  key?:               string;
   name:               string;
   brand:              string;
   category:           string;
@@ -227,6 +228,9 @@ export function ProductDetailModal({ product, onClose }: Props) {
         packaging_type:     activeType,
         packaging_volume_ml: String(activeVolume),
       });
+      if (product.key) {
+        params.set("family_key", product.key);
+      }
       const res  = await apiFetch(`/api/catalog/product-distributors?${params}`, { method: "GET", token });
       const data = await res.json() as { distributors: DistributorOffer[] };
       setDistributors(data.distributors ?? []);
@@ -235,7 +239,7 @@ export function ProductDetailModal({ product, onClose }: Props) {
     } finally {
       setLoadingDist(false);
     }
-  }, [token, activeName, activeBrand, activeType, activeVolume]);
+  }, [token, activeName, activeBrand, activeType, activeVolume, product.key]);
 
   // Busca histórico de preço do produto mais barato da variante ativa
   useEffect(() => {

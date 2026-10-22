@@ -40,6 +40,7 @@ function itemToModalData(item: WishlistItem): ProductModalData {
   const packaging_type     = parts[3] ?? item.packaging_type;
   const packaging_volume_ml = Number(parts[4]) || item.packaging_volume_ml;
   return {
+    key:                     item.product_key,
     name:                    item.product_name,
     brand:                   item.brand,
     category:                item.category,

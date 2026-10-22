@@ -114,6 +114,7 @@ function promoLabel(p: Promotion) {
 function productToModalData(p: CatalogProduct, selectedVariantKey?: string): ProductModalData {
   const selectedVariant = p.variants?.find((v) => v.variant_key === selectedVariantKey);
   return {
+    key: p.key,
     name: selectedVariant ? selectedVariant.name : p.name,
     brand: p.brand,
     category: p.category,
