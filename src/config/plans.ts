@@ -1,11 +1,3 @@
-/**
- * Configuração centralizada de planos, preços, limites e feature flags — Bébbi.
- *
- * Todos os módulos (Landing page, Vitrine /planos, Checkout, Painel, Admin e APIs)
- * devem importar valores e regras deste arquivo.
- */
-
-// ─── Períodos suportados ───────────────────────────────────────────────────────
 
 export type PlanPeriod = "monthly" | "semiannual" | "annual";
 
